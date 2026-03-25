@@ -72,3 +72,18 @@ export const ideasRefineRateLimit = createRateLimit({
   message: 'Idea refinement rate limit exceeded. Please try again later.',
   code: 'RATE_LIMIT_IDEAS_REFINE',
 })
+
+export const ideasValidationRateLimit = createRateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 15,
+  message: 'Validation rate limit exceeded. Please try again later.',
+  code: 'RATE_LIMIT_IDEAS_VALIDATION',
+})
+
+/** Aperturas del stream SSE (cada GET cuenta al inicio; conexiones largas no multiplican). */
+export const ideasValidationSseRateLimit = createRateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 30,
+  message: 'Validation stream rate limit exceeded. Please try again later.',
+  code: 'RATE_LIMIT_IDEAS_VALIDATION_SSE',
+})

@@ -3,7 +3,7 @@
 ## Qué hace esta app
 Captura ideas en cualquier formato (texto, audio, vídeo, imagen, URL),
 las refina con un wizard guiado de 5 pasos, las valida contra fuentes
-externas reales (Reddit, Trends, competidores, redes), y las guarda
+externas (Reddit, noticias RSS, YouTube/Shorts con cuota gratuita, pulso social amplio estimado solo con IA sin APIs de pago, tendencias y competidores con IA), y las guarda
 como flashcards bonitas con score de validación. Opcionalmente se
 publican en un feed comunitario donde otros usuarios votan y comentan.
 
@@ -26,6 +26,14 @@ publican en un feed comunitario donde otros usuarios votan y comentan.
 ## Modelo AI
 - Configura **Azure OpenAI** vía `.env`: endpoint del recurso, `AZURE_OPENAI_API_KEY`, nombres de **deployment** (chat recomendado: `gpt-5.4-nano`; audio: `whisper`). Ver `backend/src/config/foundryModels.ts` y [Foundry Models](https://learn.microsoft.com/en-us/azure/foundry/foundry-models/concepts/models-sold-directly-by-azure).
 - Siempre devolver JSON estructurado — nunca prose directo al frontend
+
+## Motor de validación — cobertura de fuentes
+- **Reddit**: búsqueda JSON pública + análisis IA.
+- **Noticias**: RSS de Google News (sin API key) + análisis IA (`validateNews`).
+- **Social agregado** (`validateSocial`): **YouTube** + **Shorts** ([Data API v3](https://developers.google.com/youtube/v3), cuota gratuita con `YOUTUBE_API_KEY`) + **IA** con bloques sintéticos **X**, **Instagram** y **TikTok** (`ai_social_search`: señal 0–100 + texto; sin APIs de pago ni scraping). Sin [TikTok-Api](https://github.com/davidteather/tiktok-api) ni [Instagram Graph API](https://developers.facebook.com/products/instagram/apis/) en este repo — KISS.
+- **Tendencias**: estimación IA (no es Google Trends API).
+- **Competidores**: síntesis IA.
+- Pesos en `backend/src/services/validation/aggregator.ts`. Documentación ampliada en `.cursor/commands/03_validation_engine.md`.
 
 ## Orden de implementación
 1. 00_setup         → estructura, dependencias, DB local

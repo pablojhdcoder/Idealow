@@ -2,6 +2,7 @@ import express from 'express'
 import cors from 'cors'
 import helmet from 'helmet'
 import cookieParser from 'cookie-parser'
+import type { CorsOptions } from 'cors'
 import { config } from './config'
 import authRoutes from './routes/auth'
 import ideasRoutes from './routes/ideas'
@@ -16,8 +17,25 @@ import { logger } from './lib/logger'
 const app = express()
 
 app.set('trust proxy', config.trustProxy)
-app.use(helmet())
-app.use(cors({ origin: 'http://localhost:3000', credentials: true }))
+app.use(
+  helmet({
+    contentSecurityPolicy: false,
+    crossOriginResourcePolicy: { policy: 'cross-origin' },
+    ...(config.nodeEnv !== 'production' ? { strictTransportSecurity: false } : {}),
+  }),
+)
+
+const corsOptions: CorsOptions = {
+  origin(origin, callback) {
+    if (!origin) {
+      callback(null, true)
+      return
+    }
+    callback(null, config.corsOrigins.includes(origin))
+  },
+  credentials: true,
+}
+app.use(cors(corsOptions))
 app.use(express.json())
 app.use(cookieParser())
 app.use(requestLogger)

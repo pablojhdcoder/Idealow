@@ -1,9 +1,90 @@
+import type { Request, Response } from 'express'
 import { Router } from 'express'
+import { z } from 'zod'
+import { sendError } from '../lib/apiError'
+import { logger } from '../lib/logger'
+import { prisma } from '../lib/prisma'
+import { requireAuth } from '../middleware/auth'
+import { ideasValidationRateLimit, ideasValidationSseRateLimit } from '../middleware/rateLimit'
+import { validateParams } from '../middleware/validate'
+import { runValidation } from '../services/validation/runValidation'
+import {
+  registerValidationSseClient,
+  unregisterValidationSseClient,
+} from '../services/validation/sseHub'
 
 const router = Router()
 
-router.get('/', (_req, res) => {
-  res.json({ ok: true, route: 'validation' })
-})
+const ideaIdParamsSchema = z.object({ id: z.string().uuid() })
+
+router.post(
+  '/ideas/:id/validate',
+  requireAuth,
+  ideasValidationRateLimit,
+  validateParams(ideaIdParamsSchema),
+  async (req, res, next) => {
+    try {
+      if (!req.user) {
+        return sendError(res, 401, 'Unauthorized', 'AUTH_UNAUTHORIZED')
+      }
+      const { id } = req.params as z.infer<typeof ideaIdParamsSchema>
+      const idea = await prisma.idea.findFirst({
+        where: { id, userId: req.user.userId },
+        select: { id: true, status: true },
+      })
+      if (!idea) {
+        return sendError(res, 404, 'Idea not found', 'VALIDATION_IDEA_NOT_FOUND')
+      }
+      if (idea.status !== 'REFINING' && idea.status !== 'VALIDATED') {
+        return sendError(
+          res,
+          400,
+          'Refine the idea before running validation.',
+          'VALIDATION_BAD_STATUS',
+        )
+      }
+      void runValidation(id, req.user.userId).catch(err => {
+        logger.error({ ideaId: id, err }, 'runValidation failed')
+      })
+      return res.json({ status: 'started', ideaId: id })
+    } catch (err) {
+      next(err)
+    }
+  },
+)
+
+router.get(
+  '/ideas/:id/validate/stream',
+  requireAuth,
+  ideasValidationSseRateLimit,
+  validateParams(ideaIdParamsSchema),
+  async (req: Request, res: Response) => {
+    if (!req.user) {
+      return sendError(res, 401, 'Unauthorized', 'AUTH_UNAUTHORIZED')
+    }
+    const { id } = req.params as z.infer<typeof ideaIdParamsSchema>
+    const idea = await prisma.idea.findFirst({
+      where: { id, userId: req.user.userId },
+      select: { id: true },
+    })
+    if (!idea) {
+      return sendError(res, 404, 'Idea not found', 'VALIDATION_IDEA_NOT_FOUND')
+    }
+
+    res.setHeader('Content-Type', 'text/event-stream; charset=utf-8')
+    res.setHeader('Cache-Control', 'no-cache, no-transform')
+    res.setHeader('Connection', 'keep-alive')
+    res.setHeader('X-Accel-Buffering', 'no')
+    if (typeof res.flushHeaders === 'function') {
+      res.flushHeaders()
+    }
+
+    registerValidationSseClient(id, res)
+
+    req.on('close', () => {
+      unregisterValidationSseClient(id, res)
+    })
+  },
+)
 
 export default router

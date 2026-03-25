@@ -7,7 +7,7 @@ type Props = {
   prompt: string
   sector: string
   emoji: string
-  onClick: (prompt: string) => void
+  onClick: () => void
   index: number
 }
 
@@ -17,7 +17,8 @@ export function SuggestionCard({ prompt, sector, emoji, onClick, index }: Props)
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.08 }}
-      onClick={() => onClick(prompt)}
+      type="button"
+      onClick={onClick}
       className="group text-left"
     >
       <Card className="rounded-2xl transition-all hover:border-primary/40 hover:shadow-md">
@@ -28,7 +29,7 @@ export function SuggestionCard({ prompt, sector, emoji, onClick, index }: Props)
           </div>
           <p className="text-sm leading-relaxed text-foreground">{prompt}</p>
           <div className="flex items-center gap-1 text-xs font-medium text-primary opacity-0 transition-opacity group-hover:opacity-100">
-            Use this prompt
+            Usar como base
             <ArrowRight className="size-3" />
           </div>
         </CardContent>

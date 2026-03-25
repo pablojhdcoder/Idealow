@@ -354,11 +354,12 @@ Siempre devolver JSON estructurado desde el modelo — nunca prose al frontend.
 
 ---
 
-## Validation Score Weights
-- Reddit pain signals:     30%
-- Google Trends growth:    20%
-- Competitor gap analysis: 25%
-- Web/social signals:      25%
+## Validation Score Weights (ver `aggregator.ts`)
+- Reddit pain signals:     22%
+- Trends (IA):             12%
+- Competitor gap (IA):     22%
+- Social multi-plataforma: 26% (YouTube, Shorts, X, TikTok/IG indexado opcional)
+- News (RSS + IA):         18%
 
 ---
 
@@ -411,7 +412,6 @@ EMBEDDING_MODEL=text-embedding-3-small
 UPLOAD_DIR=./uploads
 MAX_UPLOAD_MB=25
 YOUTUBE_API_KEY=
-TWITTER_BEARER_TOKEN=
 NODE_ENV=development
 ```
 

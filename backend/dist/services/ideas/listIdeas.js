@@ -19,6 +19,7 @@ async function listIdeasForUser(userId, options = {}) {
             sector: true,
             status: true,
             isPublished: true,
+            validationScore: true,
             createdAt: true,
         },
     });

@@ -23,6 +23,7 @@ export type IdeaSummary = {
   sector: string | null
   status: string
   isPublished: boolean
+  validationScore: number | null
   createdAt: string
 }
 

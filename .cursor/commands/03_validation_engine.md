@@ -3,6 +3,28 @@
 ## Task
 Motor de validación multi-fuente. Corre en **proceso** (async, sin cola externa). Cada fuente en paralelo. Resultados streameados al frontend vía SSE.
 
+### Filosofía KISS (Keep It Simple)
+
+- **No** integrar el wrapper Python no oficial [TikTok-Api](https://github.com/davidteather/tiktok-api) en este backend Node: añade Playwright, frágil ante cambios de TikTok y límites de uso.
+- **No** meter Instagram Graph API solo para “validar una idea”: exige app Meta, cuentas Business/Creator y OAuth; demasiado peso para el flujo actual.
+- **Sí** usar APIs **gratuitas** con **una clave + HTTP** cuando bastan: [YouTube Data API v3](https://developers.google.com/youtube/v3?hl=es-419) (cuota gratuita en Google Cloud).
+- **No** [X API v2](https://docs.x.com/x-api/introduction) ni [SerpAPI](https://serpapi.com) en este motor: planes de pago; el “resto” del pulso social/web se estima con **IA** (sin datos en vivo) en la misma síntesis.
+- **Sí** [Reddit](https://www.reddit.com/dev/api/) vía `search.json` público + IA (OAuth solo si más adelante hace falta).
+
+**¿Solo IA sin APIs?** Posible para demos, pero pierdes evidencia citables y alucinaciones son más probables. KISS aquí = **pocas fuentes reales gratuitas + un modelo que sintetiza** (YouTube real + IA para el contexto amplio).
+
+### Fuentes en código (`backend/src/services/validation/`)
+
+| Rama SSE | Qué hace | Datos reales |
+|----------|-----------|----------------|
+| `reddit` | `search.json` + IA | Reddit |
+| `news` | RSS Google News + IA | Titulares |
+| `social` | YouTube + Shorts (API gratuita) + **IA** simulando “búsqueda” en **X, Instagram, TikTok** (`ai_social_search`, sin APIs de pago) | `YOUTUBE_API_KEY` opcional (cuota gratis) |
+| `competitors` | IA | N/A |
+| `trends` | IA | No Google Trends API |
+
+**Env opcional:** `YOUTUBE_API_KEY` (YouTube Data API, cuota gratuita).
+
 ---
 
 ## `backend/src/services/validation/runValidation.ts`

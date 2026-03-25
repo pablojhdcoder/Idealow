@@ -6,7 +6,7 @@ const auth_1 = require("../middleware/auth");
 const rateLimit_1 = require("../middleware/rateLimit");
 const validate_1 = require("../middleware/validate");
 const prisma_1 = require("../lib/prisma");
-const ai_1 = require("../services/ai");
+const staticSuggestions_1 = require("../lib/staticSuggestions");
 const zod_1 = require("zod");
 const router = (0, express_1.Router)();
 const profileSchema = zod_1.z.object({
@@ -38,14 +38,14 @@ router.patch('/profile', auth_1.requireAuth, (0, validate_1.validateBody)(profil
 router.get('/suggestions', auth_1.requireAuth, rateLimit_1.suggestionsRateLimit, async (req, res) => {
     try {
         const request = req;
-        const user = await prisma_1.prisma.user.findUnique({
+        const exists = await prisma_1.prisma.user.findUnique({
             where: { id: request.user.userId },
-            select: { sectors: true, goal: true, experienceLevel: true },
+            select: { id: true },
         });
-        if (!user)
+        if (!exists)
             return (0, apiError_1.sendError)(res, 404, 'User not found', 'USERS_NOT_FOUND');
-        const suggestions = await (0, ai_1.generateSuggestions)(user);
-        return res.json({ suggestions });
+        /** Ejemplos fijos (no se llama a ningún modelo). */
+        return res.json({ suggestions: [...staticSuggestions_1.STATIC_IDEA_SUGGESTIONS] });
     }
     catch {
         return (0, apiError_1.sendError)(res, 500, 'Failed to generate suggestions', 'USERS_SUGGESTIONS_FAILED');

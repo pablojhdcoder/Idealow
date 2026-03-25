@@ -5,7 +5,9 @@ Corregir bugs o aplicar cambios concretos con bajo riesgo de regresion.
 
 ## Prompt (bugfix)
 ```text
-[bug]
+
+Parece ser que cuando se solicita el dashboard el backend manda una solicitud de suggestions a un modelo de IA pidiendo más suggestions o algo así, quiero que eso no se haga, sino que esas suggestions se sitúan simplementes como ejemplos estáticos en el código, además relacionado con estas suggestions, quiero que cuando le das a use this prompt, quiero que en el cuadro de texto de capturar idea o de nueva idea se inyecte un prompt en el cual se le dice a la IA, la base de la idea, pero siempre es importante que ese prompt no sea muy grande y el usuario tenga rienda suelta para poner lo que quiera aunque se especifique algo en concreto.
+
 Quiero que:
 1) Encuentres causa raiz real.
 2) Expliques por que ocurre (breve y tecnico).

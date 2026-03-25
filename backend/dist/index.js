@@ -19,8 +19,22 @@ const requestLogger_1 = require("./middleware/requestLogger");
 const logger_1 = require("./lib/logger");
 const app = (0, express_1.default)();
 app.set('trust proxy', config_1.config.trustProxy);
-app.use((0, helmet_1.default)());
-app.use((0, cors_1.default)({ origin: 'http://localhost:3000', credentials: true }));
+app.use((0, helmet_1.default)({
+    contentSecurityPolicy: false,
+    crossOriginResourcePolicy: { policy: 'cross-origin' },
+    ...(config_1.config.nodeEnv !== 'production' ? { strictTransportSecurity: false } : {}),
+}));
+const corsOptions = {
+    origin(origin, callback) {
+        if (!origin) {
+            callback(null, true);
+            return;
+        }
+        callback(null, config_1.config.corsOrigins.includes(origin));
+    },
+    credentials: true,
+};
+app.use((0, cors_1.default)(corsOptions));
 app.use(express_1.default.json());
 app.use((0, cookie_parser_1.default)());
 app.use(requestLogger_1.requestLogger);

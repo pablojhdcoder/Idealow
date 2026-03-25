@@ -24,8 +24,9 @@ export const env = {
   UPLOAD_DIR: process.env.UPLOAD_DIR,
   MAX_UPLOAD_MB: process.env.MAX_UPLOAD_MB,
   YOUTUBE_API_KEY: process.env.YOUTUBE_API_KEY,
-  TWITTER_BEARER_TOKEN: process.env.TWITTER_BEARER_TOKEN,
   NODE_ENV: process.env.NODE_ENV,
+  /** Origen del frontend para CORS (cookies + credenciales). Ej. https://app.tudominio.com */
+  CORS_ORIGIN: process.env.CORS_ORIGIN,
 } as const
 
 export function hasAzureOpenAIConfig(): boolean {

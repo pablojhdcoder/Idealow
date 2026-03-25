@@ -7,10 +7,42 @@ import { VitePWA } from 'vite-plugin-pwa'
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 export default defineConfig({
+  build: {
+    chunkSizeWarningLimit: 900,
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (!id.includes('node_modules')) return undefined
+          if (id.includes('@tiptap') || id.includes('prosemirror')) {
+            return 'vendor-editor'
+          }
+          if (id.includes('framer-motion')) {
+            return 'vendor-motion'
+          }
+          if (id.includes('@tanstack/react-query')) {
+            return 'vendor-query'
+          }
+          if (id.includes('react-router')) {
+            return 'vendor-router'
+          }
+          if (id.includes('lucide-react') || id.includes('react-icons')) {
+            return 'vendor-icons'
+          }
+          if (id.includes('@base-ui')) {
+            return 'vendor-base-ui'
+          }
+          return 'vendor'
+        },
+      },
+    },
+  },
   plugins: [
     react(),
     VitePWA({
       registerType: 'autoUpdate',
+      workbox: {
+        maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
+      },
       manifest: {
         name: 'Idealow',
         short_name: 'Idealow',

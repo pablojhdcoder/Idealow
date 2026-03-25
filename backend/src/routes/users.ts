@@ -5,7 +5,7 @@ import { requireAuth } from '../middleware/auth'
 import { suggestionsRateLimit } from '../middleware/rateLimit'
 import { validateBody } from '../middleware/validate'
 import { prisma } from '../lib/prisma'
-import { generateSuggestions } from '../services/ai'
+import { STATIC_IDEA_SUGGESTIONS } from '../lib/staticSuggestions'
 import { z } from 'zod'
 
 const router = Router()
@@ -29,7 +29,7 @@ router.patch('/profile', requireAuth, validateBody(profileSchema), async (req, r
         username: true,
         sectors: true,
         goal: true,
-        experienceLevel: true, 
+        experienceLevel: true,
       },
     })
     return res.json({ user })
@@ -41,13 +41,13 @@ router.patch('/profile', requireAuth, validateBody(profileSchema), async (req, r
 router.get('/suggestions', requireAuth, suggestionsRateLimit, async (req, res) => {
   try {
     const request = req as RequestWithUser
-    const user = await prisma.user.findUnique({
+    const exists = await prisma.user.findUnique({
       where: { id: request.user.userId },
-      select: { sectors: true, goal: true, experienceLevel: true },
+      select: { id: true },
     })
-    if (!user) return sendError(res, 404, 'User not found', 'USERS_NOT_FOUND')
-    const suggestions = await generateSuggestions(user)
-    return res.json({ suggestions })
+    if (!exists) return sendError(res, 404, 'User not found', 'USERS_NOT_FOUND')
+    /** Ejemplos fijos (no se llama a ningún modelo). */
+    return res.json({ suggestions: [...STATIC_IDEA_SUGGESTIONS] })
   } catch {
     return sendError(
       res,

@@ -1,5 +1,5 @@
-import { useRef, useState } from 'react'
-import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { useEffect, useRef, useState } from 'react'
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
 import { ArrowLeft, Loader2, Paperclip, Plus, X } from 'lucide-react'
@@ -14,6 +14,7 @@ import { ApiError } from '@/lib/api/client'
 import { createIdea } from '@/lib/api/ideas'
 import { uploadFile } from '@/lib/api/files'
 import { ideasQueryKey } from '@/hooks/useIdeasQuery'
+import { buildNewIdeaStarterContent, getDashboardStarterById } from '@/lib/dashboardSuggestions'
 
 const SECTOR_OPTIONS = [
   { value: '', label: 'Sin preferencia' },
@@ -45,8 +46,10 @@ function formatFileSize(bytes: number) {
 export default function NewIdea() {
   const location = useLocation()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const queryClient = useQueryClient()
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const appliedQueryStarter = useRef(false)
 
   const backTo =
     location.state && typeof location.state === 'object' && 'from' in location.state
@@ -56,6 +59,33 @@ export default function NewIdea() {
   const [content, setContent] = useState('')
   const [sector, setSector] = useState('')
   const [attachedFiles, setAttachedFiles] = useState<AttachedFile[]>([])
+
+  useEffect(() => {
+    if (appliedQueryStarter.current) return
+    const starterId = searchParams.get('starter')
+    const legacyPrompt = searchParams.get('prompt')
+    if (starterId) {
+      const starter = getDashboardStarterById(starterId)
+      if (starter) {
+        setContent(buildNewIdeaStarterContent(starter.shortLine))
+        setSector(starter.sector)
+        appliedQueryStarter.current = true
+      }
+      return
+    }
+    if (legacyPrompt) {
+      try {
+        const decoded = decodeURIComponent(legacyPrompt).trim()
+        const short = decoded.length > 220 ? `${decoded.slice(0, 220)}…` : decoded
+        if (short) {
+          setContent(buildNewIdeaStarterContent(short))
+          appliedQueryStarter.current = true
+        }
+      } catch {
+        appliedQueryStarter.current = true
+      }
+    }
+  }, [searchParams])
 
   const addFiles = (list: FileList | null) => {
     if (!list?.length) return

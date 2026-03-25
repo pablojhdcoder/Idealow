@@ -235,7 +235,6 @@ export const config = {
   uploadDir:         process.env.UPLOAD_DIR || './uploads',
   maxUploadMb:       Number(process.env.MAX_UPLOAD_MB || 25),
   youtubeApiKey:     process.env.YOUTUBE_API_KEY || '',
-  twitterToken:      process.env.TWITTER_BEARER_TOKEN || '',
   nodeEnv:           process.env.NODE_ENV || 'development',
 }
 ```

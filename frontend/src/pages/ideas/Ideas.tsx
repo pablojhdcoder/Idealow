@@ -9,6 +9,8 @@ import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ideasQueryKey, useIdeasQuery } from '@/hooks/useIdeasQuery'
 import { RefinementWizard } from '@/components/ideas/RefinementWizard'
+import { ValidationProgress } from '@/components/ideas/ValidationProgress'
+import { Sheet, SheetContent } from '@/components/ui/sheet'
 import { useQueryClient } from '@tanstack/react-query'
 
 function formatDate(iso: string) {
@@ -32,6 +34,7 @@ export default function Ideas() {
       : undefined
 
   const [refineIdeaId, setRefineIdeaId] = useState<string | null>(null)
+  const [validateIdeaId, setValidateIdeaId] = useState<string | null>(null)
 
   useEffect(() => {
     const st = location.state as { openRefineId?: string; highlightId?: string } | null
@@ -58,12 +61,32 @@ export default function Ideas() {
 
   return (
     <div className="min-h-screen bg-background">
+      <Sheet
+        open={validateIdeaId != null}
+        onOpenChange={open => {
+          if (!open) setValidateIdeaId(null)
+        }}
+      >
+        <SheetContent
+          side="right"
+          className="w-full rounded-l-3xl border-l sm:max-w-lg"
+          showCloseButton
+        >
+          {validateIdeaId ? (
+            <ValidationProgress
+              ideaId={validateIdeaId}
+              onClose={() => setValidateIdeaId(null)}
+            />
+          ) : null}
+        </SheetContent>
+      </Sheet>
       {refineIdeaId && (
         <RefinementWizard
           ideaId={refineIdeaId}
-          onComplete={() => {
+          onComplete={id => {
             void queryClient.invalidateQueries({ queryKey: ideasQueryKey })
             setRefineIdeaId(null)
+            setValidateIdeaId(id)
           }}
           onDismiss={() => setRefineIdeaId(null)}
         />
@@ -147,6 +170,11 @@ export default function Ideas() {
                       <Badge variant="outline" className="rounded-full">
                         {idea.status}
                       </Badge>
+                      {idea.validationScore != null && idea.status === 'VALIDATED' && (
+                        <Badge className="rounded-full bg-accent/15 text-accent-foreground">
+                          Score {idea.validationScore}
+                        </Badge>
+                      )}
                       {idea.status === 'DRAFT' && (
                         <Button
                           type="button"
@@ -159,6 +187,27 @@ export default function Ideas() {
                           }}
                         >
                           Refinar
+                        </Button>
+                      )}
+                      {idea.status === 'REFINING' && (
+                        <Button
+                          type="button"
+                          size="sm"
+                          className="rounded-full"
+                          onClick={() => setValidateIdeaId(idea.id)}
+                        >
+                          Validar mercado
+                        </Button>
+                      )}
+                      {idea.status === 'VALIDATED' && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="rounded-full"
+                          onClick={() => setValidateIdeaId(idea.id)}
+                        >
+                          Actualizar validación
                         </Button>
                       )}
                     </div>

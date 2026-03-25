@@ -10,6 +10,7 @@ export type IdeaListItem = {
   sector: string | null
   status: string
   isPublished: boolean
+  validationScore: number | null
   createdAt: Date
 }
 
@@ -37,6 +38,7 @@ export async function listIdeasForUser(
       sector: true,
       status: true,
       isPublished: true,
+      validationScore: true,
       createdAt: true,
     },
   })

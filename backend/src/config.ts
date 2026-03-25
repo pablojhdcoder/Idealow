@@ -23,8 +23,22 @@ const parseTrustProxy = (value: string | undefined): boolean | number | string =
 const azureEndpoint = env.AZURE_OPENAI_ENDPOINT.trim().replace(/\/$/, '')
 const azureChatDeployment = env.AZURE_OPENAI_DEPLOYMENT_CHAT.trim()
 
+/** Orígenes permitidos para CORS (cookies). Lista separada por comas en `CORS_ORIGIN`. */
+export const parseCorsOrigins = (raw: string | undefined): string[] => {
+  const fallback = ['http://localhost:3000']
+  if (typeof raw !== 'string' || !raw.trim()) {
+    return fallback
+  }
+  const list = raw
+    .split(',')
+    .map(s => s.trim())
+    .filter(s => s.length > 0)
+  return list.length > 0 ? list : fallback
+}
+
 export const config = {
   port: env.PORT || 3001,
+  corsOrigins: parseCorsOrigins(env.CORS_ORIGIN),
   databaseUrl: env.DATABASE_URL!,
   jwtSecret: env.JWT_SECRET!,
   jwtIssuer: env.JWT_ISSUER || 'idealow2-backend',
@@ -32,8 +46,8 @@ export const config = {
   trustProxy: parseTrustProxy(env.TRUST_PROXY),
   uploadDir: env.UPLOAD_DIR || './uploads',
   maxUploadMb: Number(env.MAX_UPLOAD_MB || 25),
+  /** YouTube Data API: cuota gratuita con clave en Google Cloud. */
   youtubeApiKey: env.YOUTUBE_API_KEY || '',
-  twitterToken: env.TWITTER_BEARER_TOKEN || '',
   nodeEnv: env.NODE_ENV || 'development',
   azure: {
     endpoint: azureEndpoint,

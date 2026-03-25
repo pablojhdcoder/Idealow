@@ -26,7 +26,7 @@ export function RefinementWizard({
   onDismiss,
 }: {
   ideaId: string
-  onComplete: () => void
+  onComplete: (ideaId: string) => void
   onDismiss?: () => void
 }) {
   const [step, setStep] = useState(0)
@@ -64,9 +64,9 @@ export function RefinementWizard({
     },
     onSuccess: () => {
       toast.success('Idea refinada', {
-        description: 'Siguiente paso: validación (en cuanto esté el motor async).',
+        description: 'Iniciando validación de mercado…',
       })
-      onComplete()
+      onComplete(ideaId)
     },
     onError: (err: unknown) => {
       if (err instanceof ApiError) {

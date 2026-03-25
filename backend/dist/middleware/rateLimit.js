@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.ideasRefineRateLimit = exports.suggestionsRateLimit = exports.ideasCreateRateLimit = exports.filesUploadRateLimit = exports.authRegisterRateLimit = exports.authLoginRateLimit = exports.createRateLimit = void 0;
+exports.ideasValidationSseRateLimit = exports.ideasValidationRateLimit = exports.ideasRefineRateLimit = exports.suggestionsRateLimit = exports.ideasCreateRateLimit = exports.filesUploadRateLimit = exports.authRegisterRateLimit = exports.authLoginRateLimit = exports.createRateLimit = void 0;
 const express_rate_limit_1 = require("express-rate-limit");
 const apiError_1 = require("../lib/apiError");
 const resolveClientId = (req) => {
@@ -58,4 +58,17 @@ exports.ideasRefineRateLimit = (0, exports.createRateLimit)({
     max: 30,
     message: 'Idea refinement rate limit exceeded. Please try again later.',
     code: 'RATE_LIMIT_IDEAS_REFINE',
+});
+exports.ideasValidationRateLimit = (0, exports.createRateLimit)({
+    windowMs: 15 * 60 * 1000,
+    max: 15,
+    message: 'Validation rate limit exceeded. Please try again later.',
+    code: 'RATE_LIMIT_IDEAS_VALIDATION',
+});
+/** Aperturas del stream SSE (cada GET cuenta al inicio; conexiones largas no multiplican). */
+exports.ideasValidationSseRateLimit = (0, exports.createRateLimit)({
+    windowMs: 15 * 60 * 1000,
+    max: 30,
+    message: 'Validation stream rate limit exceeded. Please try again later.',
+    code: 'RATE_LIMIT_IDEAS_VALIDATION_SSE',
 });

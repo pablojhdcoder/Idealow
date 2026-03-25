@@ -164,7 +164,7 @@ npm init -y
 # Express + TypeScript
 npm install express cors helmet dotenv cookie-parser
 npm install jsonwebtoken bcryptjs
-npm install @prisma/client bullmq ioredis
+npm install @prisma/client
 npm install openai axios zod
 npm install -D typescript ts-node nodemon @types/node
 npm install -D @types/express @types/cors @types/jsonwebtoken
@@ -221,9 +221,17 @@ dotenv.config()
 export const config = {
   port:              process.env.PORT || 3001,
   databaseUrl:       process.env.DATABASE_URL!,
-  redisUrl:          process.env.REDIS_URL || 'redis://localhost:6379',
   jwtSecret:         process.env.JWT_SECRET!,
-  openrouterApiKey:  process.env.OPENROUTER_API_KEY!,
+  // Azure OpenAI / Microsoft Foundry
+  azureOpenAIEndpoint:        process.env.AZURE_OPENAI_ENDPOINT!,
+  azureOpenAIApiKey:          process.env.AZURE_OPENAI_API_KEY!,
+  openaiApiVersion:           process.env.OPENAI_API_VERSION || '2024-12-01-preview',
+  azureOpenAIDeploymentChat:  process.env.AZURE_OPENAI_DEPLOYMENT_CHAT!,
+  // Opcional: deployments por tarea (fallback a CHAT)
+  azureOpenAIDeploymentExtraction:  process.env.AZURE_OPENAI_DEPLOYMENT_EXTRACTION,
+  azureOpenAIDeploymentSuggestions: process.env.AZURE_OPENAI_DEPLOYMENT_SUGGESTIONS,
+  azureOpenAIDeploymentVision:      process.env.AZURE_OPENAI_DEPLOYMENT_VISION,
+  azureOpenAIDeploymentWhisper:     process.env.AZURE_OPENAI_DEPLOYMENT_WHISPER,
   uploadDir:         process.env.UPLOAD_DIR || './uploads',
   maxUploadMb:       Number(process.env.MAX_UPLOAD_MB || 25),
   youtubeApiKey:     process.env.YOUTUBE_API_KEY || '',
@@ -284,7 +292,15 @@ psql -U postgres -c "CREATE DATABASE idealow;"
 Añade al `backend/.env`:
 ```
 DATABASE_URL=postgresql://postgres:password@localhost:5432/idealow
-OPENROUTER_API_KEY=
+AZURE_OPENAI_ENDPOINT=
+AZURE_OPENAI_API_KEY=
+OPENAI_API_VERSION=2024-12-01-preview
+AZURE_OPENAI_DEPLOYMENT_CHAT=
+# Opcional (si no se definen, se usa CHAT):
+# AZURE_OPENAI_DEPLOYMENT_EXTRACTION=
+# AZURE_OPENAI_DEPLOYMENT_SUGGESTIONS=
+# AZURE_OPENAI_DEPLOYMENT_VISION=
+# AZURE_OPENAI_DEPLOYMENT_WHISPER=
 EMBEDDING_MODEL=text-embedding-3-small
 UPLOAD_DIR=./uploads
 MAX_UPLOAD_MB=25
@@ -304,17 +320,7 @@ psql -U postgres -d idealow -c "CREATE EXTENSION IF NOT EXISTS vector;"
 
 ---
 
-## 5. Redis local
-
-- Mac: `brew install redis && brew services start redis`
-- Windows: usar WSL o Redis Stack desde redis.io
-- Linux: `sudo apt install redis-server`
-
-Verificar: `redis-cli ping` → debe responder `PONG`
-
----
-
-## 6. Primera ejecución
+## 5. Primera ejecución
 
 Terminal 1 — Backend:
 ```bash
@@ -335,5 +341,4 @@ cd frontend && npm run dev
 - [ ] `http://localhost:3000` carga la app
 - [ ] `npx prisma studio` abre el explorador de DB
 - [ ] PostgreSQL corriendo localmente
-- [ ] Redis corriendo localmente
 - [ ] Todas las env vars rellenadas en `backend/.env` y `frontend/.env`

@@ -1,19 +1,15 @@
 "use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.generateSuggestions = generateSuggestions;
-const openai_1 = __importDefault(require("openai"));
 const config_1 = require("../../config");
-const client = new openai_1.default({
-    apiKey: config_1.config.openrouterApiKey,
-    baseURL: 'https://openrouter.ai/api/v1',
-});
+const azureOpenAI_1 = require("../../lib/azureOpenAI");
+const chatCompletionSamplingFallback_1 = require("./chatCompletionSamplingFallback");
+const openaiMessageText_1 = require("./openaiMessageText");
 const stripMarkdown = (v) => v.trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
 async function generateSuggestions(profile) {
-    const response = await client.chat.completions.create({
-        model: process.env.EXTRACTION_MODEL ?? 'openai/gpt-oss-20b:free',
+    const client = (0, azureOpenAI_1.getAzureOpenAIClient)();
+    const response = await (0, chatCompletionSamplingFallback_1.chatCompletionsCreateWithSamplingFallback)(client, {
+        model: config_1.config.azure.deploymentSuggestions,
         messages: [
             {
                 role: 'system',
@@ -27,7 +23,7 @@ async function generateSuggestions(profile) {
         temperature: 0.8,
         max_tokens: 400,
     });
-    const text = response.choices[0]?.message?.content ?? '[]';
+    const text = (0, openaiMessageText_1.completionContentToPlainText)(response.choices[0]?.message?.content) || '[]';
     try {
         const parsed = JSON.parse(stripMarkdown(text));
         return Array.isArray(parsed) ? parsed : [];

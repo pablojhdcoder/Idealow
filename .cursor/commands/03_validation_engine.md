@@ -1,30 +1,22 @@
 # Command: Validation Engine
 
 ## Task
-Motor de validación multi-fuente. Corre como job de BullMQ (async). Cada fuente en paralelo. Resultados streameados al frontend via SSE.
+Motor de validación multi-fuente. Corre en **proceso** (async, sin cola externa). Cada fuente en paralelo. Resultados streameados al frontend vía SSE.
 
 ---
 
-## `backend/src/workers/validationJob.ts`
+## `backend/src/services/validation/runValidation.ts`
 
 ```ts
-import { Queue, Worker } from 'bullmq'
-import IORedis from 'ioredis'
-import { config } from '../config'
-import { validateReddit }      from '../services/validation/reddit'
-import { validateTrends }      from '../services/validation/trends'
-import { validateCompetitors } from '../services/validation/competitors'
-import { validateSocial }      from '../services/validation/social'
-import { aggregateScore }      from '../services/validation/aggregator'
-import { prisma }              from '../lib/prisma'
-import { sseClients }          from '../routes/validation'
+import { validateReddit }      from './reddit'
+import { validateTrends }      from './trends'
+import { validateCompetitors } from './competitors'
+import { validateSocial }      from './social'
+import { aggregateScore }      from './aggregator'
+import { prisma }              from '../../lib/prisma'
+import { sseClients }          from '../../routes/validation'
 
-const connection = new IORedis(config.redisUrl, { maxRetriesPerRequest: null })
-
-export const validationQueue = new Queue('validation', { connection })
-
-new Worker('validation', async job => {
-  const { ideaId } = job.data
+export async function runValidation(ideaId: string): Promise<void> {
   const idea = await prisma.idea.findUnique({ where: { id: ideaId } })
   if (!idea) return
 
@@ -34,7 +26,6 @@ new Worker('validation', async job => {
     clients.forEach(res => res.write(`data: ${JSON.stringify(data)}\n\n`))
   }
 
-  // Todas las fuentes en paralelo
   const [reddit, trends, competitors, social] = await Promise.allSettled([
     (async () => {
       emit({ source: 'reddit', status: 'searching' })
@@ -82,7 +73,7 @@ new Worker('validation', async job => {
   })
 
   emit({ type: 'complete', ...scoreReport })
-}, { connection })
+}
 ```
 
 ---
@@ -92,18 +83,19 @@ new Worker('validation', async job => {
 ```ts
 import { Router, Request, Response } from 'express'
 import { requireAuth } from '../middleware/auth'
-import { validationQueue } from '../workers/validationJob'
+import { runValidation } from '../services/validation/runValidation'
+import { logger } from '../lib/logger'
 
 const router = Router()
 
 // Map de ideaId → array de SSE response objects
 export const sseClients = new Map<string, Response[]>()
 
-// Trigger validation
+// Trigger validation (en background)
 router.post('/ideas/:id/validate', requireAuth, async (req, res) => {
   const { id } = req.params
-  await validationQueue.add('validate', { ideaId: id })
-  res.json({ status: 'queued', ideaId: id })
+  void runValidation(id).catch(err => logger.error({ ideaId: id, err }, 'runValidation failed'))
+  res.json({ status: 'started', ideaId: id })
 })
 
 // SSE stream
@@ -140,8 +132,9 @@ import OpenAI from 'openai'
 import { config } from '../../config'
 
 const client = new OpenAI({
-  apiKey: config.openrouterApiKey,
-  baseURL: 'https://openrouter.ai/api/v1',
+  apiKey: process.env.AZURE_OPENAI_API_KEY,
+  baseURL: `${process.env.AZURE_OPENAI_ENDPOINT}/openai/v1`,
+  defaultQuery: { 'api-version': process.env.OPENAI_API_VERSION || '2024-12-01-preview' },
 })
 
 export async function validateReddit(idea: {
@@ -151,7 +144,7 @@ export async function validateReddit(idea: {
 }) {
   // 1. Generar queries de búsqueda de dolor
   const queriesRes = await client.chat.completions.create({
-    model: process.env.VALIDATION_MODEL || 'openai/gpt-oss-20b:free',
+    model: process.env.AZURE_OPENAI_DEPLOYMENT_CHAT,
     messages: [{
       role: 'user',
       content: `Generate 6 Reddit search queries to find people COMPLAINING about this problem.
@@ -189,9 +182,9 @@ Return ONLY a JSON array of strings: ["query1", "query2", ...]`
     .filter(p => p.score > 10)
     .slice(0, 40)
 
-  // 3. Analizar con OpenRouter
+  // 3. Analizar con Azure OpenAI / Foundry
   const analysisRes = await client.chat.completions.create({
-    model: process.env.VALIDATION_MODEL || 'openai/gpt-oss-20b:free',
+    model: process.env.AZURE_OPENAI_DEPLOYMENT_CHAT,
     messages: [{
       role: 'user',
       content: `Analyze these Reddit posts to measure pain signal for:
@@ -227,8 +220,9 @@ import OpenAI from 'openai'
 import { config } from '../../config'
 
 const client = new OpenAI({
-  apiKey: config.openrouterApiKey,
-  baseURL: 'https://openrouter.ai/api/v1',
+  apiKey: process.env.AZURE_OPENAI_API_KEY,
+  baseURL: `${process.env.AZURE_OPENAI_ENDPOINT}/openai/v1`,
+  defaultQuery: { 'api-version': process.env.OPENAI_API_VERSION || '2024-12-01-preview' },
 })
 
 export async function validateCompetitors(idea: {
@@ -237,7 +231,7 @@ export async function validateCompetitors(idea: {
   search_keywords: string[]
 }) {
   const response = await client.chat.completions.create({
-    model: process.env.VALIDATION_ONLINE_MODEL || 'openai/gpt-oss-20b:free:online',
+    model: process.env.AZURE_OPENAI_DEPLOYMENT_CHAT,
     messages: [{
       role: 'user',
       content: `Find competitors for this idea and analyze the market gap.
@@ -406,7 +400,7 @@ export function useValidationStream(ideaId: string | null) {
 ---
 
 ## Archivos a crear
-- `backend/src/workers/validationJob.ts`
+- `backend/src/services/validation/runValidation.ts`
 - `backend/src/routes/validation.ts`
 - `backend/src/services/validation/reddit.ts`
 - `backend/src/services/validation/trends.ts`

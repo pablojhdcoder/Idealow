@@ -28,16 +28,14 @@ beautiful flashcards that can optionally be published to a community feed.
 - **Vector DB**: `pgvector` como extensión de PostgreSQL (sin base adicional)
 - **Auth**: JWT propio con `jsonwebtoken` + `bcryptjs`
 - **Storage**: filesystem local del backend + tabla `files` en PostgreSQL
-- **Queue**: BullMQ + Redis (jobs de validación async)
-- **AI**: **OpenRouter** (API compatible con OpenAI; modelos con variante **`:free`** o catálogo actual en [openrouter.ai/models?free=true](https://openrouter.ai/models?free=true))
-- **Embeddings**: OpenRouter embeddings API para semántica (dedupe, search, recomendaciones)
+- **AI**: **Azure OpenAI / Microsoft Foundry** (deployments configurados por env; chat/visión/extracción)
+- **Embeddings**: Azure OpenAI embeddings (o provider configurado en backend)
 - **Validation**: Zod
 
 ### External APIs for Validation
 - Reddit JSON API (no key needed)
 - Google Trends via `google-trends-api` npm package
 - App Store / Play Store scraping
-- Web search via OpenRouter `web` plugin (`:online`)
 - YouTube Data API v3
 - Twitter/X API v2
 
@@ -102,21 +100,17 @@ idealow/
 │   │   │   │   ├── social.ts
 │   │   │   │   └── aggregator.ts
 │   │   │   ├── embeddings/
-│   │   │   │   ├── provider.ts        # OpenRouter embeddings client
+│   │   │   │   ├── provider.ts        # Embeddings provider client
 │   │   │   │   ├── indexer.ts         # Build vectors for Idea/File
 │   │   │   │   └── search.ts          # Similarity search helpers
 │   │   │   └── media/
 │   │   │       └── processor.ts      # Audio/video/image processing
 │   │   │   └── storage/
 │   │   │       └── localStorage.ts   # Save/read files from disk
-│   │   ├── workers/
-│   │   │   └── validationJob.ts      # BullMQ job definition
-│   │   │   └── embeddingJob.ts       # Async embedding updates
 │   │   ├── lib/
 │   │   │   ├── prisma.ts        # Prisma client singleton
-│   │   │   ├── redis.ts         # Redis client
 │   │   │   ├── jwt.ts           # JWT sign/verify helpers
-│   │   │   └── openrouter.ts    # OpenRouter client singleton
+│   │   │   └── azureOpenAI.ts   # Azure OpenAI client singleton
 │   │   ├── config.ts            # All env vars via dotenv
 │   │   └── index.ts             # Express app entry point
 │   ├── prisma/
@@ -354,10 +348,9 @@ export const requireAuth = (req: Request, res: Response, next: NextFunction) => 
 ---
 
 ## AI Model
-Siempre usar OpenRouter con un modelo gratuito estable (por ejemplo `openai/gpt-oss-20b:free`).
-Max tokens: 1000–2000 según la tarea
-Siempre devolver JSON estructurado desde el modelo — nunca prose al frontend
-Usar OpenRouter `:online` o plugin `web` para validación de competidores
+Usar Azure OpenAI / Foundry con deployments configurados por entorno.
+Max tokens: 1000–2000 según la tarea.
+Siempre devolver JSON estructurado desde el modelo — nunca prose al frontend.
 
 ---
 
@@ -404,10 +397,16 @@ VITE_API_URL=http://localhost:3001
 ```
 PORT=3001
 DATABASE_URL=postgresql://postgres:password@localhost:5432/idealow
-REDIS_URL=redis://localhost:6379
 JWT_SECRET=           ← genera con: openssl rand -hex 32
-OPENROUTER_API_KEY=
-OPENROUTER_API_KEY=
+AZURE_OPENAI_ENDPOINT=
+AZURE_OPENAI_API_KEY=
+OPENAI_API_VERSION=2024-12-01-preview
+AZURE_OPENAI_DEPLOYMENT_CHAT=
+# Opcional (si no se definen, se usa CHAT):
+# AZURE_OPENAI_DEPLOYMENT_EXTRACTION=
+# AZURE_OPENAI_DEPLOYMENT_SUGGESTIONS=
+# AZURE_OPENAI_DEPLOYMENT_VISION=
+# AZURE_OPENAI_DEPLOYMENT_WHISPER=
 EMBEDDING_MODEL=text-embedding-3-small
 UPLOAD_DIR=./uploads
 MAX_UPLOAD_MB=25

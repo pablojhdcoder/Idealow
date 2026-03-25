@@ -1,6 +1,8 @@
 import type { Request } from 'express'
 import { Router } from 'express'
+import { sendError } from '../lib/apiError'
 import { requireAuth } from '../middleware/auth'
+import { suggestionsRateLimit } from '../middleware/rateLimit'
 import { validateBody } from '../middleware/validate'
 import { prisma } from '../lib/prisma'
 import { generateSuggestions } from '../services/ai'
@@ -32,22 +34,27 @@ router.patch('/profile', requireAuth, validateBody(profileSchema), async (req, r
     })
     return res.json({ user })
   } catch {
-    return res.status(500).json({ error: 'Failed to update profile' })
+    return sendError(res, 500, 'Failed to update profile', 'USERS_PROFILE_UPDATE_FAILED')
   }
 })
 
-router.get('/suggestions', requireAuth, async (req, res) => {
+router.get('/suggestions', requireAuth, suggestionsRateLimit, async (req, res) => {
   try {
     const request = req as RequestWithUser
     const user = await prisma.user.findUnique({
       where: { id: request.user.userId },
       select: { sectors: true, goal: true, experienceLevel: true },
     })
-    if (!user) return res.status(404).json({ error: 'User not found' })
+    if (!user) return sendError(res, 404, 'User not found', 'USERS_NOT_FOUND')
     const suggestions = await generateSuggestions(user)
     return res.json({ suggestions })
   } catch {
-    return res.status(500).json({ error: 'Failed to generate suggestions' })
+    return sendError(
+      res,
+      500,
+      'Failed to generate suggestions',
+      'USERS_SUGGESTIONS_FAILED',
+    )
   }
 })
 

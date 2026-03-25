@@ -1,12 +1,17 @@
 import axios from 'axios'
 import fs from 'fs/promises'
 import path from 'path'
-import OpenAI from 'openai'
 import { toFile } from 'openai/uploads'
+import { PDFParse } from 'pdf-parse'
 import { config } from '../../config'
+import { getAzureOpenAIClient } from '../../lib/azureOpenAI'
+import { chatCompletionsCreateWithSamplingFallback } from '../ai/chatCompletionSamplingFallback'
+import { completionContentToPlainText } from '../ai/openaiMessageText'
+
+export const WHISPER_DEPLOYMENT_MISSING = 'WHISPER_DEPLOYMENT_MISSING' as const
 
 const isMediaUrl = (value: string) => value.startsWith('http://') || value.startsWith('https://')
-const mediaExtensions = ['mp3', 'mp4', 'wav', 'jpg', 'jpeg', 'png', 'webp', 'gif', 'm4a', 'ogg']
+const mediaExtensions = ['mp3', 'mp4', 'wav', 'jpg', 'jpeg', 'png', 'webp', 'gif', 'm4a', 'ogg', 'pdf']
 const textMimeTypes = new Set(['text/plain', 'text/markdown'])
 const audioMimeTypes = new Set(['audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/mp4', 'audio/x-m4a', 'audio/ogg'])
 const imageMimeTypes = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif'])
@@ -15,6 +20,7 @@ const pdfMimeTypes = new Set(['application/pdf'])
 export async function processMedia(filePathOrUrl: string, mimeType?: string): Promise<string> {
   const ext = path.extname(filePathOrUrl).replace('.', '').toLowerCase()
   const isUrl = isMediaUrl(filePathOrUrl)
+  const isPdf = ext === 'pdf' || (mimeType ? pdfMimeTypes.has(mimeType) : false)
 
   if (isUrl && !mediaExtensions.includes(ext)) {
     const { data } = await axios.get<string>(filePathOrUrl, { timeout: 10000 })
@@ -22,37 +28,33 @@ export async function processMedia(filePathOrUrl: string, mimeType?: string): Pr
   }
 
   if (['mp3', 'mp4', 'wav', 'm4a', 'ogg'].includes(ext) || (mimeType ? audioMimeTypes.has(mimeType) : false)) {
-    const audioClient = new OpenAI({
-      apiKey: config.openrouterApiKey,
-      baseURL: 'https://openrouter.ai/api/v1',
-    })
+    if (!config.azure.deploymentWhisper) {
+      throw new Error(WHISPER_DEPLOYMENT_MISSING)
+    }
 
+    const client = getAzureOpenAIClient()
     const bytes = isUrl
       ? Buffer.from((await axios.get<ArrayBuffer>(filePathOrUrl, { responseType: 'arraybuffer' })).data)
       : await fs.readFile(filePathOrUrl)
 
-    const transcription = await audioClient.audio.transcriptions.create({
+    const transcription = await client.audio.transcriptions.create({
       file: await toFile(bytes, `audio.${ext || 'mp3'}`),
-      model: process.env.TRANSCRIPTION_MODEL || 'openai/whisper-1',
+      model: config.azure.deploymentWhisper,
     })
 
     return transcription.text
   }
 
   if (['jpg', 'jpeg', 'png', 'webp', 'gif'].includes(ext) || (mimeType ? imageMimeTypes.has(mimeType) : false)) {
-    const visionClient = new OpenAI({
-      apiKey: config.openrouterApiKey,
-      baseURL: 'https://openrouter.ai/api/v1',
-    })
-
+    const client = getAzureOpenAIClient()
     const bytes = isUrl
       ? Buffer.from((await axios.get<ArrayBuffer>(filePathOrUrl, { responseType: 'arraybuffer' })).data)
       : await fs.readFile(filePathOrUrl)
 
     const base64 = bytes.toString('base64')
     const mediaType = ext === 'png' ? 'image/png' : ext === 'webp' ? 'image/webp' : 'image/jpeg'
-    const msg = await visionClient.chat.completions.create({
-      model: process.env.MULTIMODAL_MODEL || 'qwen/qwen2.5-vl-72b-instruct:free',
+    const msg = await chatCompletionsCreateWithSamplingFallback(client, {
+      model: config.azure.deploymentVision,
       messages: [
         {
           role: 'user',
@@ -71,8 +73,18 @@ export async function processMedia(filePathOrUrl: string, mimeType?: string): Pr
       temperature: 0.2,
     })
 
-    const content = msg.choices[0]?.message?.content
-    return typeof content === 'string' ? content : ''
+    return completionContentToPlainText(msg.choices[0]?.message?.content)
+  }
+
+  if (isPdf) {
+    const bytes = isUrl
+      ? Buffer.from((await axios.get<ArrayBuffer>(filePathOrUrl, { responseType: 'arraybuffer' })).data)
+      : await fs.readFile(filePathOrUrl)
+
+    const parser = new PDFParse({ data: bytes })
+    const parsed = await parser.getText()
+    await parser.destroy()
+    return (parsed.text ?? '').replace(/\s+/g, ' ').trim().slice(0, 5000)
   }
 
   if (!isUrl && (mimeType ? textMimeTypes.has(mimeType) : true)) {
@@ -82,10 +94,6 @@ export async function processMedia(filePathOrUrl: string, mimeType?: string): Pr
     } catch {
       return ''
     }
-  }
-
-  if (mimeType && pdfMimeTypes.has(mimeType)) {
-    throw new Error('UNSUPPORTED_MEDIA: PDF extraction is not implemented yet')
   }
 
   throw new Error('UNSUPPORTED_MEDIA: Unsupported media format')

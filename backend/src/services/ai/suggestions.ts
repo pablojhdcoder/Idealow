@@ -1,10 +1,7 @@
-import OpenAI from 'openai'
 import { config } from '../../config'
-
-const client = new OpenAI({
-  apiKey: config.openrouterApiKey,
-  baseURL: 'https://openrouter.ai/api/v1',
-})
+import { getAzureOpenAIClient } from '../../lib/azureOpenAI'
+import { chatCompletionsCreateWithSamplingFallback } from './chatCompletionSamplingFallback'
+import { completionContentToPlainText } from './openaiMessageText'
 
 type UserProfile = {
   sectors: string[]
@@ -16,8 +13,9 @@ const stripMarkdown = (v: string) =>
   v.trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim()
 
 export async function generateSuggestions(profile: UserProfile): Promise<string[]> {
-  const response = await client.chat.completions.create({
-    model: process.env.EXTRACTION_MODEL ?? 'openai/gpt-oss-20b:free',
+  const client = getAzureOpenAIClient()
+  const response = await chatCompletionsCreateWithSamplingFallback(client, {
+    model: config.azure.deploymentSuggestions,
     messages: [
       {
         role: 'system',
@@ -33,7 +31,7 @@ export async function generateSuggestions(profile: UserProfile): Promise<string[
     max_tokens: 400,
   })
 
-  const text = response.choices[0]?.message?.content ?? '[]'
+  const text = completionContentToPlainText(response.choices[0]?.message?.content) || '[]'
   try {
     const parsed: unknown = JSON.parse(stripMarkdown(text))
     return Array.isArray(parsed) ? (parsed as string[]) : []

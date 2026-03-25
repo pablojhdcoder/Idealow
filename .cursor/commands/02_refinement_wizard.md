@@ -1,7 +1,7 @@
 # Command: Refinement Wizard
 
 ## Task
-Wizard de refinamiento de 5 pasos. NO es un chat — es un flujo estructurado donde OpenRouter genera preguntas personalizadas y el usuario elige entre opciones concretas.
+Wizard de refinamiento de 5 pasos. NO es un chat — es un flujo estructurado donde Azure OpenAI / Microsoft Foundry genera preguntas personalizadas y el usuario elige entre opciones concretas.
 
 ---
 
@@ -21,8 +21,9 @@ import OpenAI from 'openai'
 import { config } from '../../config'
 
 const client = new OpenAI({
-  apiKey: config.openrouterApiKey,
-  baseURL: 'https://openrouter.ai/api/v1',
+  apiKey: process.env.AZURE_OPENAI_API_KEY,
+  baseURL: `${process.env.AZURE_OPENAI_ENDPOINT}/openai/v1`,
+  defaultQuery: { 'api-version': process.env.OPENAI_API_VERSION || '2024-12-01-preview' },
 })
 
 const QUESTIONS_PROMPT = `You are a product strategist helping refine an idea before market validation.
@@ -83,7 +84,7 @@ export async function generateQuestions(idea: {
   sector: string
 }) {
   const response = await client.chat.completions.create({
-    model: process.env.REFINEMENT_MODEL || 'openai/gpt-oss-20b:free',
+    model: process.env.AZURE_OPENAI_DEPLOYMENT_CHAT,
     messages: [{
       role: 'system', content: QUESTIONS_PROMPT
     }, {
@@ -107,7 +108,7 @@ export async function synthesizeAnswers(
   userProfile: { sectors: string[]; goal: string }
 ) {
   const response = await client.chat.completions.create({
-    model: process.env.REFINEMENT_MODEL || 'openai/gpt-oss-20b:free',
+    model: process.env.AZURE_OPENAI_DEPLOYMENT_CHAT,
     messages: [{
       role: 'system', content: SYNTHESIS_PROMPT
     }, {
@@ -179,10 +180,6 @@ router.post('/:id/refine/answers', requireAuth, async (req, res) => {
         status:         'REFINING',
       }
     })
-
-    // Enqueue validation job
-    const { validationQueue } = await import('../workers/validationJob')
-    await validationQueue.add('validate', { ideaId: idea.id })
 
     res.json({ idea: updated, nextStep: 'validation' })
   } catch (err) {
@@ -354,6 +351,5 @@ export function RefinementWizard({ ideaId, onComplete }: {
 
 ## Archivos a crear
 - `backend/src/services/ai/refiner.ts`
-- `backend/src/workers/validationJob.ts` (BullMQ queue setup)
 - `frontend/src/components/ideas/RefinementWizard.tsx`
 - `frontend/src/components/ideas/WizardSkeleton.tsx`

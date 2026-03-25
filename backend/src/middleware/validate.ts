@@ -1,4 +1,5 @@
 import type { NextFunction, Request, Response } from 'express'
+import { sendError } from '../lib/apiError'
 import type { ZodSchema } from 'zod'
 
 export const validateBody =
@@ -6,12 +7,33 @@ export const validateBody =
     const result = schema.safeParse(req.body)
 
     if (!result.success) {
-      return res.status(422).json({
-        error: 'Validation failed',
-        details: result.error.flatten(),
-      })
+      return sendError(
+        res,
+        422,
+        'Validation failed',
+        'VALIDATION_ERROR',
+        result.error.flatten(),
+      )
     }
 
     req.body = result.data
+    next()
+  }
+
+export const validateParams =
+  (schema: ZodSchema) => (req: Request, res: Response, next: NextFunction) => {
+    const result = schema.safeParse(req.params)
+
+    if (!result.success) {
+      return sendError(
+        res,
+        422,
+        'Validation failed',
+        'VALIDATION_ERROR',
+        result.error.flatten(),
+      )
+    }
+
+    req.params = result.data as Request['params']
     next()
   }

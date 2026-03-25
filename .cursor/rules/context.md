@@ -14,8 +14,7 @@ publican en un feed comunitario donde otros usuarios votan y comentan.
 - DB:        PostgreSQL + extensión `pgvector` (única base de datos)
 - Auth:      JWT propio (jsonwebtoken + bcryptjs) — sin Supabase Auth
 - Storage:   Disco local en backend (`backend/uploads`) + metadatos en tabla `files`
-- Queue:     BullMQ + Redis (jobs de validación async)
-- AI:        **OpenRouter** (API compatible con OpenAI; modelos con variante **`:free`** o catálogo actual en [openrouter.ai/models?free=true](https://openrouter.ai/models?free=true))
+- AI:        **Microsoft Foundry / Azure OpenAI** (SDK `openai` con `AzureOpenAI`; deployments en el recurso Azure)
 - Embeddings: vectorización de ideas/archivos para búsqueda semántica y recomendaciones
 - PWA:       vite-plugin-pwa (instalable en Android e iOS)
 - Deploy:    CubePath (configurar más adelante, sin Docker por ahora)
@@ -25,9 +24,8 @@ publican en un feed comunitario donde otros usuarios votan y comentan.
 - Backend:  http://localhost:3001
 
 ## Modelo AI
-- Usa **OpenRouter** en ajustes de modelo personalizado, base URL `https://openrouter.ai/api/v1` y API key de OpenRouter.
-- Elige un modelo gratuito (sufijo `:free` o colección “Free” en OpenRouter). Los IDs cambian; revisa el catálogo si un modelo deja de estar disponible.
-Siempre devolver JSON estructurado — nunca prose directo al frontend
+- Configura **Azure OpenAI** vía `.env`: endpoint del recurso, `AZURE_OPENAI_API_KEY`, nombres de **deployment** (chat recomendado: `gpt-5.4-nano`; audio: `whisper`). Ver `backend/src/config/foundryModels.ts` y [Foundry Models](https://learn.microsoft.com/en-us/azure/foundry/foundry-models/concepts/models-sold-directly-by-azure).
+- Siempre devolver JSON estructurado — nunca prose directo al frontend
 
 ## Orden de implementación
 1. 00_setup         → estructura, dependencias, DB local

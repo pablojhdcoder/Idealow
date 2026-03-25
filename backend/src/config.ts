@@ -1,16 +1,48 @@
-import dotenv from 'dotenv'
+import { env, validateCriticalEnv } from './config/env'
 
-dotenv.config()
+validateCriticalEnv()
+
+const parseTrustProxy = (value: string | undefined): boolean | number | string => {
+  if (!value) {
+    return false
+  }
+  const normalized = value.trim().toLowerCase()
+  if (normalized === 'true') {
+    return true
+  }
+  if (normalized === 'false') {
+    return false
+  }
+  const maybeNumber = Number(value)
+  if (Number.isInteger(maybeNumber) && maybeNumber >= 0) {
+    return maybeNumber
+  }
+  return value
+}
+
+const azureEndpoint = env.AZURE_OPENAI_ENDPOINT.trim().replace(/\/$/, '')
+const azureChatDeployment = env.AZURE_OPENAI_DEPLOYMENT_CHAT.trim()
 
 export const config = {
-  port: process.env.PORT || 3001,
-  databaseUrl: process.env.DATABASE_URL!,
-  redisUrl: process.env.REDIS_URL || 'redis://localhost:6379',
-  jwtSecret: process.env.JWT_SECRET!,
-  openrouterApiKey: process.env.OPENROUTER_API_KEY!,
-  uploadDir: process.env.UPLOAD_DIR || './uploads',
-  maxUploadMb: Number(process.env.MAX_UPLOAD_MB || 25),
-  youtubeApiKey: process.env.YOUTUBE_API_KEY || '',
-  twitterToken: process.env.TWITTER_BEARER_TOKEN || '',
-  nodeEnv: process.env.NODE_ENV || 'development',
+  port: env.PORT || 3001,
+  databaseUrl: env.DATABASE_URL!,
+  jwtSecret: env.JWT_SECRET!,
+  jwtIssuer: env.JWT_ISSUER || 'idealow2-backend',
+  jwtAudience: env.JWT_AUDIENCE || 'idealow2-frontend',
+  trustProxy: parseTrustProxy(env.TRUST_PROXY),
+  uploadDir: env.UPLOAD_DIR || './uploads',
+  maxUploadMb: Number(env.MAX_UPLOAD_MB || 25),
+  youtubeApiKey: env.YOUTUBE_API_KEY || '',
+  twitterToken: env.TWITTER_BEARER_TOKEN || '',
+  nodeEnv: env.NODE_ENV || 'development',
+  azure: {
+    endpoint: azureEndpoint,
+    apiKey: env.AZURE_OPENAI_API_KEY.trim(),
+    apiVersion: env.OPENAI_API_VERSION.trim() || '2024-12-01-preview',
+    deploymentChat: azureChatDeployment,
+    deploymentExtraction: env.AZURE_OPENAI_DEPLOYMENT_EXTRACTION.trim() || azureChatDeployment,
+    deploymentSuggestions: env.AZURE_OPENAI_DEPLOYMENT_SUGGESTIONS.trim() || azureChatDeployment,
+    deploymentVision: env.AZURE_OPENAI_DEPLOYMENT_VISION.trim() || azureChatDeployment,
+    deploymentWhisper: env.AZURE_OPENAI_DEPLOYMENT_WHISPER.trim(),
+  },
 }

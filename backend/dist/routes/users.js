@@ -1,7 +1,9 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
+const apiError_1 = require("../lib/apiError");
 const auth_1 = require("../middleware/auth");
+const rateLimit_1 = require("../middleware/rateLimit");
 const validate_1 = require("../middleware/validate");
 const prisma_1 = require("../lib/prisma");
 const ai_1 = require("../services/ai");
@@ -30,10 +32,10 @@ router.patch('/profile', auth_1.requireAuth, (0, validate_1.validateBody)(profil
         return res.json({ user });
     }
     catch {
-        return res.status(500).json({ error: 'Failed to update profile' });
+        return (0, apiError_1.sendError)(res, 500, 'Failed to update profile', 'USERS_PROFILE_UPDATE_FAILED');
     }
 });
-router.get('/suggestions', auth_1.requireAuth, async (req, res) => {
+router.get('/suggestions', auth_1.requireAuth, rateLimit_1.suggestionsRateLimit, async (req, res) => {
     try {
         const request = req;
         const user = await prisma_1.prisma.user.findUnique({
@@ -41,12 +43,12 @@ router.get('/suggestions', auth_1.requireAuth, async (req, res) => {
             select: { sectors: true, goal: true, experienceLevel: true },
         });
         if (!user)
-            return res.status(404).json({ error: 'User not found' });
+            return (0, apiError_1.sendError)(res, 404, 'User not found', 'USERS_NOT_FOUND');
         const suggestions = await (0, ai_1.generateSuggestions)(user);
         return res.json({ suggestions });
     }
     catch {
-        return res.status(500).json({ error: 'Failed to generate suggestions' });
+        return (0, apiError_1.sendError)(res, 500, 'Failed to generate suggestions', 'USERS_SUGGESTIONS_FAILED');
     }
 });
 exports.default = router;

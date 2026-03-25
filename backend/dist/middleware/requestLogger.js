@@ -1,14 +1,18 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.requestLogger = void 0;
+const logger_1 = require("../lib/logger");
 const requestLogger = (req, res, next) => {
     const start = Date.now();
-    const startedAt = new Date().toISOString();
-    console.log(`[REQ] ${startedAt} ${req.method} ${req.originalUrl} from ${req.ip ?? 'unknown-ip'}`);
     res.on('finish', () => {
         const durationMs = Date.now() - start;
-        const finishedAt = new Date().toISOString();
-        console.log(`[RES] ${finishedAt} ${req.method} ${req.originalUrl} -> ${res.statusCode} (${durationMs}ms)`);
+        logger_1.logger.info({
+            method: req.method,
+            path: req.originalUrl,
+            status: res.statusCode,
+            durationMs,
+            userId: req.user?.userId ?? null,
+        }, 'request completed');
     });
     next();
 };

@@ -11,9 +11,11 @@ import feedRoutes from './routes/feed'
 import filesRoutes from './routes/files'
 import { errorHandler } from './middleware/errors'
 import { requestLogger } from './middleware/requestLogger'
+import { logger } from './lib/logger'
 
 const app = express()
 
+app.set('trust proxy', config.trustProxy)
 app.use(helmet())
 app.use(cors({ origin: 'http://localhost:3000', credentials: true }))
 app.use(express.json())
@@ -31,5 +33,11 @@ app.get('/health', (_req, res) => res.json({ status: 'ok' }))
 app.use(errorHandler)
 
 app.listen(config.port, () => {
-  console.log(`Backend running on http://localhost:${config.port}`)
+  logger.info(
+    {
+      port: config.port,
+      nodeEnv: config.nodeEnv,
+    },
+    'backend server started',
+  )
 })

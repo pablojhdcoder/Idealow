@@ -1,7 +1,7 @@
 # Command: Create New Idea Endpoint
 
 ## Task
-Endpoint completo para recibir input del usuario en cualquier formato y devolver una idea estructurada lista para el wizard de refinamiento.
+Endpoint completo para recibir input del usuario en cualquier formato y devolver una idea estructurada lista para el wizard de refinamiento (extracción vía Azure OpenAI / Microsoft Foundry).
 
 ---
 
@@ -49,7 +49,7 @@ router.post('/create', requireAuth, validateBody(createIdeaSchema), async (req, 
       return res.status(422).json({ error: 'No content provided' })
     }
 
-    // Extraer idea estructurada con OpenRouter
+    // Extraer idea estructurada con Azure OpenAI / Foundry
     const extracted = await extractIdea(rawText, sector)
 
     // Guardar en DB
@@ -107,18 +107,21 @@ export async function processMedia(filePathOrUrl: string): Promise<string> {
     return transcription.text
   }
 
-  // Imagen → modelo multimodal vía OpenRouter
+  // Imagen → modelo multimodal vía Azure OpenAI / Foundry
   if (['jpg', 'jpeg', 'png', 'webp', 'gif'].includes(ext)) {
     const OpenAI = require('openai')
+    // Nota: en Azure, el "model" suele ser el nombre del deployment.
+    // Ajusta ENDPOINT / API KEY / API VERSION según tu recurso.
     const client = new OpenAI({
-      apiKey: process.env.OPENROUTER_API_KEY,
-      baseURL: 'https://openrouter.ai/api/v1',
+      apiKey: process.env.AZURE_OPENAI_API_KEY,
+      baseURL: `${process.env.AZURE_OPENAI_ENDPOINT}/openai/v1`,
+      defaultQuery: { 'api-version': process.env.OPENAI_API_VERSION || '2024-12-01-preview' },
     })
     const imgResponse = await axios.get(filePathOrUrl, { responseType: 'arraybuffer' })
     const base64 = Buffer.from(imgResponse.data).toString('base64')
     const mediaType = ext === 'png' ? 'image/png' : 'image/jpeg'
     const msg = await client.chat.completions.create({
-      model: process.env.MULTIMODAL_MODEL || 'qwen/qwen2.5-vl-72b-instruct:free',
+      model: process.env.AZURE_OPENAI_DEPLOYMENT_VISION || process.env.AZURE_OPENAI_DEPLOYMENT_CHAT,
       messages: [{
         role: 'user',
         content: [
@@ -144,8 +147,9 @@ import OpenAI from 'openai'
 import { config } from '../../config'
 
 const client = new OpenAI({
-  apiKey: config.openrouterApiKey,
-  baseURL: 'https://openrouter.ai/api/v1',
+  apiKey: process.env.AZURE_OPENAI_API_KEY,
+  baseURL: `${process.env.AZURE_OPENAI_ENDPOINT}/openai/v1`,
+  defaultQuery: { 'api-version': process.env.OPENAI_API_VERSION || '2024-12-01-preview' },
 })
 
 const SYSTEM_PROMPT = `You are an idea extraction specialist. Take raw unstructured input 
@@ -171,7 +175,7 @@ Rules:
 
 export async function extractIdea(rawText: string, hintSector?: string) {
   const response = await client.chat.completions.create({
-    model: process.env.EXTRACTION_MODEL || 'openai/gpt-oss-20b:free',
+    model: process.env.AZURE_OPENAI_DEPLOYMENT_EXTRACTION || process.env.AZURE_OPENAI_DEPLOYMENT_CHAT,
     messages: [{
       role: 'system', content: SYSTEM_PROMPT
     }, {

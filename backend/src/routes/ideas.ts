@@ -1,67 +1,148 @@
-import type { Request } from 'express'
+import type { NextFunction, Request, Response } from 'express'
 import { Router } from 'express'
+import { z } from 'zod'
+import { sendError } from '../lib/apiError'
+import { HttpError } from '../lib/httpError'
 import { requireAuth } from '../middleware/auth'
-import { validateBody } from '../middleware/validate'
-import { createIdeaSchema } from '../schemas/idea'
-import { extractIdea } from '../services/ai/extractor'
-import { processMedia } from '../services/media/processor'
-import { prisma } from '../lib/prisma'
+import { ideasCreateRateLimit, ideasRefineRateLimit } from '../middleware/rateLimit'
+import { validateBody, validateParams } from '../middleware/validate'
+import { logger } from '../lib/logger'
+import {
+  createIdeaSchema,
+  listIdeasQuerySchema,
+  refineAnswersBodySchema,
+  type CreateIdeaBody,
+} from '../schemas/idea'
+import { createIdeaFromInput, listIdeasForUser } from '../services/ideas'
+import { loadRefinementQuestions, submitRefinement } from '../services/ideas/refinement'
+import { cleanupOrphanedUploads } from '../services/files/cleanupOrphanedUploads'
 
 const router = Router()
-type AuthenticatedRequest = Request & { user: { userId: string } }
 
-router.get('/', (_req, res) => {
-  res.json({ ok: true, route: 'ideas' })
-})
+const ideaIdParamsSchema = z.object({ id: z.string().uuid() })
 
-router.post('/create', requireAuth, validateBody(createIdeaSchema), async (req, res) => {
+/** No borrar adjuntos en errores de validación / recurso incorrecto (nunca llegamos a “consumir” la subida en una idea). */
+function shouldCleanupOrphanUploadsAfterCreateError(err: unknown): boolean {
+  if (!(err instanceof HttpError)) {
+    return true
+  }
+  const skip = new Set([
+    'IDEAS_FILE_NOT_FOUND',
+    'IDEAS_FILE_ALREADY_ATTACHED',
+    'IDEAS_NO_CONTENT',
+  ])
+  return !skip.has(err.code)
+}
+
+router.get('/', requireAuth, async (req, res, next) => {
   try {
-    const { content, fileId, sector } = req.body as {
-      content?: string
-      fileId?: string
-      sector?: string
+    if (!req.user) {
+      return sendError(res, 401, 'Unauthorized', 'AUTH_UNAUTHORIZED')
     }
-
-    const userId = (req as AuthenticatedRequest).user.userId
-
-    let rawText = content || ''
-    if (fileId) {
-      const file = await prisma.file.findFirst({ where: { id: fileId, userId } })
-      if (!file) {
-        return res.status(404).json({ error: 'File not found' })
-      }
-      rawText = await processMedia(file.filepath, file.mimeType)
+    const parsed = listIdeasQuerySchema.safeParse(req.query)
+    if (!parsed.success) {
+      return sendError(res, 422, 'Validation failed', 'VALIDATION_ERROR', parsed.error.flatten())
     }
-
-    if (!rawText.trim()) {
-      return res.status(422).json({ error: 'No content provided' })
-    }
-
-    const extracted = await extractIdea(rawText, sector)
-
-    const idea = await prisma.idea.create({
-      data: {
-        userId,
-        title: extracted.title,
-        summary: extracted.elevator_pitch,
-        rawContent: rawText,
-        sector: extracted.sector || sector,
-        status: 'DRAFT',
-        files: fileId ? { connect: [{ id: fileId }] } : undefined,
-      },
-    })
-
-    return res.json({
-      ideaId: idea.id,
-      extracted,
-      nextStep: 'refine',
-    })
+    const result = await listIdeasForUser(req.user.userId, parsed.data)
+    return res.json(result)
   } catch (err) {
-    if (err instanceof Error && err.message.startsWith('UNSUPPORTED_MEDIA:')) {
-      return res.status(422).json({ error: err.message.replace('UNSUPPORTED_MEDIA:', '').trim() })
-    }
-    return res.status(500).json({ error: 'Failed to create idea' })
+    next(err)
   }
 })
+
+const createIdeaHandler = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    if (!req.user) {
+      return sendError(res, 401, 'Unauthorized', 'AUTH_UNAUTHORIZED')
+    }
+    const userId = req.user.userId
+    const { content, fileId, fileIds, sector } = req.body as CreateIdeaBody
+    const mergedIds = [...new Set([...(fileIds ?? []), ...(fileId ? [fileId] : [])])]
+
+    const result = await createIdeaFromInput({
+      userId,
+      content,
+      fileId,
+      fileIds: mergedIds.length > 0 ? mergedIds : undefined,
+      sector,
+    })
+    return res.status(201).json(result)
+  } catch (err) {
+    if (req.user && shouldCleanupOrphanUploadsAfterCreateError(err)) {
+      const { fileId, fileIds } = req.body as CreateIdeaBody
+      const mergedIds = [...new Set([...(fileIds ?? []), ...(fileId ? [fileId] : [])])]
+      if (mergedIds.length > 0) {
+        try {
+          const cleanup = await cleanupOrphanedUploads({
+            userId: req.user.userId,
+            fileIds: mergedIds,
+          })
+          if (cleanup.filesystemErrors > 0) {
+            logger.warn(
+              {
+                userId: req.user.userId,
+                fileIds: mergedIds,
+                cleanup,
+              },
+              'Partial cleanup after failed idea creation',
+            )
+          }
+        } catch (cleanupError) {
+          logger.warn(
+            {
+              userId: req.user.userId,
+              fileIds: mergedIds,
+              cleanupError,
+            },
+            'Cleanup failed after idea creation error',
+          )
+        }
+      }
+    }
+    next(err)
+  }
+}
+
+router.post('/', requireAuth, ideasCreateRateLimit, validateBody(createIdeaSchema), createIdeaHandler)
+
+router.post(
+  '/:id/refine/questions',
+  requireAuth,
+  ideasRefineRateLimit,
+  validateParams(ideaIdParamsSchema),
+  async (req, res, next) => {
+    try {
+      if (!req.user) {
+        return sendError(res, 401, 'Unauthorized', 'AUTH_UNAUTHORIZED')
+      }
+      const { id } = req.params as z.infer<typeof ideaIdParamsSchema>
+      const questions = await loadRefinementQuestions(req.user.userId, id)
+      return res.json(questions)
+    } catch (err) {
+      next(err)
+    }
+  },
+)
+
+router.post(
+  '/:id/refine/answers',
+  requireAuth,
+  ideasRefineRateLimit,
+  validateParams(ideaIdParamsSchema),
+  validateBody(refineAnswersBodySchema),
+  async (req, res, next) => {
+    try {
+      if (!req.user) {
+        return sendError(res, 401, 'Unauthorized', 'AUTH_UNAUTHORIZED')
+      }
+      const { id } = req.params as z.infer<typeof ideaIdParamsSchema>
+      const { answers } = req.body as z.infer<typeof refineAnswersBodySchema>
+      const result = await submitRefinement(req.user.userId, id, answers)
+      return res.json(result)
+    } catch (err) {
+      next(err)
+    }
+  },
+)
 
 export default router

@@ -16,7 +16,9 @@ const feed_1 = __importDefault(require("./routes/feed"));
 const files_1 = __importDefault(require("./routes/files"));
 const errors_1 = require("./middleware/errors");
 const requestLogger_1 = require("./middleware/requestLogger");
+const logger_1 = require("./lib/logger");
 const app = (0, express_1.default)();
+app.set('trust proxy', config_1.config.trustProxy);
 app.use((0, helmet_1.default)());
 app.use((0, cors_1.default)({ origin: 'http://localhost:3000', credentials: true }));
 app.use(express_1.default.json());
@@ -31,5 +33,8 @@ app.use('/api/feed', feed_1.default);
 app.get('/health', (_req, res) => res.json({ status: 'ok' }));
 app.use(errors_1.errorHandler);
 app.listen(config_1.config.port, () => {
-    console.log(`Backend running on http://localhost:${config_1.config.port}`);
+    logger_1.logger.info({
+        port: config_1.config.port,
+        nodeEnv: config_1.config.nodeEnv,
+    }, 'backend server started');
 });

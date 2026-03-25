@@ -1,11 +1,8 @@
-import OpenAI from 'openai'
 import { z } from 'zod'
 import { config } from '../../config'
-
-const client = new OpenAI({
-  apiKey: config.openrouterApiKey,
-  baseURL: 'https://openrouter.ai/api/v1',
-})
+import { getAzureOpenAIClient } from '../../lib/azureOpenAI'
+import { chatCompletionsCreateWithSamplingFallback } from './chatCompletionSamplingFallback'
+import { completionContentToPlainText } from './openaiMessageText'
 
 const SYSTEM_PROMPT = `You are an idea extraction specialist. Take raw unstructured input
 (notes, transcripts, articles, voice memos) and extract the core idea.
@@ -59,8 +56,9 @@ const stripMarkdownCodeFence = (value: string) => {
 }
 
 export async function extractIdea(rawText: string, hintSector?: string): Promise<ExtractedIdea> {
-  const response = await client.chat.completions.create({
-    model: process.env.EXTRACTION_MODEL || 'openai/gpt-oss-20b:free',
+  const client = getAzureOpenAIClient()
+  const response = await chatCompletionsCreateWithSamplingFallback(client, {
+    model: config.azure.deploymentExtraction,
     messages: [
       { role: 'system', content: SYSTEM_PROMPT },
       {
@@ -71,7 +69,7 @@ export async function extractIdea(rawText: string, hintSector?: string): Promise
     temperature: 0.2,
   })
 
-  const text = response.choices[0]?.message?.content || '{}'
+  const text = completionContentToPlainText(response.choices[0]?.message?.content) || '{}'
   const cleaned = stripMarkdownCodeFence(text)
 
   let parsed: unknown

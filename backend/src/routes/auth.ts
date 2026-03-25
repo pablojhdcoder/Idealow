@@ -1,7 +1,9 @@
 import { Router } from 'express'
 import bcrypt from 'bcryptjs'
 import { prisma } from '../lib/prisma'
+import { sendError } from '../lib/apiError'
 import { signToken, verifyToken } from '../lib/jwt'
+import { authLoginRateLimit, authRegisterRateLimit } from '../middleware/rateLimit'
 import { validateBody } from '../middleware/validate'
 import { z } from 'zod'
 
@@ -25,7 +27,7 @@ const cookieOpts = {
   maxAge: 7 * 24 * 60 * 60 * 1000,
 }
 
-router.post('/register', validateBody(registerSchema), async (req, res) => {
+router.post('/register', authRegisterRateLimit, validateBody(registerSchema), async (req, res) => {
   try {
     const { email, username, password } = req.body as {
       email: string
@@ -37,7 +39,12 @@ router.post('/register', validateBody(registerSchema), async (req, res) => {
       where: { OR: [{ email }, { username }] },
     })
     if (existing) {
-      return res.status(409).json({ error: 'Email or username already taken' })
+      return sendError(
+        res,
+        409,
+        'Email or username already taken',
+        'AUTH_REGISTER_CONFLICT',
+      )
     }
 
     const passwordHash = await bcrypt.hash(password, 12)
@@ -49,19 +56,19 @@ router.post('/register', validateBody(registerSchema), async (req, res) => {
     res.cookie('token', signToken(user.id), cookieOpts)
     return res.json({ user, needsOnboarding: true })
   } catch {
-    return res.status(500).json({ error: 'Registration failed' })
+    return sendError(res, 500, 'Registration failed', 'AUTH_REGISTER_FAILED')
   }
 })
 
-router.post('/login', validateBody(loginSchema), async (req, res) => {
+router.post('/login', authLoginRateLimit, validateBody(loginSchema), async (req, res) => {
   try {
     const { email, password } = req.body as { email: string; password: string }
 
     const user = await prisma.user.findUnique({ where: { email } })
-    if (!user) return res.status(401).json({ error: 'Invalid credentials' })
+    if (!user) return sendError(res, 401, 'Invalid credentials', 'AUTH_INVALID_CREDENTIALS')
 
     const valid = await bcrypt.compare(password, user.passwordHash)
-    if (!valid) return res.status(401).json({ error: 'Invalid credentials' })
+    if (!valid) return sendError(res, 401, 'Invalid credentials', 'AUTH_INVALID_CREDENTIALS')
 
     res.cookie('token', signToken(user.id), cookieOpts)
     return res.json({
@@ -69,7 +76,7 @@ router.post('/login', validateBody(loginSchema), async (req, res) => {
       needsOnboarding: user.sectors.length === 0,
     })
   } catch {
-    return res.status(500).json({ error: 'Login failed' })
+    return sendError(res, 500, 'Login failed', 'AUTH_LOGIN_FAILED')
   }
 })
 
@@ -80,7 +87,7 @@ router.post('/logout', (_req, res) => {
 
 router.get('/me', async (req, res) => {
   const token = req.cookies?.token as string | undefined
-  if (!token) return res.status(401).json({ error: 'Not authenticated' })
+  if (!token) return sendError(res, 401, 'Not authenticated', 'AUTH_NOT_AUTHENTICATED')
   try {
     const { userId } = verifyToken(token)
     const user = await prisma.user.findUnique({
@@ -95,10 +102,10 @@ router.get('/me', async (req, res) => {
         experienceLevel: true,
       },
     })
-    if (!user) return res.status(404).json({ error: 'User not found' })
+    if (!user) return sendError(res, 404, 'User not found', 'AUTH_USER_NOT_FOUND')
     return res.json({ user })
   } catch {
-    return res.status(401).json({ error: 'Invalid token' })
+    return sendError(res, 401, 'Invalid token', 'AUTH_INVALID_TOKEN')
   }
 })
 

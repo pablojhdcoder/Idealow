@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { queryClient } from '@/lib/queryClient'
 
 export type User = {
   id: string
@@ -36,6 +37,7 @@ export const useAuthStore = create<AuthStore>(set => ({
   },
   logout: async () => {
     await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' })
+    queryClient.clear()
     set({ user: null })
   },
 }))

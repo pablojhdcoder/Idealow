@@ -1,19 +1,20 @@
 import type { NextFunction, Request, Response } from 'express'
+import { logger } from '../lib/logger'
 
 export const requestLogger = (req: Request, res: Response, next: NextFunction) => {
   const start = Date.now()
-  const startedAt = new Date().toISOString()
-
-  console.log(
-    `[REQ] ${startedAt} ${req.method} ${req.originalUrl} from ${req.ip ?? 'unknown-ip'}`,
-  )
 
   res.on('finish', () => {
     const durationMs = Date.now() - start
-    const finishedAt = new Date().toISOString()
-
-    console.log(
-      `[RES] ${finishedAt} ${req.method} ${req.originalUrl} -> ${res.statusCode} (${durationMs}ms)`,
+    logger.info(
+      {
+        method: req.method,
+        path: req.originalUrl,
+        status: res.statusCode,
+        durationMs,
+        userId: req.user?.userId ?? null,
+      },
+      'request completed',
     )
   })
 

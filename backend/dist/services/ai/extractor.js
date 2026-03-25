@@ -1,16 +1,11 @@
 "use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.extractIdea = extractIdea;
-const openai_1 = __importDefault(require("openai"));
 const zod_1 = require("zod");
 const config_1 = require("../../config");
-const client = new openai_1.default({
-    apiKey: config_1.config.openrouterApiKey,
-    baseURL: 'https://openrouter.ai/api/v1',
-});
+const azureOpenAI_1 = require("../../lib/azureOpenAI");
+const chatCompletionSamplingFallback_1 = require("./chatCompletionSamplingFallback");
+const openaiMessageText_1 = require("./openaiMessageText");
 const SYSTEM_PROMPT = `You are an idea extraction specialist. Take raw unstructured input
 (notes, transcripts, articles, voice memos) and extract the core idea.
 
@@ -49,8 +44,9 @@ const stripMarkdownCodeFence = (value) => {
     return trimmed.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
 };
 async function extractIdea(rawText, hintSector) {
-    const response = await client.chat.completions.create({
-        model: process.env.EXTRACTION_MODEL || 'openai/gpt-oss-20b:free',
+    const client = (0, azureOpenAI_1.getAzureOpenAIClient)();
+    const response = await (0, chatCompletionSamplingFallback_1.chatCompletionsCreateWithSamplingFallback)(client, {
+        model: config_1.config.azure.deploymentExtraction,
         messages: [
             { role: 'system', content: SYSTEM_PROMPT },
             {
@@ -60,7 +56,7 @@ async function extractIdea(rawText, hintSector) {
         ],
         temperature: 0.2,
     });
-    const text = response.choices[0]?.message?.content || '{}';
+    const text = (0, openaiMessageText_1.completionContentToPlainText)(response.choices[0]?.message?.content) || '{}';
     const cleaned = stripMarkdownCodeFence(text);
     let parsed;
     try {

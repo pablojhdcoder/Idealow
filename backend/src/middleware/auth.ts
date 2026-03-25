@@ -1,4 +1,5 @@
 import type { NextFunction, Request, Response } from 'express'
+import { sendError } from '../lib/apiError'
 import { verifyToken } from '../lib/jwt'
 
 type RequestWithUser = Request & { user?: { userId: string } }
@@ -9,13 +10,13 @@ export const requireAuth = (req: Request, res: Response, next: NextFunction) => 
   const token = req.cookies?.token || bearer
 
   if (!token) {
-    return res.status(401).json({ error: 'Unauthorized' })
+    return sendError(res, 401, 'Unauthorized', 'AUTH_UNAUTHORIZED')
   }
 
   try {
     request.user = verifyToken(token)
     next()
   } catch {
-    return res.status(401).json({ error: 'Invalid token' })
+    return sendError(res, 401, 'Invalid token', 'AUTH_INVALID_TOKEN')
   }
 }

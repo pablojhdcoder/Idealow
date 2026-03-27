@@ -40,3 +40,31 @@ export const refineAnswersBodySchema = z.object({
 })
 
 export type RefineAnswersBody = z.infer<typeof refineAnswersBodySchema>
+
+export const patchIdeaBodySchema = z.object({
+  isPublished: z.boolean(),
+})
+
+export type PatchIdeaBody = z.infer<typeof patchIdeaBodySchema>
+
+export const ideaFeedbackBodySchema = z.object({
+  vote: z.enum(['USEFUL', 'INTERESTING', 'NOT_USEFUL']),
+  comment: z.string().max(280).optional(),
+})
+
+export type IdeaFeedbackBody = z.infer<typeof ideaFeedbackBodySchema>
+
+export const ideaFeedbackListQuerySchema = z.object({
+  cursor: z.string().uuid().optional(),
+  limit: z.coerce.number().int().min(1).max(50).optional(),
+})
+
+export const feedQuerySchema = z.object({
+  cursor: z.string().uuid().optional(),
+  limit: z.coerce.number().int().min(1).max(50).optional(),
+  sector: z.string().trim().min(1).max(32).optional(),
+  sort: z.enum(['new', 'score', 'votes']).optional(),
+  filter: z.enum(['all', 'strong']).optional(),
+  q: z.string().trim().max(200).optional(),
+  page: z.coerce.number().int().min(1).max(500).optional(),
+})

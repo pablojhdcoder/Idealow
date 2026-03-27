@@ -5,7 +5,7 @@ import type { NextFunction, Request, Response } from 'express'
 import { Router } from 'express'
 import { config } from '../config'
 import { sendError } from '../lib/apiError'
-import { requireAuth } from '../middleware/auth'
+import { optionalAuth, requireAuth } from '../middleware/auth'
 import { filesUploadRateLimit } from '../middleware/rateLimit'
 import { prisma } from '../lib/prisma'
 
@@ -110,6 +110,64 @@ router.post('/upload', requireAuth, filesUploadRateLimit, uploadSingle, async (r
       return sendError(res, 422, message, 'FILES_UNSUPPORTED_TYPE')
     }
     return sendError(res, 500, 'Failed to upload file', 'FILES_UPLOAD_FAILED')
+  }
+})
+
+const uuidParam = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+router.get('/:id', optionalAuth, async (req, res) => {
+  try {
+    const id = typeof req.params.id === 'string' ? req.params.id : req.params.id?.[0] ?? ''
+    if (!uuidParam.test(id)) {
+      return sendError(res, 404, 'File not found', 'FILES_NOT_FOUND')
+    }
+
+    const file = await prisma.file.findUnique({ where: { id } })
+    if (!file) {
+      return sendError(res, 404, 'File not found', 'FILES_NOT_FOUND')
+    }
+
+    const request = req as RequestWithUser
+    const isOwner = request.user?.userId === file.userId
+
+    let allowed = isOwner
+    if (!allowed) {
+      if (!file.mimeType.startsWith('image/')) {
+        return sendError(res, 403, 'Forbidden', 'FILES_FORBIDDEN')
+      }
+      const usedAsAvatar = await prisma.user.findFirst({
+        where: { avatarUrl: `/api/files/${id}` },
+        select: { id: true },
+      })
+      allowed = Boolean(usedAsAvatar)
+    }
+
+    if (!allowed) {
+      return sendError(res, 403, 'Forbidden', 'FILES_FORBIDDEN')
+    }
+
+    const resolvedPath = path.resolve(file.filepath)
+    const uploadRoot = path.resolve(config.uploadDir)
+    const relativeToUpload = path.relative(uploadRoot, resolvedPath)
+    if (relativeToUpload.startsWith('..') || path.isAbsolute(relativeToUpload)) {
+      return sendError(res, 403, 'Forbidden', 'FILES_FORBIDDEN')
+    }
+
+    if (!fs.existsSync(file.filepath)) {
+      return sendError(res, 404, 'File not found', 'FILES_NOT_FOUND')
+    }
+
+    res.setHeader('Content-Type', file.mimeType)
+    res.setHeader('Cache-Control', 'public, max-age=3600')
+    const stream = fs.createReadStream(file.filepath)
+    stream.on('error', () => {
+      if (!res.headersSent) {
+        sendError(res, 500, 'Failed to read file', 'FILES_READ_FAILED')
+      }
+    })
+    stream.pipe(res)
+  } catch {
+    return sendError(res, 500, 'Failed to serve file', 'FILES_SERVE_FAILED')
   }
 })
 

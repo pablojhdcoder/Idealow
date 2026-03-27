@@ -9,6 +9,7 @@ Este directorio contiene comandos/prompt reutilizables para trabajar con la IA e
 - `03_validation_engine.md`
 - `04_flashcard_community.md`
 - `05_auth_onboarding.md`
+- `06_embeddings.md` (pgvector + búsqueda semántica; fase entre validación y flashcard)
 - `code-review.md`
 
 ## Comandos recurrentes (nuevo pack)

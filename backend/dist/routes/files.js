@@ -103,4 +103,54 @@ router.post('/upload', auth_1.requireAuth, rateLimit_1.filesUploadRateLimit, upl
         return (0, apiError_1.sendError)(res, 500, 'Failed to upload file', 'FILES_UPLOAD_FAILED');
     }
 });
+const uuidParam = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+router.get('/:id', auth_1.optionalAuth, async (req, res) => {
+    try {
+        const id = typeof req.params.id === 'string' ? req.params.id : req.params.id?.[0] ?? '';
+        if (!uuidParam.test(id)) {
+            return (0, apiError_1.sendError)(res, 404, 'File not found', 'FILES_NOT_FOUND');
+        }
+        const file = await prisma_1.prisma.file.findUnique({ where: { id } });
+        if (!file) {
+            return (0, apiError_1.sendError)(res, 404, 'File not found', 'FILES_NOT_FOUND');
+        }
+        const request = req;
+        const isOwner = request.user?.userId === file.userId;
+        let allowed = isOwner;
+        if (!allowed) {
+            if (!file.mimeType.startsWith('image/')) {
+                return (0, apiError_1.sendError)(res, 403, 'Forbidden', 'FILES_FORBIDDEN');
+            }
+            const usedAsAvatar = await prisma_1.prisma.user.findFirst({
+                where: { avatarUrl: `/api/files/${id}` },
+                select: { id: true },
+            });
+            allowed = Boolean(usedAsAvatar);
+        }
+        if (!allowed) {
+            return (0, apiError_1.sendError)(res, 403, 'Forbidden', 'FILES_FORBIDDEN');
+        }
+        const resolvedPath = path_1.default.resolve(file.filepath);
+        const uploadRoot = path_1.default.resolve(config_1.config.uploadDir);
+        const relativeToUpload = path_1.default.relative(uploadRoot, resolvedPath);
+        if (relativeToUpload.startsWith('..') || path_1.default.isAbsolute(relativeToUpload)) {
+            return (0, apiError_1.sendError)(res, 403, 'Forbidden', 'FILES_FORBIDDEN');
+        }
+        if (!fs_1.default.existsSync(file.filepath)) {
+            return (0, apiError_1.sendError)(res, 404, 'File not found', 'FILES_NOT_FOUND');
+        }
+        res.setHeader('Content-Type', file.mimeType);
+        res.setHeader('Cache-Control', 'public, max-age=3600');
+        const stream = fs_1.default.createReadStream(file.filepath);
+        stream.on('error', () => {
+            if (!res.headersSent) {
+                (0, apiError_1.sendError)(res, 500, 'Failed to read file', 'FILES_READ_FAILED');
+            }
+        });
+        stream.pipe(res);
+    }
+    catch {
+        return (0, apiError_1.sendError)(res, 500, 'Failed to serve file', 'FILES_SERVE_FAILED');
+    }
+});
 exports.default = router;

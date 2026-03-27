@@ -20,3 +20,21 @@ export const requireAuth = (req: Request, res: Response, next: NextFunction) => 
     return sendError(res, 401, 'Invalid token', 'AUTH_INVALID_TOKEN')
   }
 }
+
+/** Rellena `req.user` si hay cookie/bearer válido; si no hay token o es inválido, sigue sin usuario. */
+export const optionalAuth = (req: Request, _res: Response, next: NextFunction) => {
+  const request = req as RequestWithUser
+  const bearer = req.headers.authorization?.split(' ')[1]
+  const token = req.cookies?.token || bearer
+
+  if (!token) {
+    return next()
+  }
+
+  try {
+    request.user = verifyToken(token)
+  } catch {
+    // ignorar token inválido para rutas públicas
+  }
+  next()
+}

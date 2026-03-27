@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.ideasValidationSseRateLimit = exports.ideasValidationRateLimit = exports.ideasRefineRateLimit = exports.suggestionsRateLimit = exports.ideasCreateRateLimit = exports.filesUploadRateLimit = exports.authRegisterRateLimit = exports.authLoginRateLimit = exports.createRateLimit = void 0;
+exports.feedListRateLimit = exports.ideasFeedbackPostRateLimit = exports.ideasPatchRateLimit = exports.semanticExploreRateLimit = exports.ideasValidationSseRateLimit = exports.ideasValidationRateLimit = exports.ideasRefineRateLimit = exports.suggestionsRateLimit = exports.ideasCreateRateLimit = exports.filesUploadRateLimit = exports.authRegisterRateLimit = exports.authLoginRateLimit = exports.createRateLimit = void 0;
 const express_rate_limit_1 = require("express-rate-limit");
 const apiError_1 = require("../lib/apiError");
 const resolveClientId = (req) => {
@@ -71,4 +71,29 @@ exports.ideasValidationSseRateLimit = (0, exports.createRateLimit)({
     max: 30,
     message: 'Validation stream rate limit exceeded. Please try again later.',
     code: 'RATE_LIMIT_IDEAS_VALIDATION_SSE',
+});
+/** Búsqueda semántica y similares (embeddings / pgvector). */
+exports.semanticExploreRateLimit = (0, exports.createRateLimit)({
+    windowMs: 10 * 60 * 1000,
+    max: 40,
+    message: 'Semantic explore rate limit exceeded. Please try again later.',
+    code: 'RATE_LIMIT_SEMANTIC_EXPLORE',
+});
+exports.ideasPatchRateLimit = (0, exports.createRateLimit)({
+    windowMs: 15 * 60 * 1000,
+    max: 30,
+    message: 'Idea update rate limit exceeded. Please try again later.',
+    code: 'RATE_LIMIT_IDEAS_PATCH',
+});
+exports.ideasFeedbackPostRateLimit = (0, exports.createRateLimit)({
+    windowMs: 15 * 60 * 1000,
+    max: 60,
+    message: 'Feedback rate limit exceeded. Please try again later.',
+    code: 'RATE_LIMIT_IDEAS_FEEDBACK',
+});
+exports.feedListRateLimit = (0, exports.createRateLimit)({
+    windowMs: 60 * 1000,
+    max: 120,
+    message: 'Feed rate limit exceeded. Please try again later.',
+    code: 'RATE_LIMIT_FEED_LIST',
 });

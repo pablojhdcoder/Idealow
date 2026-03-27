@@ -5,6 +5,7 @@ import type {
   RefineAnswersPayload,
   SubmitRefinementResponse,
 } from '@/types/idea'
+import type { FeedbackComment, IdeaFlashcardDetailResponse } from '@/types/flashcard'
 import { parseJsonResponse } from './client'
 
 export async function listIdeas(
@@ -58,4 +59,50 @@ export async function submitRefineAnswers(
     body: JSON.stringify({ answers }),
   })
   return parseJsonResponse<SubmitRefinementResponse>(res)
+}
+
+export async function fetchIdeaFlashcardDetail(ideaId: string): Promise<IdeaFlashcardDetailResponse> {
+  const res = await fetch(`/api/ideas/${encodeURIComponent(ideaId)}`, { credentials: 'include' })
+  return parseJsonResponse<IdeaFlashcardDetailResponse>(res)
+}
+
+export async function patchIdeaPublish(
+  ideaId: string,
+  isPublished: boolean,
+): Promise<{ id: string; isPublished: boolean; publishedAt: string | null }> {
+  const res = await fetch(`/api/ideas/${encodeURIComponent(ideaId)}`, {
+    method: 'PATCH',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ isPublished }),
+  })
+  return parseJsonResponse(res)
+}
+
+export async function fetchIdeaFeedbackComments(
+  ideaId: string,
+  params?: { cursor?: string; limit?: number },
+): Promise<{ comments: FeedbackComment[]; nextCursor: string | null }> {
+  const qs = new URLSearchParams()
+  if (params?.cursor) qs.set('cursor', params.cursor)
+  if (params?.limit != null) qs.set('limit', String(params.limit))
+  const suffix = qs.toString() ? `?${qs.toString()}` : ''
+  const res = await fetch(
+    `/api/ideas/${encodeURIComponent(ideaId)}/feedback${suffix}`,
+    { credentials: 'include' },
+  )
+  return parseJsonResponse(res)
+}
+
+export async function postIdeaFeedback(
+  ideaId: string,
+  body: { vote: 'USEFUL' | 'INTERESTING' | 'NOT_USEFUL'; comment?: string },
+): Promise<{ ok: true; vote: string; comment: string | null }> {
+  const res = await fetch(`/api/ideas/${encodeURIComponent(ideaId)}/feedback`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+  return parseJsonResponse(res)
 }

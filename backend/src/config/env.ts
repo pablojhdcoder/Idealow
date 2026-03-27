@@ -21,6 +21,11 @@ export const env = {
   AZURE_OPENAI_DEPLOYMENT_SUGGESTIONS: process.env.AZURE_OPENAI_DEPLOYMENT_SUGGESTIONS ?? '',
   AZURE_OPENAI_DEPLOYMENT_VISION: process.env.AZURE_OPENAI_DEPLOYMENT_VISION ?? '',
   AZURE_OPENAI_DEPLOYMENT_WHISPER: process.env.AZURE_OPENAI_DEPLOYMENT_WHISPER ?? '',
+  /** Nombre del deployment de embeddings en Azure (p. ej. text-embedding-3-small). */
+  AZURE_OPENAI_DEPLOYMENT_EMBEDDINGS: process.env.AZURE_OPENAI_DEPLOYMENT_EMBEDDINGS ?? '',
+  /** Alias legado en .env.example; se usa si no hay AZURE_OPENAI_DEPLOYMENT_EMBEDDINGS. */
+  EMBEDDING_MODEL: process.env.EMBEDDING_MODEL ?? '',
+  EMBEDDING_DIMENSIONS: process.env.EMBEDDING_DIMENSIONS ?? '',
   UPLOAD_DIR: process.env.UPLOAD_DIR,
   MAX_UPLOAD_MB: process.env.MAX_UPLOAD_MB,
   YOUTUBE_API_KEY: process.env.YOUTUBE_API_KEY,

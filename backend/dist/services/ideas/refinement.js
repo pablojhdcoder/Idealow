@@ -5,6 +5,7 @@ exports.submitRefinement = submitRefinement;
 const prisma_1 = require("../../lib/prisma");
 const httpError_1 = require("../../lib/httpError");
 const refiner_1 = require("../ai/refiner");
+const embeddingJob_1 = require("../embeddings/embeddingJob");
 function extractionFromRefinedContent(refinedContent, fallbackSummary) {
     if (refinedContent && typeof refinedContent === 'object' && !Array.isArray(refinedContent)) {
         const o = refinedContent;
@@ -66,5 +67,6 @@ async function submitRefinement(userId, ideaId, answers) {
             status: 'REFINING',
         },
     });
+    (0, embeddingJob_1.scheduleIdeaEmbedding)(updated.id);
     return { idea: updated, nextStep: 'validation' };
 }

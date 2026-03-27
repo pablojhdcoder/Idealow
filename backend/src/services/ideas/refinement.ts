@@ -7,6 +7,7 @@ import {
   type RefinementQuestionsResponse,
   synthesizeAnswers,
 } from '../ai/refiner'
+import { scheduleIdeaEmbedding } from '../embeddings/embeddingJob'
 type ExtractionShape = {
   problem?: string
   solution?: string
@@ -96,6 +97,8 @@ export async function submitRefinement(
       status: 'REFINING',
     },
   })
+
+  scheduleIdeaEmbedding(updated.id)
 
   return { idea: updated, nextStep: 'validation' as const }
 }

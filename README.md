@@ -25,52 +25,60 @@ Incluye un flujo de “captura → extracción → sugerencias” y un dashboard
 ## Estructura del repo
 - `frontend/`: aplicación web (Vite) en `http://localhost:3000` (proxy a `/api`).
 - `backend/`: API en `http://localhost:3001`.
+- `docker-compose.yml` y `docker/postgres/`: PostgreSQL con **pgvector** para desarrollo local (ver sección de setup).
 
 ## Requisitos
 - **Node.js 18+** (recomendado 20+)
-- **PostgreSQL** (local o remoto)
+- **Docker Desktop** (recomendado) para levantar PostgreSQL con **pgvector**, o un PostgreSQL propio con la extensión `vector` instalada
 - Credenciales de **Azure OpenAI / Foundry** (obligatorias para arrancar el backend)
 
 ## Setup rápido (Windows / PowerShell)
 
-### Arrancar PostgreSQL (Windows, como servicio)
-
-Si `psql`/pgAdmin te devuelve “Connection refused”, normalmente es porque **PostgreSQL no está arrancado**.
-
-- Win+R → `services.msc`
-- Busca un servicio tipo `postgresql-x64-XX`
-- Clic derecho → **Start**
-
 ### 1) Backend
 
-En una terminal:
+Orden recomendado: **base de datos** → **dependencias y `.env`** → **Prisma** → **servidor**.
+
+#### Paso A — Base de datos (Docker + pgvector, recomendado)
+
+En la **raíz del repo**, `docker-compose.yml` levanta **PostgreSQL 16** con **`pgvector/pgvector`** (extensión `vector` para embeddings / búsqueda semántica).
+
+1. Arranca **Docker Desktop** y espera a que el motor esté listo.
+2. Desde la raíz del proyecto:
+
+```bash
+docker compose up -d
+docker compose ps
+```
+
+Por defecto: **`localhost:5433`**, usuario / contraseña / base **`postgres`** / **`password`** / **`idealow`**. Los datos persisten en el volumen **`idealow_pgdata`** (no se pierden con `docker compose down` salvo `docker compose down -v`).
+
+**Sin Docker:** PostgreSQL propio con **pgvector** y la misma idea en `DATABASE_URL`. Si “Connection refused” con Postgres en Windows: `services.msc` → `postgresql-x64-XX` → **Start**.
+
+#### Paso B — Dependencias y `.env`
 
 ```bash
 cd backend
 npm install
-```
-
-Crea tu `.env` a partir del ejemplo:
-
-```bash
 copy .env.example .env
 ```
 
-Configura en `backend/.env` (variables **obligatorias**):
-- **`DATABASE_URL`**: conexión a Postgres (ej. `postgresql://postgres:postgres@localhost:5432/idealow?schema=public`)
-- **`JWT_SECRET`**: una cadena larga y aleatoria
-- **`AZURE_OPENAI_ENDPOINT`**: `https://<recurso>.openai.azure.com` (sin `/openai` al final)
-- **`AZURE_OPENAI_API_KEY`**
-- **`AZURE_OPENAI_DEPLOYMENT_CHAT`**: nombre del *deployment* en Azure (no es el nombre del modelo)
+En `backend/.env` (obligatorias):
 
-Inicializa Prisma:
+- **`DATABASE_URL`**: con Docker por defecto `postgresql://postgres:password@localhost:5433/idealow?schema=public`
+- **`JWT_SECRET`**: cadena larga y aleatoria
+- **`AZURE_OPENAI_ENDPOINT`**, **`AZURE_OPENAI_API_KEY`**, **`AZURE_OPENAI_DEPLOYMENT_CHAT`**
+- **Embeddings:** **`AZURE_OPENAI_DEPLOYMENT_EMBEDDINGS`** o **`EMBEDDING_MODEL`** (nombre del deployment en Azure)
+
+#### Paso C — Aplicar esquema (Prisma)
+
+Con la base levantada y `DATABASE_URL` correcta:
 
 ```bash
 npm run db:generate
 npm run db:migrate
 ```
 
-Arranca el backend:
+#### Paso D — Arrancar el backend
 
 ```bash
 npm run dev
@@ -110,6 +118,17 @@ npm test
 - **Uploads**: el backend guarda archivos en `UPLOAD_DIR` (por defecto `./uploads` dentro de `backend/`).
 
 ## Comandos útiles
+
+### Docker (misma base que en el setup del backend)
+
+```bash
+# Desde la raíz del repo
+docker compose up -d
+docker compose down       # datos se conservan (volumen)
+docker compose down -v    # borra también los datos de la base
+```
+
+Si cambias el puerto en `docker-compose.yml`, actualiza **`DATABASE_URL`** en `backend/.env`.
 
 ### Prisma (backend)
 

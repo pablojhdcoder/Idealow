@@ -39,7 +39,7 @@ model Idea {
 
   sector          String?
   refinedContent  Json?
-  embedding       Float[] @default([])
+  embedding       Unsupported("vector(1536)")?
   validationScore Int?
   validationData  Json?
   competitors     Json?
@@ -50,6 +50,8 @@ model Idea {
   updatedAt   DateTime @updatedAt
 
   feedback IdeaFeedback[]
+
+  @@index([isPublished, publishedAt])
 }
 
 model File {
@@ -63,7 +65,7 @@ model File {
   mimeType     String
   sizeBytes    Int
   sourceText   String?
-  embedding    Float[] @default([])
+  embedding    Unsupported("vector(1536)")?
   createdAt    DateTime @default(now())
 
   @@index([userId, createdAt])

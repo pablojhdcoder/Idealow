@@ -5,7 +5,7 @@ Implementar una funcionalidad nueva de forma end-to-end con validacion tecnica.
 
 ## Prompt
 ```text
-Implementa esta nueva funcionalidad: ./03_validation_engine.md siempre teniendo en cuenta todo el contexto de la app y como integrarlo y utilizando todas las reglas de ../docs para seguir un buen diseño de software.
+Implementa esta nueva funcionalidad: ./04_flashcard_community.md siempre teniendo en cuenta todo el contexto de la app y como integrarlo y utilizando todas las reglas de ../docs para seguir un buen diseño de software. Y sobre todo las reglas en ../rules/frontend-ui-standards.md
 
 Antes de codificar:
 1) Resume requisitos y supuestos.

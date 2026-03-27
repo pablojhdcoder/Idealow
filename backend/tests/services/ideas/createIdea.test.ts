@@ -15,10 +15,20 @@ const { processMediaMock } = vi.hoisted(() => ({
   processMediaMock: vi.fn(),
 }))
 
+const { prismaFileUpdateMock } = vi.hoisted(() => ({
+  prismaFileUpdateMock: vi.fn(),
+}))
+
+vi.mock('../../../src/services/embeddings/embeddingJob', () => ({
+  scheduleIdeaEmbedding: vi.fn(),
+  scheduleFileEmbedding: vi.fn(),
+}))
+
 vi.mock('../../../src/lib/prisma', () => ({
   prisma: {
     file: {
       findFirst: prismaFileFindFirstMock,
+      update: prismaFileUpdateMock,
     },
     idea: {
       create: prismaIdeaCreateMock,
@@ -38,6 +48,7 @@ vi.mock('../../../src/services/media/processor', () => ({
 describe('createIdeaFromInput', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    prismaFileUpdateMock.mockResolvedValue({})
   })
 
   it('combina contenido y archivos del usuario y persiste idea', async () => {

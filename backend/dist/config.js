@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.config = exports.parseCorsOrigins = void 0;
+exports.hasEmbeddingsConfig = hasEmbeddingsConfig;
 const env_1 = require("./config/env");
 (0, env_1.validateCriticalEnv)();
 const parseTrustProxy = (value) => {
@@ -22,6 +23,11 @@ const parseTrustProxy = (value) => {
 };
 const azureEndpoint = env_1.env.AZURE_OPENAI_ENDPOINT.trim().replace(/\/$/, '');
 const azureChatDeployment = env_1.env.AZURE_OPENAI_DEPLOYMENT_CHAT.trim();
+const azureEmbeddingsDeployment = env_1.env.AZURE_OPENAI_DEPLOYMENT_EMBEDDINGS.trim() || env_1.env.EMBEDDING_MODEL.trim();
+const embeddingDimensionsRaw = env_1.env.EMBEDDING_DIMENSIONS.trim();
+const embeddingDimensions = embeddingDimensionsRaw.length > 0
+    ? Number(embeddingDimensionsRaw)
+    : 1536;
 /** Orígenes permitidos para CORS (cookies). Lista separada por comas en `CORS_ORIGIN`. */
 const parseCorsOrigins = (raw) => {
     const fallback = ['http://localhost:3000'];
@@ -57,5 +63,12 @@ exports.config = {
         deploymentSuggestions: env_1.env.AZURE_OPENAI_DEPLOYMENT_SUGGESTIONS.trim() || azureChatDeployment,
         deploymentVision: env_1.env.AZURE_OPENAI_DEPLOYMENT_VISION.trim() || azureChatDeployment,
         deploymentWhisper: env_1.env.AZURE_OPENAI_DEPLOYMENT_WHISPER.trim(),
+        deploymentEmbeddings: azureEmbeddingsDeployment,
     },
+    embeddingDimensions: Number.isFinite(embeddingDimensions) ? embeddingDimensions : 1536,
 };
+function hasEmbeddingsConfig() {
+    return (exports.config.azure.endpoint.length > 0 &&
+        exports.config.azure.apiKey.length > 0 &&
+        exports.config.azure.deploymentEmbeddings.length > 0);
+}

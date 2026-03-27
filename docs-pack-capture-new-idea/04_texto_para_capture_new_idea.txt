@@ -1,0 +1,5 @@
+Estoy desarrollando IdeaLow FlashLearn, una plataforma que convierte una idea de negocio en un plan accionable de 7 dias con apoyo de IA. El problema que resolvemos es que la mayoria de emprendedores tarda demasiado en validar si su idea tiene demanda real y suele avanzar sin estructura. Nuestra solucion combina captura de idea, refinamiento guiado, validacion de mercado y una salida final en formato de flashcards con score de viabilidad.
+
+El usuario objetivo son emprendedores en fase temprana, freelancers y equipos de producto que necesitan decidir rapido si continuar, iterar o descartar una idea. El modelo de negocio es suscripcion, con plan basico para uso individual y plan pro para analisis avanzado y colaboracion por equipos. La propuesta diferencial es unir aprendizaje, ejecucion y validacion en un solo flujo para reducir tiempo de decision y mejorar la calidad del enfoque.
+
+Necesito ayuda para refinar la propuesta de valor, detectar riesgos clave, priorizar funcionalidades MVP y definir un roadmap de lanzamiento en 30 dias.

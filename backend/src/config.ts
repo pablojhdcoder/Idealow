@@ -22,6 +22,13 @@ const parseTrustProxy = (value: string | undefined): boolean | number | string =
 
 const azureEndpoint = env.AZURE_OPENAI_ENDPOINT.trim().replace(/\/$/, '')
 const azureChatDeployment = env.AZURE_OPENAI_DEPLOYMENT_CHAT.trim()
+const azureEmbeddingsDeployment =
+  env.AZURE_OPENAI_DEPLOYMENT_EMBEDDINGS.trim() || env.EMBEDDING_MODEL.trim()
+const embeddingDimensionsRaw = env.EMBEDDING_DIMENSIONS.trim()
+const embeddingDimensions =
+  embeddingDimensionsRaw.length > 0
+    ? Number(embeddingDimensionsRaw)
+    : 1536
 
 /** Orígenes permitidos para CORS (cookies). Lista separada por comas en `CORS_ORIGIN`. */
 export const parseCorsOrigins = (raw: string | undefined): string[] => {
@@ -58,5 +65,15 @@ export const config = {
     deploymentSuggestions: env.AZURE_OPENAI_DEPLOYMENT_SUGGESTIONS.trim() || azureChatDeployment,
     deploymentVision: env.AZURE_OPENAI_DEPLOYMENT_VISION.trim() || azureChatDeployment,
     deploymentWhisper: env.AZURE_OPENAI_DEPLOYMENT_WHISPER.trim(),
+    deploymentEmbeddings: azureEmbeddingsDeployment,
   },
+  embeddingDimensions: Number.isFinite(embeddingDimensions) ? embeddingDimensions : 1536,
+}
+
+export function hasEmbeddingsConfig(): boolean {
+  return (
+    config.azure.endpoint.length > 0 &&
+    config.azure.apiKey.length > 0 &&
+    config.azure.deploymentEmbeddings.length > 0
+  )
 }

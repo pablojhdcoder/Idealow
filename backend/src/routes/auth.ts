@@ -50,7 +50,7 @@ router.post('/register', authRegisterRateLimit, validateBody(registerSchema), as
     const passwordHash = await bcrypt.hash(password, 12)
     const user = await prisma.user.create({
       data: { email, username, passwordHash },
-      select: { id: true, email: true, username: true, sectors: true, goal: true },
+      select: { id: true, email: true, username: true, avatarUrl: true, sectors: true, goal: true },
     })
 
     res.cookie('token', signToken(user.id), cookieOpts)
@@ -72,7 +72,14 @@ router.post('/login', authLoginRateLimit, validateBody(loginSchema), async (req,
 
     res.cookie('token', signToken(user.id), cookieOpts)
     return res.json({
-      user: { id: user.id, email: user.email, username: user.username, sectors: user.sectors, goal: user.goal },
+      user: {
+        id: user.id,
+        email: user.email,
+        username: user.username,
+        avatarUrl: user.avatarUrl,
+        sectors: user.sectors,
+        goal: user.goal,
+      },
       needsOnboarding: user.sectors.length === 0,
     })
   } catch {
@@ -86,7 +93,8 @@ router.post('/logout', (_req, res) => {
 })
 
 router.get('/me', async (req, res) => {
-  const token = req.cookies?.token as string | undefined
+  const bearer = req.headers.authorization?.split(' ')[1]
+  const token = (req.cookies?.token as string | undefined) || bearer
   if (!token) return sendError(res, 401, 'Not authenticated', 'AUTH_NOT_AUTHENTICATED')
   try {
     const { userId } = verifyToken(token)

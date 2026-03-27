@@ -1,21 +1,29 @@
 import cookieParser from 'cookie-parser'
 import express from 'express'
+import fs from 'fs'
 import os from 'os'
 import path from 'path'
 import request from 'supertest'
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { config } from '../../src/config'
 import { signToken } from '../../src/lib/jwt'
 import { errorHandler } from '../../src/middleware/errors'
 import filesRoutes from '../../src/routes/files'
 
-const { prismaCreateMock } = vi.hoisted(() => ({
+const { prismaCreateMock, prismaFileFindUnique, prismaUserFindFirst } = vi.hoisted(() => ({
   prismaCreateMock: vi.fn(),
+  prismaFileFindUnique: vi.fn(),
+  prismaUserFindFirst: vi.fn(),
 }))
 
 vi.mock('../../src/lib/prisma', () => ({
   prisma: {
     file: {
       create: prismaCreateMock,
+      findUnique: (...args: unknown[]) => prismaFileFindUnique(...args),
+    },
+    user: {
+      findFirst: (...args: unknown[]) => prismaUserFindFirst(...args),
     },
   },
 }))
@@ -111,5 +119,78 @@ describe('POST /api/files/upload', () => {
       createdAt: createdAt.toISOString(),
     })
     expect(response.body.file.filepath).toBeUndefined()
+  })
+})
+
+describe('GET /api/files/:id', () => {
+  const fileId = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
+  let tmpPath: string
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    const uploadRoot = path.resolve(config.uploadDir)
+    fs.mkdirSync(uploadRoot, { recursive: true })
+    tmpPath = path.join(uploadRoot, `idealow2-file-get-${fileId}.png`)
+    fs.writeFileSync(tmpPath, Buffer.from([0x89, 0x50, 0x4e, 0x47]))
+  })
+
+  afterEach(() => {
+    try {
+      fs.unlinkSync(tmpPath)
+    } catch {
+      // ignore
+    }
+  })
+
+  it('permite al propietario leer el fichero', async () => {
+    const app = buildApp()
+    prismaFileFindUnique.mockResolvedValue({
+      id: fileId,
+      userId: 'user-1',
+      filepath: tmpPath,
+      mimeType: 'image/png',
+    })
+
+    const response = await request(app)
+      .get(`/api/files/${fileId}`)
+      .set('Authorization', `Bearer ${signTestToken('user-1')}`)
+
+    expect(response.status).toBe(200)
+    expect(response.headers['content-type']).toMatch(/image\/png/)
+    expect(response.body.length).toBeGreaterThan(0)
+  })
+
+  it('permite lectura publica si la imagen es avatar de algun usuario', async () => {
+    const app = buildApp()
+    prismaFileFindUnique.mockResolvedValue({
+      id: fileId,
+      userId: 'user-2',
+      filepath: tmpPath,
+      mimeType: 'image/png',
+    })
+    prismaUserFindFirst.mockResolvedValue({ id: 'user-2' })
+
+    const response = await request(app).get(`/api/files/${fileId}`)
+
+    expect(response.status).toBe(200)
+    expect(prismaUserFindFirst).toHaveBeenCalled()
+  })
+
+  it('devuelve 403 si no es propietario ni avatar publico', async () => {
+    const app = buildApp()
+    prismaFileFindUnique.mockResolvedValue({
+      id: fileId,
+      userId: 'user-2',
+      filepath: tmpPath,
+      mimeType: 'image/png',
+    })
+    prismaUserFindFirst.mockResolvedValue(null)
+
+    const response = await request(app)
+      .get(`/api/files/${fileId}`)
+      .set('Authorization', `Bearer ${signTestToken('user-1')}`)
+
+    expect(response.status).toBe(403)
+    expect(response.body.code).toBe('FILES_FORBIDDEN')
   })
 })

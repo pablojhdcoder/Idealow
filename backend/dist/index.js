@@ -14,6 +14,7 @@ const validation_1 = __importDefault(require("./routes/validation"));
 const users_1 = __importDefault(require("./routes/users"));
 const feed_1 = __importDefault(require("./routes/feed"));
 const files_1 = __importDefault(require("./routes/files"));
+const semantic_1 = __importDefault(require("./routes/semantic"));
 const errors_1 = require("./middleware/errors");
 const requestLogger_1 = require("./middleware/requestLogger");
 const logger_1 = require("./lib/logger");
@@ -44,6 +45,7 @@ app.use('/api/files', files_1.default);
 app.use('/api/validation', validation_1.default);
 app.use('/api/users', users_1.default);
 app.use('/api/feed', feed_1.default);
+app.use('/api/semantic', semantic_1.default);
 app.get('/health', (_req, res) => res.json({ status: 'ok' }));
 app.use(errors_1.errorHandler);
 app.listen(config_1.config.port, () => {

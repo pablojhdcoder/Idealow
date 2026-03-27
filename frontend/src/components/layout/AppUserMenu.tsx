@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { LayoutDashboard, Lightbulb, LogOut, UserCircle } from 'lucide-react'
+import { LayoutDashboard, Lightbulb, LogOut, UserCircle, Users } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore'
 import {
   DropdownMenu,
@@ -70,6 +70,13 @@ export function AppUserMenu({ avatarUrl, displayName, email }: Props) {
           >
             <Lightbulb className="size-4" />
             Mis ideas
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            className="cursor-pointer rounded-xl"
+            onClick={() => navigate('/feed')}
+          >
+            <Users className="size-4" />
+            Comunidad
           </DropdownMenuItem>
           <DropdownMenuItem
             className="cursor-pointer rounded-xl"

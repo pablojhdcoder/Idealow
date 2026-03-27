@@ -87,3 +87,32 @@ export const ideasValidationSseRateLimit = createRateLimit({
   message: 'Validation stream rate limit exceeded. Please try again later.',
   code: 'RATE_LIMIT_IDEAS_VALIDATION_SSE',
 })
+
+/** Búsqueda semántica y similares (embeddings / pgvector). */
+export const semanticExploreRateLimit = createRateLimit({
+  windowMs: 10 * 60 * 1000,
+  max: 40,
+  message: 'Semantic explore rate limit exceeded. Please try again later.',
+  code: 'RATE_LIMIT_SEMANTIC_EXPLORE',
+})
+
+export const ideasPatchRateLimit = createRateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 30,
+  message: 'Idea update rate limit exceeded. Please try again later.',
+  code: 'RATE_LIMIT_IDEAS_PATCH',
+})
+
+export const ideasFeedbackPostRateLimit = createRateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 60,
+  message: 'Feedback rate limit exceeded. Please try again later.',
+  code: 'RATE_LIMIT_IDEAS_FEEDBACK',
+})
+
+export const feedListRateLimit = createRateLimit({
+  windowMs: 60 * 1000,
+  max: 120,
+  message: 'Feed rate limit exceeded. Please try again later.',
+  code: 'RATE_LIMIT_FEED_LIST',
+})

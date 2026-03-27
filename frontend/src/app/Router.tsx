@@ -10,7 +10,9 @@ const Dashboard = lazy(() => import('@/pages/dashboard/Dashboard'))
 const Home = lazy(() => import('@/pages/home/Home'))
 const Ideas = lazy(() => import('@/pages/ideas/Ideas'))
 const NewIdea = lazy(() => import('@/pages/ideas/NewIdea'))
+const IdeaPublic = lazy(() => import('@/pages/ideas/IdeaPublic'))
 const Profile = lazy(() => import('@/pages/profile/Profile'))
+const Feed = lazy(() => import('@/pages/feed/Feed'))
 
 function PublicRoute({ children }: { children: ReactNode }) {
   const user = useAuthStore(s => s.user)
@@ -93,11 +95,20 @@ export default function AppRouter() {
               </PrivateRoute>
             }
           />
+          <Route path="/flashcard/:id" element={<IdeaPublic />} />
           <Route
             path="/profile"
             element={
               <PrivateRoute>
                 <Profile />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/feed"
+            element={
+              <PrivateRoute>
+                <Feed />
               </PrivateRoute>
             }
           />

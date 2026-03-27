@@ -26,6 +26,11 @@ vi.mock('../../../src/services/ai/refiner', () => ({
   synthesizeAnswers: synthesizeAnswersMock,
 }))
 
+vi.mock('../../../src/services/embeddings/embeddingJob', () => ({
+  scheduleIdeaEmbedding: vi.fn(),
+  scheduleFileEmbedding: vi.fn(),
+}))
+
 const fiveQs = () =>
   ['q1', 'q2', 'q3', 'q4', 'q5'].map(id => ({
     id,

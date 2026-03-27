@@ -9,8 +9,11 @@ const processor_1 = require("../media/processor");
 const httpError_1 = require("../../lib/httpError");
 const extractor_1 = require("../ai/extractor");
 const processor_2 = require("../media/processor");
+const embeddingJob_1 = require("../embeddings/embeddingJob");
 /** Evita payloads enormes a Azure (context / coste). El resto se descarta para extracción. */
 const MAX_RAW_TEXT_CHARS_FOR_EXTRACTION = 100000;
+/** Texto persistido en File.sourceText y para embeddings de archivo. */
+const MAX_SOURCE_TEXT_CHARS = 50000;
 /**
  * Orquesta: resolver texto (contenido directo o uno/varios archivos), extraer idea con IA y persistir.
  */
@@ -28,7 +31,15 @@ async function createIdeaFromInput(input) {
             throw new httpError_1.HttpError(409, 'File is already attached to an idea', 'IDEAS_FILE_ALREADY_ATTACHED');
         }
         try {
-            fromFiles.push((await (0, processor_2.processMedia)(file.filepath, file.mimeType)).trim());
+            const extractedText = (await (0, processor_2.processMedia)(file.filepath, file.mimeType)).trim();
+            fromFiles.push(extractedText);
+            const sourceText = extractedText.length > MAX_SOURCE_TEXT_CHARS
+                ? extractedText.slice(0, MAX_SOURCE_TEXT_CHARS)
+                : extractedText;
+            await prisma_1.prisma.file.update({
+                where: { id },
+                data: { sourceText },
+            });
         }
         catch (e) {
             if (e instanceof Error && e.message.startsWith('UNSUPPORTED_MEDIA:')) {
@@ -79,6 +90,10 @@ async function createIdeaFromInput(input) {
             files: mergedIds.length > 0 ? { connect: mergedIds.map((id) => ({ id })) } : undefined,
         },
     });
+    (0, embeddingJob_1.scheduleIdeaEmbedding)(idea.id);
+    for (const fid of mergedIds) {
+        (0, embeddingJob_1.scheduleFileEmbedding)(fid);
+    }
     return {
         ideaId: idea.id,
         extracted,

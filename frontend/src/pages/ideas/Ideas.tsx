@@ -1,17 +1,21 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { Lightbulb, Plus } from 'lucide-react'
+import { Lightbulb, Plus, Search } from 'lucide-react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import AppShellHeader from '@/components/layout/AppShellHeader'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { StatsRow } from '@/components/dashboard/StatsRow'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Input } from '@/components/ui/input'
 import { ideasQueryKey, useIdeasQuery } from '@/hooks/useIdeasQuery'
 import { RefinementWizard } from '@/components/ideas/RefinementWizard'
 import { ValidationProgress } from '@/components/ideas/ValidationProgress'
 import { Sheet, SheetContent } from '@/components/ui/sheet'
-import { useQueryClient } from '@tanstack/react-query'
+import { semanticSearchIdeas, fetchSimilarIdeas } from '@/lib/api/semantic'
+import { ApiError } from '@/lib/api/client'
+import { IdeaFlashcardSheet } from '@/components/ideas/IdeaFlashcardSheet'
 
 function formatDate(iso: string) {
   try {
@@ -22,6 +26,48 @@ function formatDate(iso: string) {
   } catch {
     return iso
   }
+}
+
+function IdeaRelatedList({ ideaId, open }: { ideaId: string; open: boolean }) {
+  const { data, isLoading, isError, error } = useQuery({
+    queryKey: ['ideas', ideaId, 'similar'] as const,
+    queryFn: () => fetchSimilarIdeas(ideaId, 6),
+    enabled: open,
+  })
+
+  if (!open) {
+    return null
+  }
+  if (isLoading) {
+    return <Skeleton className="mt-3 h-16 w-full rounded-xl" />
+  }
+  if (isError) {
+    const msg =
+      error instanceof ApiError && error.status === 503
+        ? 'Recomendaciones no disponibles (configura embeddings en el backend).'
+        : 'No se pudieron cargar ideas relacionadas.'
+    return <p className="mt-2 text-xs text-muted-foreground">{msg}</p>
+  }
+  const related = data?.ideas ?? []
+  if (related.length === 0) {
+    return (
+      <p className="mt-2 text-xs text-muted-foreground">
+        Sin ideas parecidas indexadas aún (espera a que se generen embeddings o crea más ideas).
+      </p>
+    )
+  }
+  return (
+    <ul className="mt-3 space-y-2 border-t border-border pt-3">
+      {related.map(r => (
+        <li key={r.id} className="text-sm">
+          <span className="font-medium text-foreground">{r.title}</span>
+          {r.summary ? (
+            <p className="line-clamp-1 text-muted-foreground">{r.summary}</p>
+          ) : null}
+        </li>
+      ))}
+    </ul>
+  )
 }
 
 export default function Ideas() {
@@ -35,6 +81,16 @@ export default function Ideas() {
 
   const [refineIdeaId, setRefineIdeaId] = useState<string | null>(null)
   const [validateIdeaId, setValidateIdeaId] = useState<string | null>(null)
+  const [searchInput, setSearchInput] = useState('')
+  const [debouncedQ, setDebouncedQ] = useState('')
+  const [similarFor, setSimilarFor] = useState<string | null>(null)
+  const [flashSheetId, setFlashSheetId] = useState<string | null>(null)
+  const [flashSheetOpen, setFlashSheetOpen] = useState(false)
+
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedQ(searchInput.trim()), 350)
+    return () => clearTimeout(t)
+  }, [searchInput])
 
   useEffect(() => {
     const st = location.state as { openRefineId?: string; highlightId?: string } | null
@@ -47,7 +103,23 @@ export default function Ideas() {
     }
   }, [location.pathname, location.state, navigate])
 
+  const isSearchMode = debouncedQ.length > 0
+
   const { data: ideas, isLoading, isError, error, refetch } = useIdeasQuery()
+
+  const {
+    data: searchData,
+    isLoading: searchLoading,
+    isError: searchIsError,
+    error: searchError,
+  } = useQuery({
+    queryKey: ['semantic-search', debouncedQ] as const,
+    queryFn: () => semanticSearchIdeas({ q: debouncedQ, limit: 15 }),
+    enabled: isSearchMode,
+  })
+
+  const displayIdeas = isSearchMode ? (searchData?.ideas ?? []) : (ideas ?? [])
+  const displayLoading = isSearchMode ? searchLoading : isLoading
 
   const stats = useMemo(() => {
     const list = ideas ?? []
@@ -85,6 +157,7 @@ export default function Ideas() {
           ideaId={refineIdeaId}
           onComplete={id => {
             void queryClient.invalidateQueries({ queryKey: ideasQueryKey })
+            void queryClient.invalidateQueries({ queryKey: ['semantic-search'] })
             setRefineIdeaId(null)
             setValidateIdeaId(id)
           }}
@@ -109,7 +182,32 @@ export default function Ideas() {
           <StatsRow stats={stats} />
         </div>
 
-        {isLoading && (
+        <div className="relative mt-6">
+          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            className="rounded-2xl pl-10"
+            placeholder="Buscar por significado (semántico)…"
+            value={searchInput}
+            onChange={e => setSearchInput(e.target.value)}
+            aria-label="Búsqueda semántica de ideas"
+          />
+        </div>
+
+        {isSearchMode && searchIsError && (
+          <Card className="mt-6 rounded-3xl border-destructive/30 bg-destructive/5 p-4">
+            <p className="text-sm text-destructive">
+              {searchError instanceof Error ? searchError.message : 'Error en la búsqueda'}
+            </p>
+            {searchError instanceof ApiError && searchError.status === 503 ? (
+              <p className="mt-2 text-xs text-muted-foreground">
+                Define <code className="rounded bg-muted px-1">AZURE_OPENAI_DEPLOYMENT_EMBEDDINGS</code>{' '}
+                o <code className="rounded bg-muted px-1">EMBEDDING_MODEL</code> en el backend.
+              </p>
+            ) : null}
+          </Card>
+        )}
+
+        {displayLoading && (
           <div className="mt-8 grid gap-4">
             {[1, 2, 3].map(i => (
               <Skeleton key={i} className="h-28 w-full rounded-3xl" />
@@ -117,7 +215,7 @@ export default function Ideas() {
           </div>
         )}
 
-        {isError && (
+        {!isSearchMode && isError && (
           <Card className="mt-8 rounded-3xl border-destructive/30 bg-destructive/5 p-6">
             <p className="text-sm text-destructive">
               {error instanceof Error ? error.message : 'No se pudieron cargar las ideas'}
@@ -132,19 +230,33 @@ export default function Ideas() {
           </Card>
         )}
 
-        {!isLoading && !isError && ideas && ideas.length === 0 && (
-          <Card className="mt-8 flex flex-col items-center gap-3 rounded-3xl border-dashed py-16 text-center">
-            <Lightbulb className="size-8 text-muted-foreground/40" />
-            <p className="text-sm text-muted-foreground">Aún no tienes ideas. Crea la primera.</p>
-            <Link to="/ideas/new" state={{ from: '/ideas' }} className={buttonVariants()}>
-              Capturar idea
-            </Link>
+        {!displayLoading &&
+          !isSearchMode &&
+          !isError &&
+          ideas &&
+          ideas.length === 0 &&
+          !searchInput.trim() && (
+            <Card className="mt-8 flex flex-col items-center gap-3 rounded-3xl border-dashed py-16 text-center">
+              <Lightbulb className="size-8 text-muted-foreground/40" />
+              <p className="text-sm text-muted-foreground">Aún no tienes ideas. Crea la primera.</p>
+              <Link to="/ideas/new" state={{ from: '/ideas' }} className={buttonVariants()}>
+                Capturar idea
+              </Link>
+            </Card>
+          )}
+
+        {!displayLoading && isSearchMode && !searchIsError && displayIdeas.length === 0 && (
+          <Card className="mt-8 rounded-3xl border-dashed p-8 text-center">
+            <p className="text-sm text-muted-foreground">
+              Ninguna idea indexada coincide con esa búsqueda. Prueba otras palabras o espera a que se
+              generen embeddings.
+            </p>
           </Card>
         )}
 
-        {!isLoading && !isError && ideas && ideas.length > 0 && (
+        {!displayLoading && (!isSearchMode ? !isError && ideas && ideas.length > 0 : !searchIsError) && displayIdeas.length > 0 && (
           <ul className="mt-8 grid gap-4">
-            {ideas.map(idea => (
+            {displayIdeas.map(idea => (
               <li key={idea.id}>
                 <Card
                   className={`rounded-3xl p-5 transition-shadow ${
@@ -210,7 +322,31 @@ export default function Ideas() {
                           Actualizar validación
                         </Button>
                       )}
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="rounded-full border-primary/30 bg-primary/5"
+                        onClick={() => {
+                          setFlashSheetId(idea.id)
+                          setFlashSheetOpen(true)
+                        }}
+                      >
+                        Ver ficha
+                      </Button>
                     </div>
+                  </div>
+                  <div className="mt-3 flex flex-col border-t border-border pt-3">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="w-fit rounded-full text-muted-foreground"
+                      onClick={() => setSimilarFor(s => (s === idea.id ? null : idea.id))}
+                    >
+                      {similarFor === idea.id ? 'Ocultar relacionadas' : 'Ideas relacionadas'}
+                    </Button>
+                    <IdeaRelatedList ideaId={idea.id} open={similarFor === idea.id} />
                   </div>
                 </Card>
               </li>
@@ -218,6 +354,14 @@ export default function Ideas() {
           </ul>
         )}
       </main>
+      <IdeaFlashcardSheet
+        ideaId={flashSheetId}
+        open={flashSheetOpen}
+        onOpenChange={open => {
+          setFlashSheetOpen(open)
+          if (!open) setFlashSheetId(null)
+        }}
+      />
     </div>
   )
 }

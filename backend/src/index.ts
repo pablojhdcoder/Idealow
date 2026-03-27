@@ -10,6 +10,7 @@ import validationRoutes from './routes/validation'
 import usersRoutes from './routes/users'
 import feedRoutes from './routes/feed'
 import filesRoutes from './routes/files'
+import semanticRoutes from './routes/semantic'
 import { errorHandler } from './middleware/errors'
 import { requestLogger } from './middleware/requestLogger'
 import { logger } from './lib/logger'
@@ -46,6 +47,7 @@ app.use('/api/files', filesRoutes)
 app.use('/api/validation', validationRoutes)
 app.use('/api/users', usersRoutes)
 app.use('/api/feed', feedRoutes)
+app.use('/api/semantic', semanticRoutes)
 
 app.get('/health', (_req, res) => res.json({ status: 'ok' }))
 app.use(errorHandler)

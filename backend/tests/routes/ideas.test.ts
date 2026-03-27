@@ -39,6 +39,9 @@ vi.mock('../../src/services/files/cleanupOrphanedUploads', () => ({
 vi.mock('../../src/middleware/rateLimit', () => ({
   ideasCreateRateLimit: (_req: unknown, _res: unknown, next: (err?: unknown) => void) => next(),
   ideasRefineRateLimit: (_req: unknown, _res: unknown, next: (err?: unknown) => void) => next(),
+  semanticExploreRateLimit: (_req: unknown, _res: unknown, next: (err?: unknown) => void) => next(),
+  ideasPatchRateLimit: (_req: unknown, _res: unknown, next: (err?: unknown) => void) => next(),
+  ideasFeedbackPostRateLimit: (_req: unknown, _res: unknown, next: (err?: unknown) => void) => next(),
 }))
 
 function signTestToken(userId: string) {

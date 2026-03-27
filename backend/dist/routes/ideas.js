@@ -12,8 +12,17 @@ const idea_1 = require("../schemas/idea");
 const ideas_1 = require("../services/ideas");
 const refinement_1 = require("../services/ideas/refinement");
 const cleanupOrphanedUploads_1 = require("../services/files/cleanupOrphanedUploads");
+const config_1 = require("../config");
+const prisma_1 = require("../lib/prisma");
+const similarity_1 = require("../services/embeddings/similarity");
+const ideaFlashcard_1 = require("../services/ideas/ideaFlashcard");
+const feedbackService_1 = require("../services/ideas/feedbackService");
+const updateIdeaPublish_1 = require("../services/ideas/updateIdeaPublish");
 const router = (0, express_1.Router)();
 const ideaIdParamsSchema = zod_1.z.object({ id: zod_1.z.string().uuid() });
+const similarQuerySchema = zod_1.z.object({
+    limit: zod_1.z.coerce.number().int().min(1).max(20).optional(),
+});
 /** No borrar adjuntos en errores de validación / recurso incorrecto (nunca llegamos a “consumir” la subida en una idea). */
 function shouldCleanupOrphanUploadsAfterCreateError(err) {
     if (!(err instanceof httpError_1.HttpError)) {
@@ -37,6 +46,109 @@ router.get('/', auth_1.requireAuth, async (req, res, next) => {
         }
         const result = await (0, ideas_1.listIdeasForUser)(req.user.userId, parsed.data);
         return res.json(result);
+    }
+    catch (err) {
+        next(err);
+    }
+});
+router.get('/:id/similar', auth_1.requireAuth, rateLimit_1.semanticExploreRateLimit, (0, validate_1.validateParams)(ideaIdParamsSchema), async (req, res, next) => {
+    try {
+        if (!req.user) {
+            return (0, apiError_1.sendError)(res, 401, 'Unauthorized', 'AUTH_UNAUTHORIZED');
+        }
+        const { id } = req.params;
+        const parsedQ = similarQuerySchema.safeParse(req.query);
+        if (!parsedQ.success) {
+            return (0, apiError_1.sendError)(res, 422, 'Validation failed', 'VALIDATION_ERROR', parsedQ.error.flatten());
+        }
+        const limit = parsedQ.data.limit ?? 8;
+        const idea = await prisma_1.prisma.idea.findFirst({
+            where: { id, userId: req.user.userId },
+            select: { id: true },
+        });
+        if (!idea) {
+            return (0, apiError_1.sendError)(res, 404, 'Idea not found', 'IDEAS_NOT_FOUND');
+        }
+        if (!(0, config_1.hasEmbeddingsConfig)()) {
+            return (0, apiError_1.sendError)(res, 503, 'Similar ideas is not configured (set AZURE_OPENAI_DEPLOYMENT_EMBEDDINGS or EMBEDDING_MODEL).', 'SEMANTIC_NOT_CONFIGURED');
+        }
+        const ideas = await (0, similarity_1.similarIdeasForUser)(req.user.userId, id, limit);
+        return res.json({ ideas });
+    }
+    catch (err) {
+        next(err);
+    }
+});
+router.get('/:id/feedback', (0, validate_1.validateParams)(ideaIdParamsSchema), async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const parsed = idea_1.ideaFeedbackListQuerySchema.safeParse(req.query);
+        if (!parsed.success) {
+            return (0, apiError_1.sendError)(res, 422, 'Validation failed', 'VALIDATION_ERROR', parsed.error.flatten());
+        }
+        const limit = parsed.data.limit ?? 20;
+        const { items, nextCursor } = await (0, feedbackService_1.listIdeaFeedbackComments)(id, {
+            cursor: parsed.data.cursor,
+            limit,
+        });
+        return res.json({
+            comments: items.map(c => ({
+                id: c.id,
+                comment: c.comment,
+                vote: c.vote,
+                createdAt: c.createdAt.toISOString(),
+                user: c.user,
+            })),
+            nextCursor,
+        });
+    }
+    catch (err) {
+        next(err);
+    }
+});
+router.post('/:id/feedback', auth_1.requireAuth, rateLimit_1.ideasFeedbackPostRateLimit, (0, validate_1.validateParams)(ideaIdParamsSchema), (0, validate_1.validateBody)(idea_1.ideaFeedbackBodySchema), async (req, res, next) => {
+    try {
+        if (!req.user) {
+            return (0, apiError_1.sendError)(res, 401, 'Unauthorized', 'AUTH_UNAUTHORIZED');
+        }
+        const { id } = req.params;
+        const body = req.body;
+        const result = await (0, feedbackService_1.submitIdeaFeedback)({
+            ideaId: id,
+            userId: req.user.userId,
+            vote: body.vote,
+            comment: body.comment,
+        });
+        return res.status(200).json(result);
+    }
+    catch (err) {
+        next(err);
+    }
+});
+router.patch('/:id', auth_1.requireAuth, rateLimit_1.ideasPatchRateLimit, (0, validate_1.validateParams)(ideaIdParamsSchema), (0, validate_1.validateBody)(idea_1.patchIdeaBodySchema), async (req, res, next) => {
+    try {
+        if (!req.user) {
+            return (0, apiError_1.sendError)(res, 401, 'Unauthorized', 'AUTH_UNAUTHORIZED');
+        }
+        const { id } = req.params;
+        const { isPublished } = req.body;
+        const updated = await (0, updateIdeaPublish_1.updateIdeaPublishState)(req.user.userId, id, isPublished);
+        return res.json({
+            id: updated.id,
+            isPublished: updated.isPublished,
+            publishedAt: updated.publishedAt ? updated.publishedAt.toISOString() : null,
+        });
+    }
+    catch (err) {
+        next(err);
+    }
+});
+router.get('/:id', auth_1.optionalAuth, (0, validate_1.validateParams)(ideaIdParamsSchema), async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const viewerId = req.user?.userId;
+        const { flashcard, isOwner } = await (0, ideaFlashcard_1.getIdeaFlashcardForViewer)(id, viewerId);
+        return res.json({ flashcard, isOwner });
     }
     catch (err) {
         next(err);

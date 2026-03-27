@@ -39,7 +39,7 @@ router.post('/register', rateLimit_1.authRegisterRateLimit, (0, validate_1.valid
         const passwordHash = await bcryptjs_1.default.hash(password, 12);
         const user = await prisma_1.prisma.user.create({
             data: { email, username, passwordHash },
-            select: { id: true, email: true, username: true, sectors: true, goal: true },
+            select: { id: true, email: true, username: true, avatarUrl: true, sectors: true, goal: true },
         });
         res.cookie('token', (0, jwt_1.signToken)(user.id), cookieOpts);
         return res.json({ user, needsOnboarding: true });
@@ -59,7 +59,14 @@ router.post('/login', rateLimit_1.authLoginRateLimit, (0, validate_1.validateBod
             return (0, apiError_1.sendError)(res, 401, 'Invalid credentials', 'AUTH_INVALID_CREDENTIALS');
         res.cookie('token', (0, jwt_1.signToken)(user.id), cookieOpts);
         return res.json({
-            user: { id: user.id, email: user.email, username: user.username, sectors: user.sectors, goal: user.goal },
+            user: {
+                id: user.id,
+                email: user.email,
+                username: user.username,
+                avatarUrl: user.avatarUrl,
+                sectors: user.sectors,
+                goal: user.goal,
+            },
             needsOnboarding: user.sectors.length === 0,
         });
     }
@@ -72,7 +79,8 @@ router.post('/logout', (_req, res) => {
     return res.json({ success: true });
 });
 router.get('/me', async (req, res) => {
-    const token = req.cookies?.token;
+    const bearer = req.headers.authorization?.split(' ')[1];
+    const token = req.cookies?.token || bearer;
     if (!token)
         return (0, apiError_1.sendError)(res, 401, 'Not authenticated', 'AUTH_NOT_AUTHENTICATED');
     try {

@@ -10,7 +10,6 @@ import {
 import { ideasQueryKey } from '@/hooks/useIdeasQuery'
 import { ScoreRing } from '@/components/ideas/ScoreRing'
 import { Button } from '@/components/ui/button'
-import { SheetDescription, SheetFooter, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { cn } from '@/lib/utils'
 
 const SOURCE_LABELS: Record<SourceKey, string> = {
@@ -129,17 +128,17 @@ export function ValidationProgress({
   const blockingError = state.streamError || state.startError
 
   return (
-    <div className="flex h-full flex-col">
-      <SheetHeader className="border-b border-border text-left">
-        <SheetTitle>Validación de mercado</SheetTitle>
-        <SheetDescription>
+    <div className="flex flex-col">
+      <header className="rounded-3xl border border-border bg-card px-6 py-8 text-left shadow-sm sm:px-10">
+        <h1 className="font-serif text-2xl text-foreground sm:text-3xl">Validación de mercado</h1>
+        <p className="mt-3 text-sm leading-relaxed text-muted-foreground sm:text-[15px]">
           Reddit, noticias, competidores, tendencias (IA) y redes: YouTube/Shorts (cuota gratuita con
           clave) y bloques X, Instagram y TikTok generados solo por IA (sin APIs de pago ni scraping).
           Los resultados llegan en tiempo real.
-        </SheetDescription>
-      </SheetHeader>
+        </p>
+      </header>
 
-      <div className="flex flex-1 flex-col gap-5 overflow-y-auto p-4">
+      <div className="mt-8 flex flex-col gap-6">
         {blockingError && (
           <div
             className="rounded-2xl border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive"
@@ -149,20 +148,21 @@ export function ValidationProgress({
           </div>
         )}
 
-        <div className="flex justify-center py-2">
+        <div className="flex justify-center rounded-3xl border border-border bg-card py-10 shadow-sm">
           <ScoreRing
             score={state.complete ? state.finalScore : null}
             verdict={state.complete ? state.verdict : null}
+            className="scale-110"
           />
         </div>
 
         {state.complete && state.recommendation && (
-          <p className="rounded-2xl border border-border bg-card px-4 py-3 text-sm leading-relaxed text-foreground">
+          <p className="rounded-3xl border border-border bg-card px-6 py-5 text-sm leading-relaxed text-foreground shadow-sm sm:text-[15px]">
             {state.recommendation}
           </p>
         )}
 
-        <div className="grid gap-2">
+        <div className="grid gap-3">
           {sources.map(key => {
             const s = state[key]
             return (
@@ -178,18 +178,13 @@ export function ValidationProgress({
             )
           })}
         </div>
-      </div>
 
-      <SheetFooter className="border-t border-border">
-        <Button
-          type="button"
-          variant="outline"
-          className={cn('w-full rounded-full')}
-          onClick={onClose}
-        >
-          {state.complete ? 'Cerrar' : 'Cancelar'}
-        </Button>
-      </SheetFooter>
+        <div className="pt-2">
+          <Button type="button" variant="outline" className={cn('w-full rounded-full sm:w-auto')} onClick={onClose}>
+            {state.complete ? 'Volver a la ficha' : 'Cancelar'}
+          </Button>
+        </div>
+      </div>
     </div>
   )
 }

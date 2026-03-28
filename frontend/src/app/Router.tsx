@@ -10,6 +10,8 @@ const Dashboard = lazy(() => import('@/pages/dashboard/Dashboard'))
 const Home = lazy(() => import('@/pages/home/Home'))
 const Ideas = lazy(() => import('@/pages/ideas/Ideas'))
 const NewIdea = lazy(() => import('@/pages/ideas/NewIdea'))
+const IdeaDetail = lazy(() => import('@/pages/ideas/IdeaDetail'))
+const IdeaValidate = lazy(() => import('@/pages/ideas/IdeaValidate'))
 const IdeaPublic = lazy(() => import('@/pages/ideas/IdeaPublic'))
 const Profile = lazy(() => import('@/pages/profile/Profile'))
 const Feed = lazy(() => import('@/pages/feed/Feed'))
@@ -92,6 +94,22 @@ export default function AppRouter() {
             element={
               <PrivateRoute>
                 <NewIdea />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/ideas/:id/validar"
+            element={
+              <PrivateRoute>
+                <IdeaValidate />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/ideas/:id"
+            element={
+              <PrivateRoute>
+                <IdeaDetail />
               </PrivateRoute>
             }
           />

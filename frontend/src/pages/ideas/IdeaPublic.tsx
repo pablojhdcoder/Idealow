@@ -1,10 +1,13 @@
 import { useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, Copy, Share2 } from 'lucide-react'
+import { ArrowLeft, Copy, Loader2, Share2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
-import { IdeaFlashcardSheet } from '@/components/ideas/IdeaFlashcardSheet'
+import {
+  IdeaFlashcardDetailView,
+  flashcardQueryKey,
+} from '@/components/ideas/IdeaFlashcardDetailView'
 import { fetchIdeaFlashcardDetail } from '@/lib/api/ideas'
 import { ApiError } from '@/lib/api/client'
 
@@ -36,7 +39,7 @@ export default function IdeaPublic() {
   const navigate = useNavigate()
   const { id } = useParams<{ id: string }>()
   const q = useQuery({
-    queryKey: id ? ['idea-flashcard', id] : ['idea-flashcard', 'none'],
+    queryKey: id ? flashcardQueryKey(id) : ['idea-flashcard', 'none'],
     queryFn: () => fetchIdeaFlashcardDetail(id!),
     enabled: Boolean(id),
   })
@@ -45,7 +48,6 @@ export default function IdeaPublic() {
     if (!id) return
     const prevTitle = document.title
 
-    // Valores por defecto mientras carga para mejorar previews básicas.
     const baseTitle = 'Flashcard compartida · Idealow'
     const baseDesc = 'Explora una idea publicada en la comunidad de Idealow.'
     document.title = baseTitle
@@ -103,24 +105,14 @@ export default function IdeaPublic() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <main className="mx-auto max-w-6xl px-4 py-6 sm:px-6">
-        <div className="flex flex-wrap items-center gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            className="rounded-full"
-            onClick={() => navigate(-1)}
-          >
+    <div className="min-h-screen bg-[#FAFAF8] dark:bg-background">
+      <main className="mx-auto max-w-3xl px-4 pb-16 pt-6 sm:px-6 sm:pt-8">
+        <div className="mb-8 flex flex-wrap items-center gap-2">
+          <Button type="button" variant="outline" className="rounded-full" onClick={() => navigate(-1)}>
             <ArrowLeft className="size-4" />
             Volver
           </Button>
-          <Button
-            type="button"
-            variant="outline"
-            className="rounded-full"
-            onClick={() => void copyPublicLink()}
-          >
+          <Button type="button" variant="outline" className="rounded-full" onClick={() => void copyPublicLink()}>
             <Copy className="size-4" />
             Copiar enlace
           </Button>
@@ -129,17 +121,28 @@ export default function IdeaPublic() {
             Enlace público
           </span>
         </div>
+
+        {q.isLoading && (
+          <div className="flex justify-center py-24">
+            <Loader2 className="size-10 animate-spin text-primary" aria-label="Cargando" />
+          </div>
+        )}
+
         {q.error instanceof ApiError && (
-          <p className="mt-3 text-sm text-muted-foreground">{q.error.message}</p>
+          <p className="rounded-3xl border border-border bg-card p-6 text-sm text-muted-foreground">
+            {q.error.message}
+          </p>
+        )}
+
+        {q.data && (
+          <IdeaFlashcardDetailView
+            ideaId={id}
+            flashcard={q.data.flashcard}
+            isOwner={q.data.isOwner}
+            attachments={q.data.attachments}
+          />
         )}
       </main>
-      <IdeaFlashcardSheet
-        ideaId={id}
-        open
-        onOpenChange={open => {
-          if (!open) navigate(-1)
-        }}
-      />
     </div>
   )
 }

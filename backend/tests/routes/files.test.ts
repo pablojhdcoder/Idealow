@@ -83,6 +83,33 @@ describe('POST /api/files/upload', () => {
     expect(prismaCreateMock).not.toHaveBeenCalled()
   })
 
+  it('acepta .md aunque el cliente envie application/octet-stream', async () => {
+    const app = buildApp()
+    const token = signTestToken('user-1')
+    const createdAt = new Date('2026-01-01T00:00:00.000Z')
+    prismaCreateMock.mockResolvedValue({
+      id: 'file-md',
+      userId: 'user-1',
+      filepath: '/tmp/x.md',
+      originalName: 'nota.md',
+      mimeType: 'application/octet-stream',
+      sizeBytes: 4,
+      createdAt,
+    })
+
+    const response = await request(app)
+      .post('/api/files/upload')
+      .set('Authorization', `Bearer ${token}`)
+      .attach('file', Buffer.from('# hi'), {
+        filename: 'nota.md',
+        contentType: 'application/octet-stream',
+      })
+
+    expect(response.status).toBe(200)
+    expect(response.body.fileId).toBe('file-md')
+    expect(prismaCreateMock).toHaveBeenCalled()
+  })
+
   it('retorna exito sin exponer filepath', async () => {
     // Arrange
     const app = buildApp()

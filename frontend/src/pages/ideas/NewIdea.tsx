@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { ApiError } from '@/lib/api/client'
 import { createIdea } from '@/lib/api/ideas'
-import { uploadFile } from '@/lib/api/files'
+import { uploadAttachedFilesForIdea, UploadFileError } from '@/lib/api/files'
 import { ideasQueryKey } from '@/hooks/useIdeasQuery'
 import { buildNewIdeaStarterContent, getDashboardStarterById } from '@/lib/dashboardSuggestions'
 
@@ -118,8 +118,7 @@ export default function NewIdea() {
       let fileIds: string[] = []
 
       if (attachedFiles.length > 0) {
-        const uploads = await Promise.all(attachedFiles.map(a => uploadFile(a.file)))
-        fileIds = uploads.map(u => u.fileId)
+        fileIds = await uploadAttachedFilesForIdea(attachedFiles.map(a => a.file))
       }
 
       return createIdea({
@@ -136,6 +135,10 @@ export default function NewIdea() {
       navigate('/ideas', { state: { highlightId: data.ideaId, openRefineId: data.ideaId } })
     },
     onError: (err: unknown) => {
+      if (err instanceof UploadFileError) {
+        toast.error(err.message)
+        return
+      }
       if (err instanceof ApiError) {
         toast.error(err.message)
         return

@@ -11,11 +11,9 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Input } from '@/components/ui/input'
 import { ideasQueryKey, useIdeasQuery } from '@/hooks/useIdeasQuery'
 import { RefinementWizard } from '@/components/ideas/RefinementWizard'
-import { ValidationProgress } from '@/components/ideas/ValidationProgress'
-import { Sheet, SheetContent } from '@/components/ui/sheet'
 import { semanticSearchIdeas, fetchSimilarIdeas } from '@/lib/api/semantic'
 import { ApiError } from '@/lib/api/client'
-import { IdeaFlashcardSheet } from '@/components/ideas/IdeaFlashcardSheet'
+import { cn } from '@/lib/utils'
 
 function formatDate(iso: string) {
   try {
@@ -80,12 +78,9 @@ export default function Ideas() {
       : undefined
 
   const [refineIdeaId, setRefineIdeaId] = useState<string | null>(null)
-  const [validateIdeaId, setValidateIdeaId] = useState<string | null>(null)
   const [searchInput, setSearchInput] = useState('')
   const [debouncedQ, setDebouncedQ] = useState('')
   const [similarFor, setSimilarFor] = useState<string | null>(null)
-  const [flashSheetId, setFlashSheetId] = useState<string | null>(null)
-  const [flashSheetOpen, setFlashSheetOpen] = useState(false)
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedQ(searchInput.trim()), 350)
@@ -133,25 +128,6 @@ export default function Ideas() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Sheet
-        open={validateIdeaId != null}
-        onOpenChange={open => {
-          if (!open) setValidateIdeaId(null)
-        }}
-      >
-        <SheetContent
-          side="right"
-          className="w-full rounded-l-3xl border-l sm:max-w-lg"
-          showCloseButton
-        >
-          {validateIdeaId ? (
-            <ValidationProgress
-              ideaId={validateIdeaId}
-              onClose={() => setValidateIdeaId(null)}
-            />
-          ) : null}
-        </SheetContent>
-      </Sheet>
       {refineIdeaId && (
         <RefinementWizard
           ideaId={refineIdeaId}
@@ -159,7 +135,7 @@ export default function Ideas() {
             void queryClient.invalidateQueries({ queryKey: ideasQueryKey })
             void queryClient.invalidateQueries({ queryKey: ['semantic-search'] })
             setRefineIdeaId(null)
-            setValidateIdeaId(id)
+            navigate(`/ideas/${encodeURIComponent(id)}/validar`, { state: { from: '/ideas' } })
           }}
           onDismiss={() => setRefineIdeaId(null)}
         />
@@ -259,35 +235,45 @@ export default function Ideas() {
             {displayIdeas.map(idea => (
               <li key={idea.id}>
                 <Card
-                  className={`rounded-3xl p-5 transition-shadow ${
-                    highlightId === idea.id ? 'ring-2 ring-primary/50 shadow-md' : ''
-                  }`}
+                  className={cn(
+                    'rounded-3xl p-5 transition-colors transition-shadow hover:bg-muted/40',
+                    highlightId === idea.id && 'ring-2 ring-primary/50 shadow-md',
+                  )}
                 >
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div className="min-w-0 flex-1">
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                    <Link
+                      to={`/ideas/${encodeURIComponent(idea.id)}`}
+                      state={{ from: '/ideas' }}
+                      aria-label={`Abrir ficha: ${idea.title}`}
+                      className={cn(
+                        'min-w-0 flex-1 rounded-2xl p-1 -m-1',
+                        'outline-none',
+                        'focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+                      )}
+                    >
                       <h2 className="font-semibold text-foreground">{idea.title}</h2>
                       {idea.summary && (
-                        <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
-                          {idea.summary}
-                        </p>
+                        <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{idea.summary}</p>
                       )}
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {idea.sector && (
+                          <Badge variant="secondary" className="rounded-full capitalize">
+                            {idea.sector}
+                          </Badge>
+                        )}
+                        <Badge variant="outline" className="rounded-full">
+                          {idea.status}
+                        </Badge>
+                        {idea.validationScore != null && idea.status === 'VALIDATED' && (
+                          <Badge className="rounded-full bg-accent/15 text-accent-foreground">
+                            Score {idea.validationScore}
+                          </Badge>
+                        )}
+                      </div>
                       <p className="mt-2 text-xs text-muted-foreground">{formatDate(idea.createdAt)}</p>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      {idea.sector && (
-                        <Badge variant="secondary" className="rounded-full capitalize">
-                          {idea.sector}
-                        </Badge>
-                      )}
-                      <Badge variant="outline" className="rounded-full">
-                        {idea.status}
-                      </Badge>
-                      {idea.validationScore != null && idea.status === 'VALIDATED' && (
-                        <Badge className="rounded-full bg-accent/15 text-accent-foreground">
-                          Score {idea.validationScore}
-                        </Badge>
-                      )}
-                      {idea.status === 'DRAFT' && (
+                    </Link>
+                    {idea.status === 'DRAFT' ? (
+                      <div className="flex shrink-0 flex-wrap items-center gap-2 sm:justify-end">
                         <Button
                           type="button"
                           variant="outline"
@@ -300,41 +286,8 @@ export default function Ideas() {
                         >
                           Refinar
                         </Button>
-                      )}
-                      {idea.status === 'REFINING' && (
-                        <Button
-                          type="button"
-                          size="sm"
-                          className="rounded-full"
-                          onClick={() => setValidateIdeaId(idea.id)}
-                        >
-                          Validar mercado
-                        </Button>
-                      )}
-                      {idea.status === 'VALIDATED' && (
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          className="rounded-full"
-                          onClick={() => setValidateIdeaId(idea.id)}
-                        >
-                          Actualizar validación
-                        </Button>
-                      )}
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        className="rounded-full border-primary/30 bg-primary/5"
-                        onClick={() => {
-                          setFlashSheetId(idea.id)
-                          setFlashSheetOpen(true)
-                        }}
-                      >
-                        Ver ficha
-                      </Button>
-                    </div>
+                      </div>
+                    ) : null}
                   </div>
                   <div className="mt-3 flex flex-col border-t border-border pt-3">
                     <Button
@@ -354,14 +307,6 @@ export default function Ideas() {
           </ul>
         )}
       </main>
-      <IdeaFlashcardSheet
-        ideaId={flashSheetId}
-        open={flashSheetOpen}
-        onOpenChange={open => {
-          setFlashSheetOpen(open)
-          if (!open) setFlashSheetId(null)
-        }}
-      />
     </div>
   )
 }

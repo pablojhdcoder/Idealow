@@ -2,10 +2,9 @@ import { useEffect, useState } from 'react'
 import { useInfiniteQuery, type InfiniteData } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
 import { Users } from 'lucide-react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import AppShellHeader from '@/components/layout/AppShellHeader'
 import { IdeaFlashcardCard } from '@/components/ideas/IdeaFlashcardCard'
-import { IdeaFlashcardSheet } from '@/components/ideas/IdeaFlashcardSheet'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -28,13 +27,12 @@ const SECTORS = [
 ] as const
 
 export default function Feed() {
+  const navigate = useNavigate()
   const [sort, setSort] = useState<FeedSort>('new')
   const [filter, setFilter] = useState<FeedFilter>('all')
   const [sector, setSector] = useState('')
   const [qInput, setQInput] = useState('')
   const [debouncedQ, setDebouncedQ] = useState('')
-  const [sheetId, setSheetId] = useState<string | null>(null)
-  const [sheetOpen, setSheetOpen] = useState(false)
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedQ(qInput.trim()), 300)
@@ -191,10 +189,9 @@ export default function Feed() {
                 <div className="flex flex-col items-center gap-2">
                   <IdeaFlashcardCard
                     flashcard={item}
-                    onOpen={() => {
-                      setSheetId(item.id)
-                      setSheetOpen(true)
-                    }}
+                    onOpen={() =>
+                      navigate(`/ideas/${encodeURIComponent(item.id)}`, { state: { from: '/feed' } })
+                    }
                   />
                   <Link
                     to={`/flashcard/${encodeURIComponent(item.id)}`}
@@ -222,15 +219,6 @@ export default function Feed() {
           </div>
         ) : null}
       </main>
-
-      <IdeaFlashcardSheet
-        ideaId={sheetId}
-        open={sheetOpen}
-        onOpenChange={open => {
-          setSheetOpen(open)
-          if (!open) setSheetId(null)
-        }}
-      />
     </div>
   )
 }

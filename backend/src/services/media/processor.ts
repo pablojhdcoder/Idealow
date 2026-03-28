@@ -12,7 +12,8 @@ export const WHISPER_DEPLOYMENT_MISSING = 'WHISPER_DEPLOYMENT_MISSING' as const
 
 const isMediaUrl = (value: string) => value.startsWith('http://') || value.startsWith('https://')
 const mediaExtensions = ['mp3', 'mp4', 'wav', 'jpg', 'jpeg', 'png', 'webp', 'gif', 'm4a', 'ogg', 'pdf']
-const textMimeTypes = new Set(['text/plain', 'text/markdown'])
+const textMimeTypes = new Set(['text/plain', 'text/markdown', 'text/x-markdown'])
+const textFileExtensions = new Set(['txt', 'md', 'markdown'])
 const audioMimeTypes = new Set(['audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/mp4', 'audio/x-m4a', 'audio/ogg'])
 const imageMimeTypes = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif'])
 const pdfMimeTypes = new Set(['application/pdf'])
@@ -87,12 +88,16 @@ export async function processMedia(filePathOrUrl: string, mimeType?: string): Pr
     return (parsed.text ?? '').replace(/\s+/g, ' ').trim().slice(0, 5000)
   }
 
-  if (!isUrl && (mimeType ? textMimeTypes.has(mimeType) : true)) {
-    try {
-      const textFile = await fs.readFile(filePathOrUrl, 'utf8')
-      return textFile.trim().slice(0, 5000)
-    } catch {
-      return ''
+  if (!isUrl) {
+    const asTextByMime = Boolean(mimeType && textMimeTypes.has(mimeType))
+    const asTextByExt = textFileExtensions.has(ext)
+    if (asTextByMime || asTextByExt) {
+      try {
+        const textFile = await fs.readFile(filePathOrUrl, 'utf8')
+        return textFile.trim().slice(0, 5000)
+      } catch {
+        return ''
+      }
     }
   }
 

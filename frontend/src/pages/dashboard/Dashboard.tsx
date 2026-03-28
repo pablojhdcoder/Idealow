@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useIdeasQuery } from '@/hooks/useIdeasQuery'
+import { cn } from '@/lib/utils'
 
 function formatDate(iso: string) {
   try {
@@ -85,7 +86,15 @@ export default function Dashboard() {
               <ul className="grid gap-3">
                 {recent.map(idea => (
                   <li key={idea.id}>
-                    <Link to="/ideas">
+                    <Link
+                      to={`/ideas/${encodeURIComponent(idea.id)}`}
+                      state={{ from: '/dashboard' }}
+                      aria-label={`Abrir ficha: ${idea.title}`}
+                      className={cn(
+                        'block rounded-2xl outline-none',
+                        'focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+                      )}
+                    >
                       <Card className="rounded-2xl transition-colors hover:bg-muted/40">
                         <CardContent className="flex flex-col gap-1 py-4">
                           <p className="font-medium text-foreground">{idea.title}</p>

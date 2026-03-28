@@ -7,13 +7,17 @@ import { config } from '../config'
 import { sendError } from '../lib/apiError'
 import { optionalAuth, requireAuth } from '../middleware/auth'
 import { filesUploadRateLimit } from '../middleware/rateLimit'
+import { validateBody } from '../middleware/validate'
 import { prisma } from '../lib/prisma'
+import { cleanupOrphanedUploads } from '../services/files/cleanupOrphanedUploads'
+import { abandonUploadsBodySchema } from '../schemas/files'
 
 const router = Router()
 type RequestWithUser = Request & { user: { userId: string } }
 const allowedMimeTypes = new Set([
   'text/plain',
   'text/markdown',
+  'text/x-markdown',
   'application/pdf',
   'audio/mpeg',
   'audio/mp3',
@@ -27,6 +31,16 @@ const allowedMimeTypes = new Set([
   'image/webp',
   'image/gif',
 ])
+
+/** Algunos SO/navegadores envían `application/octet-stream` o vacío para .md / .txt. */
+const textExtensionsForAmbiguousMime = new Set(['txt', 'md', 'markdown'])
+
+function isAllowedUploadFile(file: Express.Multer.File): boolean {
+  if (allowedMimeTypes.has(file.mimetype)) return true
+  const ext = path.extname(file.originalname).replace(/^\./, '').toLowerCase()
+  if (!textExtensionsForAmbiguousMime.has(ext)) return false
+  return file.mimetype === 'application/octet-stream' || file.mimetype === ''
+}
 
 if (!fs.existsSync(config.uploadDir)) {
   fs.mkdirSync(config.uploadDir, { recursive: true })
@@ -44,7 +58,7 @@ const upload = multer({
   storage,
   limits: { fileSize: config.maxUploadMb * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
-    if (!allowedMimeTypes.has(file.mimetype)) {
+    if (!isAllowedUploadFile(file)) {
       cb(new Error('Unsupported file type'))
       return
     }
@@ -113,6 +127,28 @@ router.post('/upload', requireAuth, filesUploadRateLimit, uploadSingle, async (r
   }
 })
 
+router.post(
+  '/abandon-uploads',
+  requireAuth,
+  validateBody(abandonUploadsBodySchema),
+  async (req, res, next) => {
+    try {
+      const request = req as RequestWithUser
+      if (!request.user) {
+        return sendError(res, 401, 'Unauthorized', 'AUTH_UNAUTHORIZED')
+      }
+      const { fileIds } = req.body as { fileIds: string[] }
+      const result = await cleanupOrphanedUploads({
+        userId: request.user.userId,
+        fileIds,
+      })
+      return res.json({ ok: true as const, ...result })
+    } catch (err) {
+      next(err)
+    }
+  },
+)
+
 const uuidParam = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 router.get('/:id', optionalAuth, async (req, res) => {
@@ -128,9 +164,22 @@ router.get('/:id', optionalAuth, async (req, res) => {
     }
 
     const request = req as RequestWithUser
-    const isOwner = request.user?.userId === file.userId
+    const isFileUploader = request.user?.userId === file.userId
 
-    let allowed = isOwner
+    let allowed = isFileUploader
+
+    if (!allowed && file.ideaId) {
+      const idea = await prisma.idea.findUnique({
+        where: { id: file.ideaId },
+        select: { userId: true, isPublished: true },
+      })
+      if (idea?.isPublished) {
+        allowed = true
+      } else if (idea && request.user?.userId === idea.userId) {
+        allowed = true
+      }
+    }
+
     if (!allowed) {
       if (!file.mimeType.startsWith('image/')) {
         return sendError(res, 403, 'Forbidden', 'FILES_FORBIDDEN')

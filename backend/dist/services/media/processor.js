@@ -17,7 +17,8 @@ const openaiMessageText_1 = require("../ai/openaiMessageText");
 exports.WHISPER_DEPLOYMENT_MISSING = 'WHISPER_DEPLOYMENT_MISSING';
 const isMediaUrl = (value) => value.startsWith('http://') || value.startsWith('https://');
 const mediaExtensions = ['mp3', 'mp4', 'wav', 'jpg', 'jpeg', 'png', 'webp', 'gif', 'm4a', 'ogg', 'pdf'];
-const textMimeTypes = new Set(['text/plain', 'text/markdown']);
+const textMimeTypes = new Set(['text/plain', 'text/markdown', 'text/x-markdown']);
+const textFileExtensions = new Set(['txt', 'md', 'markdown']);
 const audioMimeTypes = new Set(['audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/mp4', 'audio/x-m4a', 'audio/ogg']);
 const imageMimeTypes = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
 const pdfMimeTypes = new Set(['application/pdf']);
@@ -80,13 +81,17 @@ async function processMedia(filePathOrUrl, mimeType) {
         await parser.destroy();
         return (parsed.text ?? '').replace(/\s+/g, ' ').trim().slice(0, 5000);
     }
-    if (!isUrl && (mimeType ? textMimeTypes.has(mimeType) : true)) {
-        try {
-            const textFile = await promises_1.default.readFile(filePathOrUrl, 'utf8');
-            return textFile.trim().slice(0, 5000);
-        }
-        catch {
-            return '';
+    if (!isUrl) {
+        const asTextByMime = Boolean(mimeType && textMimeTypes.has(mimeType));
+        const asTextByExt = textFileExtensions.has(ext);
+        if (asTextByMime || asTextByExt) {
+            try {
+                const textFile = await promises_1.default.readFile(filePathOrUrl, 'utf8');
+                return textFile.trim().slice(0, 5000);
+            }
+            catch {
+                return '';
+            }
         }
     }
     throw new Error('UNSUPPORTED_MEDIA: Unsupported media format');

@@ -198,7 +198,25 @@ router.get(
       const { id } = req.params as z.infer<typeof ideaIdParamsSchema>
       const viewerId = req.user?.userId
       const { flashcard, isOwner } = await getIdeaFlashcardForViewer(id, viewerId)
-      return res.json({ flashcard, isOwner })
+      const files = await prisma.file.findMany({
+        where: { ideaId: id },
+        select: {
+          id: true,
+          originalName: true,
+          mimeType: true,
+          sizeBytes: true,
+          createdAt: true,
+        },
+        orderBy: { createdAt: 'asc' },
+      })
+      const attachments = files.map(f => ({
+        id: f.id,
+        originalName: f.originalName,
+        mimeType: f.mimeType,
+        sizeBytes: f.sizeBytes,
+        createdAt: f.createdAt.toISOString(),
+      }))
+      return res.json({ flashcard, isOwner, attachments })
     } catch (err) {
       next(err)
     }

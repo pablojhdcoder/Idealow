@@ -52,9 +52,18 @@ export type IdeaFlashcard = {
   myVote: 'USEFUL' | 'INTERESTING' | 'NOT_USEFUL' | null
 }
 
+export type IdeaAttachment = {
+  id: string
+  originalName: string
+  mimeType: string
+  sizeBytes: number
+  createdAt: string
+}
+
 export type IdeaFlashcardDetailResponse = {
   flashcard: IdeaFlashcard
   isOwner: boolean
+  attachments: IdeaAttachment[]
 }
 
 export type FeedbackComment = {

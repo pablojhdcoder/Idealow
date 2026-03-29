@@ -1,6 +1,7 @@
 import type { Prisma } from '@prisma/client'
 import { prisma } from '../../lib/prisma'
 import { HttpError } from '../../lib/httpError'
+import { similarPublishedIdeaIdsByAnchor } from '../embeddings/similarity'
 
 export type Verdict = 'STRONG_SIGNAL' | 'MODERATE_SIGNAL' | 'WEAK_SIGNAL' | 'NO_SIGNAL'
 
@@ -189,6 +190,29 @@ export async function getMyVote(
   return null
 }
 
+export async function getMyVotesForIdeaIds(
+  userId: string | undefined,
+  ideaIds: string[],
+): Promise<Map<string, 'USEFUL' | 'INTERESTING' | 'NOT_USEFUL' | null>> {
+  const map = new Map<string, 'USEFUL' | 'INTERESTING' | 'NOT_USEFUL' | null>()
+  for (const id of ideaIds) {
+    map.set(id, null)
+  }
+  if (!userId || ideaIds.length === 0) return map
+
+  const rows = await prisma.ideaFeedback.findMany({
+    where: { userId, ideaId: { in: ideaIds } },
+    select: { ideaId: true, vote: true },
+  })
+  for (const row of rows) {
+    const v = row.vote
+    if (v === 'USEFUL' || v === 'INTERESTING' || v === 'NOT_USEFUL') {
+      map.set(row.ideaId, v)
+    }
+  }
+  return map
+}
+
 type IdeaWithUser = {
   id: string
   title: string
@@ -299,4 +323,59 @@ export async function getIdeaFlashcardForViewer(
     isOwner,
     validationSnapshot: isOwner ? idea.validationData : null,
   }
+}
+
+/**
+ * Ideas publicadas en la comunidad más parecidas (embedding) a una idea del usuario.
+ */
+export async function listSimilarPublishedFlashcardsForAnchor(
+  anchorIdeaId: string,
+  ownerUserId: string,
+  viewerUserId: string | undefined,
+  limit: number,
+): Promise<IdeaFlashcardPayload[]> {
+  const owned = await prisma.idea.findFirst({
+    where: { id: anchorIdeaId, userId: ownerUserId },
+    select: { id: true },
+  })
+  if (!owned) {
+    throw new HttpError(404, 'Idea not found', 'IDEAS_NOT_FOUND')
+  }
+
+  const orderedIds = await similarPublishedIdeaIdsByAnchor(anchorIdeaId, limit)
+  if (orderedIds.length === 0) {
+    return []
+  }
+
+  const ideas = await prisma.idea.findMany({
+    where: { id: { in: orderedIds } },
+    include: { user: { select: { id: true, username: true, avatarUrl: true } } },
+  })
+  const byId = new Map(ideas.map(i => [i.id, i]))
+  const ordered = orderedIds.map(id => byId.get(id)).filter((x): x is NonNullable<typeof x> => x != null)
+
+  const voteMap = await getVoteCountsForIdeaIds(orderedIds)
+  const myVoteMap = await getMyVotesForIdeaIds(viewerUserId, orderedIds)
+
+  return ordered.map(idea =>
+    mapIdeaRowToFlashcard(
+      {
+        id: idea.id,
+        title: idea.title,
+        summary: idea.summary,
+        sector: idea.sector,
+        status: idea.status,
+        refinedContent: idea.refinedContent,
+        validationScore: idea.validationScore,
+        validationData: idea.validationData,
+        competitors: idea.competitors,
+        isPublished: idea.isPublished,
+        publishedAt: idea.publishedAt,
+        createdAt: idea.createdAt,
+        user: idea.user,
+      },
+      voteMap.get(idea.id) ?? { useful: 0, interesting: 0, notUseful: 0 },
+      myVoteMap.get(idea.id) ?? null,
+    ),
+  )
 }

@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion'
-import { Loader2, Wand2 } from 'lucide-react'
+import { Loader2 } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
 
 /** Contenedor scroll-safe compartido con RefinementWizard (evita desbordes en viewport bajo / móvil). */
@@ -29,31 +29,20 @@ export function WizardSkeleton() {
           className="bg-card w-full max-w-lg shrink-0 rounded-3xl border border-border px-5 py-7 shadow-2xl sm:px-7 sm:py-8"
         >
           <div className="flex flex-col items-center text-center">
-            <div className="relative flex items-center gap-3">
-              <motion.div
-                className="relative flex size-12 items-center justify-center rounded-2xl border border-primary/15 bg-primary/[0.08] sm:size-14"
-                initial={{ scale: 0.92, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                transition={{ delay: 0.04, duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-              >
-                <Wand2 className="size-5 text-primary sm:size-6" aria-hidden />
-                <motion.span
-                  className="absolute inset-0 rounded-2xl border border-primary/25"
-                  animate={{ opacity: [0.35, 0.8, 0.35], scale: [1, 1.03, 1] }}
-                  transition={{ duration: 2.2, repeat: Infinity, ease: 'easeInOut' }}
-                  aria-hidden
-                />
-              </motion.div>
-              <div className="relative flex size-10 items-center justify-center sm:size-11">
-                <motion.span
-                  className="absolute inset-0 rounded-full border-2 border-primary/20"
-                  animate={{ scale: [1, 1.35], opacity: [0.4, 0] }}
-                  transition={{ duration: 1.5, repeat: Infinity, ease: 'easeOut' }}
-                  aria-hidden
-                />
-                <Loader2 className="size-7 animate-spin text-primary sm:size-8" strokeWidth={2} aria-hidden />
-              </div>
-            </div>
+            <motion.div
+              className="relative flex size-10 items-center justify-center sm:size-11"
+              initial={{ scale: 0.92, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ delay: 0.04, duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+            >
+              <motion.span
+                className="absolute inset-0 rounded-full border-2 border-primary/20"
+                animate={{ scale: [1, 1.35], opacity: [0.4, 0] }}
+                transition={{ duration: 1.5, repeat: Infinity, ease: 'easeOut' }}
+                aria-hidden
+              />
+              <Loader2 className="size-7 animate-spin text-primary sm:size-8" strokeWidth={2} aria-hidden />
+            </motion.div>
 
             <h2 className="font-serif mt-5 text-lg tracking-tight text-foreground sm:text-xl">
               Preparando tu asistente

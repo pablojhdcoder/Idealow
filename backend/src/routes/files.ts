@@ -5,6 +5,8 @@ import type { NextFunction, Request, Response } from 'express'
 import { Router } from 'express'
 import { config } from '../config'
 import { sendError } from '../lib/apiError'
+import { asyncHandler } from '../lib/asyncHandler'
+import { HttpError } from '../lib/httpError'
 import { optionalAuth, requireAuth } from '../middleware/auth'
 import { filesUploadRateLimit } from '../middleware/rateLimit'
 import { validateBody } from '../middleware/validate'
@@ -92,132 +94,139 @@ const uploadSingle = (req: Request, res: Response, next: NextFunction) => {
   })
 }
 
-router.post('/upload', requireAuth, filesUploadRateLimit, uploadSingle, async (req, res) => {
-  try {
+router.post(
+  '/upload',
+  requireAuth,
+  filesUploadRateLimit,
+  uploadSingle,
+  asyncHandler(async (req, res) => {
     const request = req as RequestWithUser
     if (!req.file || !request.user) {
-      return sendError(res, 422, 'File is required', 'FILES_REQUIRED')
+      return sendError(res, 422, 'Se requiere un archivo', 'FILES_REQUIRED')
     }
 
-    const created = await prisma.file.create({
-      data: {
-        userId: request.user.userId,
-        filepath: path.resolve(req.file.path),
-        originalName: req.file.originalname,
-        mimeType: req.file.mimetype,
-        sizeBytes: req.file.size,
-      },
-    })
-    const safeFile = {
-      id: created.id,
-      userId: created.userId,
-      originalName: created.originalName,
-      mimeType: created.mimeType,
-      sizeBytes: created.sizeBytes,
-      createdAt: created.createdAt,
-    }
+    try {
+      const created = await prisma.file.create({
+        data: {
+          userId: request.user.userId,
+          filepath: path.resolve(req.file.path),
+          originalName: req.file.originalname,
+          mimeType: req.file.mimetype,
+          sizeBytes: req.file.size,
+        },
+      })
+      const safeFile = {
+        id: created.id,
+        userId: created.userId,
+        originalName: created.originalName,
+        mimeType: created.mimeType,
+        sizeBytes: created.sizeBytes,
+        createdAt: created.createdAt,
+      }
 
-    return res.json({ fileId: created.id, file: safeFile })
-  } catch (err) {
-    const message = err instanceof Error ? err.message : 'Failed to upload file'
-    if (message === 'Unsupported file type') {
-      return sendError(res, 422, message, 'FILES_UNSUPPORTED_TYPE')
+      return res.json({ fileId: created.id, file: safeFile })
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Error al subir el archivo'
+      if (message === 'Unsupported file type') {
+        return sendError(res, 422, message, 'FILES_UNSUPPORTED_TYPE')
+      }
+      throw new HttpError(500, 'Error al subir el archivo', 'FILES_UPLOAD_FAILED')
     }
-    return sendError(res, 500, 'Failed to upload file', 'FILES_UPLOAD_FAILED')
-  }
-})
+  }),
+)
 
 router.post(
   '/abandon-uploads',
   requireAuth,
   validateBody(abandonUploadsBodySchema),
-  async (req, res, next) => {
-    try {
-      const request = req as RequestWithUser
-      if (!request.user) {
-        return sendError(res, 401, 'Unauthorized', 'AUTH_UNAUTHORIZED')
-      }
-      const { fileIds } = req.body as { fileIds: string[] }
-      const result = await cleanupOrphanedUploads({
-        userId: request.user.userId,
-        fileIds,
-      })
-      return res.json({ ok: true as const, ...result })
-    } catch (err) {
-      next(err)
+  asyncHandler(async (req, res) => {
+    const request = req as RequestWithUser
+    if (!request.user) {
+      return sendError(res, 401, 'Unauthorized', 'AUTH_UNAUTHORIZED')
     }
-  },
+    const { fileIds } = req.body as { fileIds: string[] }
+    const result = await cleanupOrphanedUploads({
+      userId: request.user.userId,
+      fileIds,
+    })
+    return res.json({ ok: true as const, ...result })
+  }),
 )
 
 const uuidParam = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
-router.get('/:id', optionalAuth, async (req, res) => {
-  try {
-    const id = typeof req.params.id === 'string' ? req.params.id : req.params.id?.[0] ?? ''
-    if (!uuidParam.test(id)) {
-      return sendError(res, 404, 'File not found', 'FILES_NOT_FOUND')
-    }
+router.get(
+  '/:id',
+  optionalAuth,
+  asyncHandler(async (req, res) => {
+    try {
+      const id = typeof req.params.id === 'string' ? req.params.id : req.params.id?.[0] ?? ''
+      if (!uuidParam.test(id)) {
+        return sendError(res, 404, 'Archivo no encontrado', 'FILES_NOT_FOUND')
+      }
 
-    const file = await prisma.file.findUnique({ where: { id } })
-    if (!file) {
-      return sendError(res, 404, 'File not found', 'FILES_NOT_FOUND')
-    }
+      const file = await prisma.file.findUnique({ where: { id } })
+      if (!file) {
+        return sendError(res, 404, 'Archivo no encontrado', 'FILES_NOT_FOUND')
+      }
 
-    const request = req as RequestWithUser
-    const isFileUploader = request.user?.userId === file.userId
+      const request = req as RequestWithUser
+      const isFileUploader = request.user?.userId === file.userId
 
-    let allowed = isFileUploader
+      let allowed = isFileUploader
 
-    if (!allowed && file.ideaId) {
-      const idea = await prisma.idea.findUnique({
-        where: { id: file.ideaId },
-        select: { userId: true, isPublished: true, status: true },
+      if (!allowed && file.ideaId) {
+        const idea = await prisma.idea.findUnique({
+          where: { id: file.ideaId },
+          select: { userId: true, isPublished: true, status: true },
+        })
+        if (idea?.isPublished && idea.status === 'VALIDATED') {
+          allowed = true
+        } else if (idea && request.user?.userId === idea.userId) {
+          allowed = true
+        }
+      }
+
+      if (!allowed) {
+        if (!file.mimeType.startsWith('image/')) {
+          return sendError(res, 403, 'No autorizado', 'FILES_FORBIDDEN')
+        }
+        /** Solo el dueño del fichero puede hacerlo visible como avatar (evita enlazar UUID ajenos). */
+        const usedAsAvatar = await prisma.user.findFirst({
+          where: { avatarUrl: `/api/files/${id}`, id: file.userId },
+          select: { id: true },
+        })
+        allowed = Boolean(usedAsAvatar)
+      }
+
+      if (!allowed) {
+        return sendError(res, 403, 'No autorizado', 'FILES_FORBIDDEN')
+      }
+
+      const resolvedPath = path.resolve(file.filepath)
+      const uploadRoot = path.resolve(config.uploadDir)
+      const relativeToUpload = path.relative(uploadRoot, resolvedPath)
+      if (relativeToUpload.startsWith('..') || path.isAbsolute(relativeToUpload)) {
+        return sendError(res, 403, 'No autorizado', 'FILES_FORBIDDEN')
+      }
+
+      if (!fs.existsSync(file.filepath)) {
+        return sendError(res, 404, 'Archivo no encontrado', 'FILES_NOT_FOUND')
+      }
+
+      res.setHeader('Content-Type', file.mimeType)
+      res.setHeader('Cache-Control', 'public, max-age=3600')
+      const stream = fs.createReadStream(file.filepath)
+      stream.on('error', () => {
+        if (!res.headersSent) {
+          sendError(res, 500, 'Error al leer el archivo', 'FILES_READ_FAILED')
+        }
       })
-      if (idea?.isPublished && idea.status === 'VALIDATED') {
-        allowed = true
-      } else if (idea && request.user?.userId === idea.userId) {
-        allowed = true
-      }
+      stream.pipe(res)
+    } catch {
+      throw new HttpError(500, 'Error al servir el archivo', 'FILES_SERVE_FAILED')
     }
-
-    if (!allowed) {
-      if (!file.mimeType.startsWith('image/')) {
-        return sendError(res, 403, 'Forbidden', 'FILES_FORBIDDEN')
-      }
-      const usedAsAvatar = await prisma.user.findFirst({
-        where: { avatarUrl: `/api/files/${id}` },
-        select: { id: true },
-      })
-      allowed = Boolean(usedAsAvatar)
-    }
-
-    if (!allowed) {
-      return sendError(res, 403, 'Forbidden', 'FILES_FORBIDDEN')
-    }
-
-    const resolvedPath = path.resolve(file.filepath)
-    const uploadRoot = path.resolve(config.uploadDir)
-    const relativeToUpload = path.relative(uploadRoot, resolvedPath)
-    if (relativeToUpload.startsWith('..') || path.isAbsolute(relativeToUpload)) {
-      return sendError(res, 403, 'Forbidden', 'FILES_FORBIDDEN')
-    }
-
-    if (!fs.existsSync(file.filepath)) {
-      return sendError(res, 404, 'File not found', 'FILES_NOT_FOUND')
-    }
-
-    res.setHeader('Content-Type', file.mimeType)
-    res.setHeader('Cache-Control', 'public, max-age=3600')
-    const stream = fs.createReadStream(file.filepath)
-    stream.on('error', () => {
-      if (!res.headersSent) {
-        sendError(res, 500, 'Failed to read file', 'FILES_READ_FAILED')
-      }
-    })
-    stream.pipe(res)
-  } catch {
-    return sendError(res, 500, 'Failed to serve file', 'FILES_SERVE_FAILED')
-  }
-})
+  }),
+)
 
 export default router

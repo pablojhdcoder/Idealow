@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { useAuthStore } from '@/stores/authStore'
 import { AppUserMenu } from '@/components/layout/AppUserMenu'
 import { getUserAvatarUrl } from '@/lib/avatar'
+import { appPageMainClassName } from '@/lib/appPageLayout'
 
 type Props = {
   title?: string
@@ -30,8 +31,8 @@ export default function AppShellHeader({ title = 'Idealow' }: Props) {
   }, [user?.avatarUrl, user?.id, user?.email, user?.username])
 
   return (
-    <header className="border-b border-border bg-card px-6 py-4">
-      <div className="mx-auto flex max-w-5xl items-center justify-between gap-4">
+    <header className="border-b border-border bg-card py-4">
+      <div className={appPageMainClassName('flex items-center justify-between gap-4')}>
         <div className="flex min-w-0 flex-1 items-center gap-6">
           <Link to="/dashboard" className="shrink-0 font-serif text-xl text-foreground transition-colors hover:text-primary">
             {title}

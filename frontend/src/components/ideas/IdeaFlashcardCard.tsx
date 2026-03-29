@@ -83,6 +83,7 @@ export function IdeaFlashcardCard({ flashcard, onOpen, className }: Props) {
     <motion.button
       type="button"
       layout
+      aria-label={`Ver detalle: ${flashcard.refinedTitle}`}
       onClick={onOpen}
       whileHover={{ y: -4, boxShadow: '0 20px 40px rgba(0,0,0,0.12)' }}
       transition={{ type: 'spring', stiffness: 400, damping: 25 }}
@@ -110,12 +111,11 @@ export function IdeaFlashcardCard({ flashcard, onOpen, className }: Props) {
       </h3>
       <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{flashcard.elevatorPitch}</p>
       {flashcard.isPublished ? (
-        <>
+        <div className="mt-auto pt-2">
           <AuthorChip author={flashcard.author} />
           <VoteFooter votes={flashcard.communityVotes} />
-        </>
+        </div>
       ) : null}
-      <p className="mt-auto pt-2 text-[10px] text-muted-foreground/80">Toca para expandir</p>
     </motion.button>
   )
 }

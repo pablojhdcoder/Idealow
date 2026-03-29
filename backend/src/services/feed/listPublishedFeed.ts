@@ -39,6 +39,7 @@ function textSearchWhere(q: string): Prisma.IdeaWhereInput {
     OR: [
       { title: { contains: term, mode: 'insensitive' } },
       { summary: { contains: term, mode: 'insensitive' } },
+      { rawContent: { contains: term, mode: 'insensitive' } },
     ],
   }
 }

@@ -1,5 +1,5 @@
-import { useState, type FormEvent } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
+import { useState, useEffect, type FormEvent } from 'react'
+import { Link, useLocation } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Mail, Eye, EyeOff, Loader2 } from 'lucide-react'
 import { useAuthStore, type User } from '@/stores/authStore'
@@ -7,6 +7,12 @@ import { Card } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import { appPageMainClassName } from '@/lib/appPageLayout'
+import {
+  peekPostAuthReturn,
+  rememberPostAuthReturn,
+  sanitizePostAuthReturnPath,
+} from '@/lib/postAuthRedirect'
 
 export default function Login() {
   const [email, setEmail] = useState('')
@@ -14,8 +20,19 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
-  const navigate = useNavigate()
+  const location = useLocation()
   const setUser = useAuthStore(s => s.setUser)
+  const returnTo = sanitizePostAuthReturnPath(
+    (location.state as { from?: string } | null)?.from,
+  )
+
+  useEffect(() => {
+    const from = sanitizePostAuthReturnPath(
+      (location.state as { from?: string } | null)?.from,
+    )
+    if (from) rememberPostAuthReturn(from)
+    else rememberPostAuthReturn(null)
+  }, [location.key, location.state])
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -33,33 +50,39 @@ export default function Login() {
         needsOnboarding?: boolean
         error?: string
       }
-      if (!res.ok) return setError(data.error ?? 'Login failed')
+      if (!res.ok) return setError(data.error ?? 'No se pudo iniciar sesión')
+      if (data.needsOnboarding) {
+        const dest =
+          sanitizePostAuthReturnPath((location.state as { from?: string } | null)?.from) ??
+          peekPostAuthReturn()
+        if (dest) rememberPostAuthReturn(dest)
+      }
       setUser(data.user)
-      navigate(data.needsOnboarding ? '/onboarding' : '/dashboard')
     } catch {
-      setError('Something went wrong')
+      setError('Ha ocurrido un error. Inténtalo de nuevo.')
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4 }}
-        className="w-full max-w-md"
-      >
+    <div className="min-h-screen bg-background">
+      <div className={appPageMainClassName('flex min-h-screen items-center justify-center py-10')}>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4 }}
+          className="w-full max-w-md"
+        >
         <Card className="p-8">
           <div className="mb-8 text-center">
             <p className="font-serif text-3xl text-foreground">Idealow</p>
-            <p className="mt-2 text-sm text-muted-foreground">Sign in to continue</p>
+            <p className="mt-2 text-sm text-muted-foreground">Inicia sesión para continuar</p>
           </div>
 
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             <div>
-              <Label>Email</Label>
+              <Label>Correo</Label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
@@ -75,7 +98,7 @@ export default function Login() {
             </div>
 
             <div>
-              <Label>Password</Label>
+              <Label>Contraseña</Label>
               <div className="relative">
                 <Input
                   type={showPassword ? 'text' : 'password'}
@@ -108,18 +131,23 @@ export default function Login() {
 
             <Button type="submit" disabled={loading} className="mt-2 w-full">
               {loading && <Loader2 className="size-4 animate-spin" />}
-              Sign in
+              Entrar
             </Button>
           </form>
 
           <p className="mt-6 text-center text-sm text-muted-foreground">
-            No account?{' '}
-            <Link to="/register" className="font-medium text-primary hover:underline">
-              Create one
+            ¿No tienes cuenta?{' '}
+            <Link
+              to="/register"
+              state={returnTo ? { from: returnTo } : undefined}
+              className="font-medium text-primary hover:underline"
+            >
+              Crear cuenta
             </Link>
           </p>
         </Card>
       </motion.div>
+      </div>
     </div>
   )
 }

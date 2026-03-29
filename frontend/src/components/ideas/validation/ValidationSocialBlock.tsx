@@ -1,4 +1,4 @@
-import type { ComponentType } from 'react'
+import type { ComponentType, ReactNode } from 'react'
 import { FaInstagram, FaTiktok, FaXTwitter, FaYoutube } from 'react-icons/fa6'
 import type { SourceStatus } from '@/hooks/useValidationStream'
 import { ValidationReferenceCard } from '@/components/ideas/validation/ValidationReferenceCard'
@@ -37,6 +37,24 @@ const SEARCH_LINK_LABEL: Record<AiKey, string> = {
   tiktok: 'TikTok',
 }
 
+/** Misma regla que x/instagram/tiktok: `signal` en el bloque IA; fallback solo para snapshots antiguos. */
+function socialPlatformSignalPill(
+  block: { signal: number } | undefined,
+  legacyOverallScore: number | undefined,
+): ReactNode {
+  if (block != null && typeof block.signal === 'number' && !Number.isNaN(block.signal)) {
+    return block.signal
+  }
+  if (typeof legacyOverallScore === 'number' && !Number.isNaN(legacyOverallScore)) {
+    return legacyOverallScore
+  }
+  return '—'
+}
+
+/** Mismo estilo de tarjeta para YouTube y las estimaciones IA. */
+const SOCIAL_CARD_CLASS =
+  'rounded-2xl border border-border/80 bg-gradient-to-br from-primary/8 to-transparent p-4 sm:p-5'
+
 function SectionHeading({
   Icon,
   title,
@@ -51,6 +69,19 @@ function SectionHeading({
       <Icon className={cn('size-3.5 shrink-0', iconClass)} aria-hidden />
       {title}
     </p>
+  )
+}
+
+function ResumenDelAnalisisHeader({ value }: { value: ReactNode }) {
+  return (
+    <div className="flex flex-wrap items-start justify-between gap-2">
+      <p className="text-[11px] font-semibold uppercase tracking-wide text-primary">
+        Resumen del análisis
+      </p>
+      <span className="shrink-0 rounded-full bg-primary/15 px-2.5 py-0.5 text-xs font-bold tabular-nums text-primary">
+        {value}
+      </span>
+    </div>
   )
 }
 
@@ -77,82 +108,73 @@ export function ValidationSocialBlock({ s }: { s: SourceStatus }) {
   const short = s.youtubeShortSamples ?? []
   const longTotal = Math.max(long.length, s.youtubeLongCount ?? 0)
   const shortTotal = Math.max(short.length, s.youtubeShortsCount ?? 0)
+  const ytItemsTotal = longTotal + shortTotal
   const hasVideoCards = long.length > 0 || short.length > 0
-  const apiReportedVideos = longTotal + shortTotal > 0
+  const apiReportedVideos = ytItemsTotal > 0
+
+  const youtubeAi = ai?.youtube
+  const youtubePillValue = socialPlatformSignalPill(youtubeAi, typeof s.score === 'number' ? s.score : undefined)
+  /** Solo `synthetic_findings` cuando hay bloque YouTube; el `summary` global mezcla redes y no debe usarse aquí. */
+  const youtubeNarrative =
+    youtubeAi != null
+      ? youtubeAi.synthetic_findings?.trim() || ''
+      : s.summary?.trim() || ''
+  const youtubeRefs = youtubeAi?.evidence_refs ?? []
 
   if (s.status !== 'done') return null
 
   return (
-    <div className="mt-5 space-y-10 border-t border-border/70 pt-5">
+    <div className="mt-5 space-y-10">
       <div>
-        <SectionHeading Icon={FaYoutube} title="YouTube (Data API v3)" iconClass="text-[#FF0000]" />
-        <div
-          className={cn(
-            'rounded-2xl border border-border/80 bg-gradient-to-br from-primary/8 via-transparent to-transparent p-4 shadow-sm sm:p-5',
-          )}
-        >
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <span className="text-sm font-medium text-foreground">Búsqueda real en YouTube</span>
-            {apiReportedVideos ? (
-              <span className="rounded-full bg-primary/15 px-2.5 py-0.5 text-[11px] font-semibold tabular-nums text-primary">
-                {longTotal} vídeo{longTotal === 1 ? '' : 's'} · {shortTotal} short{shortTotal === 1 ? '' : 's'}
-              </span>
-            ) : null}
-          </div>
+        <SectionHeading Icon={FaYoutube} title="YouTube" iconClass="text-[#FF0000]" />
+        <div className={SOCIAL_CARD_CLASS}>
+          <ResumenDelAnalisisHeader value={youtubePillValue} />
 
-          {s.summary?.trim() ? (
-            <div className="mt-4">
-              <p className="text-[11px] font-semibold uppercase tracking-wide text-primary">
-                Resumen del análisis
-              </p>
-              <p className="mt-2 text-sm leading-relaxed text-foreground/90">{s.summary.trim()}</p>
-              <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
-                El modelo interpreta los títulos y canales devueltos por la API oficial (sin inventar enlaces a
-                vídeos). Abre las tarjetas para comprobar el contenido en YouTube.
-              </p>
+          {youtubeNarrative ? (
+            <div className="mt-3">
+              <p className="text-sm leading-relaxed text-foreground/90">{youtubeNarrative}</p>
+              {hasVideoCards ? (
+                <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
+                  Abre las tarjetas para revisar el contenido en YouTube.
+                </p>
+              ) : null}
             </div>
           ) : (
             <p className="mt-3 text-sm italic text-muted-foreground">Sin resumen del modelo para este bloque.</p>
           )}
 
-          {hasVideoCards ? (
-            <div className="mt-6 space-y-6">
-              {long.length > 0 ? (
-                <div>
-                  <p className="mb-2 text-xs font-medium text-muted-foreground">
-                    Vídeos destacados <span className="tabular-nums">({long.length})</span>
-                  </p>
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    {long.slice(0, 4).map(v => (
-                      <ValidationReferenceCard
-                        key={`L-${v.videoId}`}
-                        href={`https://www.youtube.com/watch?v=${encodeURIComponent(v.videoId)}`}
-                        title={v.title}
-                        subtitle={v.channelTitle ?? undefined}
-                        imageUrl={`https://i.ytimg.com/vi/${encodeURIComponent(v.videoId)}/hqdefault.jpg`}
-                      />
-                    ))}
-                  </div>
-                </div>
-              ) : null}
-              {short.length > 0 ? (
-                <div>
-                  <p className="mb-2 text-xs font-medium text-muted-foreground">
-                    Shorts <span className="tabular-nums">({short.length})</span>
-                  </p>
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    {short.slice(0, 3).map(v => (
-                      <ValidationReferenceCard
-                        key={`S-${v.videoId}`}
-                        href={`https://www.youtube.com/watch?v=${encodeURIComponent(v.videoId)}`}
-                        title={v.title}
-                        subtitle={v.channelTitle ? `${v.channelTitle} · Short` : 'Short'}
-                        imageUrl={`https://i.ytimg.com/vi/${encodeURIComponent(v.videoId)}/hqdefault.jpg`}
-                      />
-                    ))}
-                  </div>
-                </div>
-              ) : null}
+          {youtubeRefs.length > 0 || hasVideoCards ? (
+            <div className="mt-5">
+              <p className="mb-3 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                Fuentes
+              </p>
+              <div className="grid gap-3 sm:grid-cols-2">
+                {youtubeRefs.map((ref, i) => (
+                  <ValidationReferenceCard
+                    key={`youtube-ref-${ref.url}-${i}`}
+                    href={ref.url}
+                    title={`${ref.title} · YouTube`}
+                  />
+                ))}
+                {long.slice(0, 4).map(v => (
+                  <ValidationReferenceCard
+                    key={`L-${v.videoId}`}
+                    href={`https://www.youtube.com/watch?v=${encodeURIComponent(v.videoId)}`}
+                    title={v.title}
+                    subtitle={v.channelTitle ?? undefined}
+                    imageUrl={`https://i.ytimg.com/vi/${encodeURIComponent(v.videoId)}/hqdefault.jpg`}
+                  />
+                ))}
+                {short.slice(0, 3).map(v => (
+                  <ValidationReferenceCard
+                    key={`S-${v.videoId}`}
+                    href={`https://www.youtube.com/watch?v=${encodeURIComponent(v.videoId)}`}
+                    title={v.title}
+                    subtitle={v.channelTitle ? `${v.channelTitle} · Short` : 'Short'}
+                    imageUrl={`https://i.ytimg.com/vi/${encodeURIComponent(v.videoId)}/hqdefault.jpg`}
+                  />
+                ))}
+              </div>
             </div>
           ) : apiReportedVideos ? (
             <div
@@ -160,21 +182,17 @@ export function ValidationSocialBlock({ s }: { s: SourceStatus }) {
               role="status"
             >
               <p className="font-medium text-amber-900 dark:text-amber-100/95">
-                Hay resultados de la API ({longTotal} + {shortTotal}), pero no se pudieron leer las muestras
-                guardadas.
+                Hay resultados asociados a esta validación, pero no pudimos mostrarlos como tarjetas.
               </p>
               <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
-                Suele pasar con validaciones antiguas o si cambió el formato de datos. Ejecuta de nuevo la
-                validación desde la ficha o actualiza la app.
+                Puedes volver a ejecutar la validación desde la ficha de la idea.
               </p>
             </div>
           ) : (
             <div className="mt-5 rounded-xl border border-dashed border-border bg-muted/15 px-4 py-4 text-center">
               <p className="text-sm text-muted-foreground">
-                No hay resultados de la API de YouTube en esta validación. Comprueba{' '}
-                <code className="rounded-md bg-muted px-1.5 py-0.5 text-xs">YOUTUBE_API_KEY</code> en el
-                backend, que esté activada la API &quot;YouTube Data API v3&quot; y que no se haya agotado la
-                cuota.
+                No hay vídeos ni enlaces de exploración en esta validación. Si quieres seguir investigando el
+                tema, puedes buscar en YouTube.
               </p>
               {q ? (
                 <a
@@ -199,21 +217,9 @@ export function ValidationSocialBlock({ s }: { s: SourceStatus }) {
         return (
           <div key={key}>
             <SectionHeading Icon={Icon} title={meta.title} iconClass={meta.iconClass} />
-            <div
-              className={cn(
-                'rounded-2xl border border-border/80 bg-gradient-to-br from-primary/8 to-transparent p-4 sm:p-5',
-              )}
-            >
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-sm font-medium text-foreground">Señal estimada (IA)</span>
-                {block != null ? (
-                  <span className="rounded-full bg-primary/15 px-2.5 py-0.5 text-xs font-bold tabular-nums text-primary">
-                    {block.signal}
-                  </span>
-                ) : (
-                  <span className="text-xs text-muted-foreground">—</span>
-                )}
-              </div>
+            <div className={SOCIAL_CARD_CLASS}>
+              <ResumenDelAnalisisHeader value={socialPlatformSignalPill(block, undefined)} />
+
               {block ? (
                 <p className="mt-3 text-sm leading-relaxed text-foreground/90">{block.synthetic_findings}</p>
               ) : (
@@ -222,7 +228,7 @@ export function ValidationSocialBlock({ s }: { s: SourceStatus }) {
               {refs.length > 0 ? (
                 <div className="mt-5">
                   <p className="mb-3 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                    Fuentes para comprobar
+                    Fuentes
                   </p>
                   <div className="grid gap-3 sm:grid-cols-2">
                     {refs.map((ref, i) => (

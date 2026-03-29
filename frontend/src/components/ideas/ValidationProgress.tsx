@@ -9,15 +9,19 @@ import {
   Newspaper,
   Sparkles,
   Users,
+  MessageCircle
 } from 'lucide-react'
-import { FaReddit, FaYoutube } from 'react-icons/fa6'
+import { FaReddit } from 'react-icons/fa6'
 import { useQueryClient } from '@tanstack/react-query'
 import type { SourceKey, SourceStatus, ValidationStreamState } from '@/hooks/useValidationStream'
 import { ideasQueryKey } from '@/hooks/useIdeasQuery'
-import { ScoreRing } from '@/components/ideas/ScoreRing'
+import {
+  ScoreRing,
+  formatValidationVerdictLabel,
+  validationVerdictBadgeClass,
+} from '@/components/ideas/ScoreRing'
 import { ValidationReferenceCard } from '@/components/ideas/validation/ValidationReferenceCard'
 import { ValidationSocialBlock } from '@/components/ideas/validation/ValidationSocialBlock'
-import { Button } from '@/components/ui/button'
 import { faviconUrlFromHref } from '@/lib/faviconUrl'
 import { cn } from '@/lib/utils'
 
@@ -37,35 +41,35 @@ const SOURCE_META: Record<
   }
 > = {
   reddit: {
-    title: 'Reddit — dolor y quejas',
-    description: 'Búsqueda pública en hilos; citas y enlaces a posts reales.',
+    title: 'Reddit',
+    description: 'Búsqueda pública en hilos, citas y enlaces a posts',
     Icon: FaReddit,
     gradient: 'from-orange-500/12 via-transparent to-transparent',
     iconClass: 'text-[#FF4500]',
   },
   news: {
     title: 'Noticias',
-    description: 'RSS de Google News + síntesis; enlaces a artículos.',
+    description: 'Todas las noticias de Google News relacionadas con la idea',
     Icon: Newspaper,
     gradient: 'from-sky-500/12 via-transparent to-transparent',
   },
   social: {
-    title: 'Video y redes',
+    title: 'Redes sociales',
     description:
-      'YouTube con API oficial; X, Instagram y TikTok con lectura IA y enlaces de búsqueda para comprobar en cada red.',
-    Icon: FaYoutube,
+      'La idea en las redes sociales, YouTube, X, Instagram y TikTok',
+    Icon: MessageCircle,
     gradient: 'from-violet-500/12 via-transparent to-transparent',
     iconClass: 'text-[#FF0000]',
   },
   competitors: {
     title: 'Competidores',
-    description: 'Panorama de mercado e ideas de posicionamiento.',
+    description: 'Panorama de mercado e ideas de posicionamiento',
     Icon: Users,
     gradient: 'from-emerald-500/12 via-transparent to-transparent',
   },
   trends: {
     title: 'Tendencias',
-    description: 'Momentum estimado por IA; enlaces a búsquedas para profundizar.',
+    description: 'Momentum estimado por IA y enlaces a búsquedas para profundizar',
     Icon: LineChart,
     gradient: 'from-amber-500/12 via-transparent to-transparent',
   },
@@ -330,13 +334,7 @@ function SourcePanel({ sourceKey, state }: { sourceKey: SourceKey; state: Source
   )
 }
 
-export function ValidationProgress({
-  state,
-  onClose,
-}: {
-  state: ValidationStreamState
-  onClose: () => void
-}) {
+export function ValidationProgress({ state }: { state: ValidationStreamState }) {
   const queryClient = useQueryClient()
 
   useEffect(() => {
@@ -368,7 +366,7 @@ export function ValidationProgress({
           <p className="mt-4 max-w-3xl text-sm leading-relaxed text-muted-foreground sm:text-[15px]">
             {state.complete
               ? 'Estos resultados se generaron una sola vez al terminar el refinamiento y permanecen asociados a la idea.'
-              : 'Cruzamos Reddit, noticias con RSS, YouTube con la API oficial, estimaciones IA para otras redes, competidores y tendencias. Cada bloque incluye enlaces para comprobar las fuentes.'}
+              : 'Cruzamos Reddit, noticias, redes y vídeo, competidores y tendencias. Cada bloque incluye enlaces para comprobar las fuentes.'}
           </p>
         </div>
       </motion.header>
@@ -382,58 +380,60 @@ export function ValidationProgress({
         </div>
       ) : null}
 
-      <div className="grid gap-8 xl:grid-cols-12 xl:items-start">
-        <div className="xl:col-span-5">
-          <div className="rounded-3xl border border-border bg-gradient-to-b from-card to-muted/20 p-8 shadow-sm sm:p-10">
-            <div className="flex flex-col items-center">
+      <div className="flex w-full flex-col gap-8">
+        <div className="rounded-3xl border border-border bg-gradient-to-b from-card to-muted/20 p-8 shadow-sm sm:p-10 md:p-12">
+          <div className="flex flex-col items-center text-center">
+            <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-2">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                Puntuación global
+              </p>
+              {state.complete && state.verdict ? (
+                <span
+                  className={cn(
+                    'rounded-full border px-2.5 py-1 text-xs font-semibold capitalize',
+                    validationVerdictBadgeClass(state.verdict),
+                  )}
+                >
+                  {formatValidationVerdictLabel(state.verdict)}
+                </span>
+              ) : null}
+            </div>
+            <div className="mt-6 sm:mt-7">
               <ScoreRing
                 score={state.complete ? state.finalScore : null}
-                verdict={state.complete ? state.verdict : null}
-                className="scale-125"
+                showVerdict={false}
+                ringScale={1.45}
               />
-              {state.complete ? (
-                <div className="mt-6 flex items-center gap-2 text-sm font-medium text-emerald-600">
-                  <CheckCircle2 className="size-4" aria-hidden />
-                  Validación completada
-                </div>
-              ) : (
-                <p className="mt-6 text-center text-sm text-muted-foreground">
-                  El score se actualiza al terminar todas las fuentes.
-                </p>
-              )}
             </div>
+            {state.complete ? (
+              <div className="mt-8 flex items-center justify-center gap-2 text-sm font-medium text-emerald-600">
+                <CheckCircle2 className="size-4 shrink-0" aria-hidden />
+                Validación completada
+              </div>
+            ) : (
+              <p className="mt-8 max-w-md text-sm leading-relaxed text-muted-foreground">
+                El score se actualiza al terminar todas las fuentes.
+              </p>
+            )}
           </div>
         </div>
 
-        <div className="space-y-5 xl:col-span-7">
-          {state.complete && state.recommendation ? (
-            <motion.div
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="rounded-3xl border border-primary/15 bg-primary/5 px-6 py-5 text-sm leading-relaxed text-foreground shadow-sm sm:px-8 sm:text-[15px]"
-            >
-              <p className="text-[11px] font-semibold uppercase tracking-wide text-primary">Recomendación</p>
-              <p className="mt-2">{state.recommendation}</p>
-            </motion.div>
-          ) : null}
+        {state.complete && state.recommendation ? (
+          <motion.div
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="rounded-3xl border border-primary/15 bg-primary/5 px-6 py-5 text-sm leading-relaxed text-foreground shadow-sm sm:px-8 sm:text-[15px]"
+          >
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-primary">Recomendación</p>
+            <p className="mt-2">{state.recommendation}</p>
+          </motion.div>
+        ) : null}
 
-          <div className="space-y-5">
-            {SOURCE_ORDER.map(key => (
-              <SourcePanel key={key} sourceKey={key} state={state[key]} />
-            ))}
-          </div>
+        <div className="space-y-5">
+          {SOURCE_ORDER.map(key => (
+            <SourcePanel key={key} sourceKey={key} state={state[key]} />
+          ))}
         </div>
-      </div>
-
-      <div className="flex justify-center border-t border-border/60 pt-4 sm:justify-start">
-        <Button
-          type="button"
-          variant="outline"
-          className={cn('w-full rounded-full sm:w-auto sm:min-w-[200px]')}
-          onClick={onClose}
-        >
-          {state.complete ? 'Volver a la ficha' : 'Cancelar'}
-        </Button>
       </div>
     </div>
   )

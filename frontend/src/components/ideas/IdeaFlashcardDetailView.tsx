@@ -1,7 +1,8 @@
 import { useState, type ReactNode } from 'react'
+import { Link } from 'react-router-dom'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
-import { AudioLines, Download, Loader2 } from 'lucide-react'
+import { ArrowUpRight, AudioLines, Download, Loader2 } from 'lucide-react'
 import { FaRegFile, FaRegFileAlt, FaRegFilePdf } from 'react-icons/fa'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -38,24 +39,48 @@ export function flashcardQueryKey(ideaId: string) {
   return ['idea-flashcard', ideaId] as const
 }
 
-function SectionTitle({ children }: { children: ReactNode }) {
-  return <h3 className="font-serif text-lg text-foreground">{children}</h3>
+function SectionTitle({ children, id }: { children: ReactNode; id?: string }) {
+  return (
+    <h3 id={id} className="font-serif text-lg text-foreground">
+      {children}
+    </h3>
+  )
 }
 
 function VoteBar({ votes }: { votes: IdeaFlashcard['communityVotes'] }) {
   const t = votes.useful + votes.interesting + votes.notUseful
   if (t === 0) {
-    return <div className="h-2 w-full rounded-full bg-muted" />
+    return <div className="h-1 w-full rounded-full bg-muted/80" aria-hidden />
   }
   const u = (votes.useful / t) * 100
   const i = (votes.interesting / t) * 100
   const n = (votes.notUseful / t) * 100
   return (
-    <div className="flex h-2 w-full overflow-hidden rounded-full bg-muted">
-      <div className="h-full bg-emerald-500" style={{ width: `${u}%` }} />
-      <div className="h-full bg-amber-400" style={{ width: `${i}%` }} />
-      <div className="h-full bg-red-400" style={{ width: `${n}%` }} />
+    <div
+      className="flex h-1 w-full overflow-hidden rounded-full bg-muted/60"
+      role="img"
+      aria-label={`Distribución de votos: ${votes.useful} útil, ${votes.interesting} interesante, ${votes.notUseful} poco útil`}
+    >
+      <div className="h-full bg-emerald-500/90" style={{ width: `${u}%` }} />
+      <div className="h-full bg-amber-400/90" style={{ width: `${i}%` }} />
+      <div className="h-full bg-red-400/85" style={{ width: `${n}%` }} />
     </div>
+  )
+}
+
+function VoteTotalsLine({ votes }: { votes: IdeaFlashcard['communityVotes'] }) {
+  const t = votes.useful + votes.interesting + votes.notUseful
+  if (t === 0) {
+    return <p className="text-[11px] text-muted-foreground">Aún no hay votos.</p>
+  }
+  return (
+    <p className="text-[11px] tabular-nums text-muted-foreground">
+      <span className="text-foreground/80">{votes.useful}</span> útil
+      <span className="mx-1.5 text-border">·</span>
+      <span className="text-foreground/80">{votes.interesting}</span> interesante
+      <span className="mx-1.5 text-border">·</span>
+      <span className="text-foreground/80">{votes.notUseful}</span> poco útil
+    </p>
   )
 }
 
@@ -90,31 +115,33 @@ function CommentSubmitForm({
 
   if (!myVote) {
     return (
-      <p className="text-xs text-muted-foreground">
-        Elige un voto arriba para poder añadir un comentario opcional.
-      </p>
+      <p className="text-[11px] text-muted-foreground">Vota arriba para poder comentar (opcional).</p>
     )
   }
 
   return (
     <div className="grid gap-2">
-      <Label htmlFor={`comment-${ideaId}`}>Comentario (opcional, máx. 280)</Label>
+      <Label htmlFor={`comment-${ideaId}`} className="text-[11px] font-medium text-muted-foreground">
+        Comentario · máx. 280
+      </Label>
       <Textarea
         id={`comment-${ideaId}`}
         value={text}
         maxLength={280}
         onChange={e => setText(e.target.value)}
-        className="min-h-20 rounded-2xl"
-        placeholder="¿Qué te parece esta idea?"
+        className="min-h-[72px] resize-none rounded-xl border-border/60 text-sm"
+        placeholder="Tu opinión…"
       />
       <Button
         type="button"
-        className="rounded-2xl"
+        variant="outline"
+        size="sm"
+        className="w-fit rounded-full"
         disabled={!text.trim() || m.isPending}
         onClick={() => m.mutate()}
       >
         {m.isPending && <Loader2 className="size-4 animate-spin" />}
-        Publicar comentario
+        Enviar
       </Button>
     </div>
   )
@@ -311,7 +338,7 @@ export function IdeaFlashcardDetailView({ ideaId, flashcard: fc, isOwner, attach
             </p>
           ) : null}
           <div className="mt-8 flex justify-center">
-            <ScoreRing score={fc.validationScore} verdict={fc.verdict} className="scale-110" />
+            <ScoreRing score={fc.validationScore} verdict={fc.verdict} ringScale={1.1} />
           </div>
         </header>
 
@@ -371,9 +398,33 @@ export function IdeaFlashcardDetailView({ ideaId, flashcard: fc, isOwner, attach
 
           <Separator />
 
-          <section className="space-y-3">
-            <SectionTitle>Validación</SectionTitle>
-            <ValidationBreakdown breakdown={fc.validationBreakdown} />
+          <section className="space-y-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
+              <div className="min-w-0 flex-1">
+                <SectionTitle>Validación</SectionTitle>
+                <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                  {fc.validationBreakdown && Object.keys(fc.validationBreakdown).length > 0
+                    ? 'Peso por fuente y aporte al score global.'
+                    : 'Resumen por fuente cuando exista validación de mercado guardada.'}
+                </p>
+              </div>
+              {isOwner && (fc.status === 'REFINING' || fc.status === 'VALIDATED') ? (
+                <Link
+                  to={`/ideas/${encodeURIComponent(ideaId)}/validar`}
+                  state={{ from: `/ideas/${encodeURIComponent(ideaId)}` }}
+                  className="group inline-flex shrink-0 items-center gap-1.5 self-start rounded-full border border-border/60 bg-muted/30 px-3 py-1.5 text-xs font-medium text-foreground transition hover:border-primary/25 hover:bg-primary/5 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  {fc.status === 'VALIDATED' ? 'Ver informe completo' : 'Validación de mercado'}
+                  <ArrowUpRight
+                    className="size-3.5 text-muted-foreground transition group-hover:text-primary"
+                    aria-hidden
+                  />
+                </Link>
+              ) : null}
+            </div>
+            <div className="rounded-2xl border border-border/50 bg-gradient-to-br from-muted/30 to-transparent p-4 sm:p-5">
+              <ValidationBreakdown breakdown={fc.validationBreakdown} />
+            </div>
           </section>
 
           {fc.competitors.length > 0 ? (
@@ -389,13 +440,58 @@ export function IdeaFlashcardDetailView({ ideaId, flashcard: fc, isOwner, attach
               </section>
             </>
           ) : null}
+        </div>
+      </motion.article>
 
-          {fc.isPublished ? (
-            <>
-              <Separator />
-              <section className="space-y-4">
-                <SectionTitle>Comunidad</SectionTitle>
-                <VoteBar votes={fc.communityVotes} />
+      <IdeaAttachmentsSection attachments={attachments} />
+
+      {fc.isPublished || (isOwner && fc.status === 'VALIDATED') ? (
+        <section
+          className="mt-10 scroll-mt-8 rounded-3xl border border-border bg-card/50 p-6 shadow-sm sm:p-8"
+          aria-labelledby="idea-community-heading"
+        >
+          <div className="border-b border-border/50 pb-5">
+            <SectionTitle id="idea-community-heading">Comunidad</SectionTitle>
+            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+              {fc.isPublished
+                ? 'Feed público: votos y comentarios.'
+                : 'Publica para que aparezca en el feed y reciba votos.'}
+            </p>
+          </div>
+
+          <div className="space-y-5 pt-5">
+            {isOwner && fc.status === 'VALIDATED' ? (
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+                <div className="min-w-0 space-y-0.5">
+                  <Label htmlFor="publish-switch-page" className="text-sm font-medium text-foreground">
+                    Visible en el feed
+                  </Label>
+                  <p className="text-[11px] text-muted-foreground">
+                    {fc.isPublished ? 'En feed público' : 'Solo visible para ti'}
+                  </p>
+                </div>
+                <Switch
+                  id="publish-switch-page"
+                  checked={fc.isPublished}
+                  onCheckedChange={checked => {
+                    if (checked) {
+                      if (!fc.isPublished) setPublishDialogOpen(true)
+                    } else if (fc.isPublished) {
+                      publishMut.mutate(false)
+                    }
+                  }}
+                  disabled={publishMut.isPending}
+                />
+              </div>
+            ) : null}
+
+            {fc.isPublished ? (
+              <>
+                <div className="space-y-2">
+                  <VoteBar votes={fc.communityVotes} />
+                  <VoteTotalsLine votes={fc.communityVotes} />
+                </div>
+
                 {!isOwner && user ? (
                   <VoteButtons
                     ideaId={fc.id}
@@ -405,51 +501,33 @@ export function IdeaFlashcardDetailView({ ideaId, flashcard: fc, isOwner, attach
                     queryKeysToInvalidate={voteInvalidateKeys}
                   />
                 ) : !isOwner ? (
-                  <p className="text-xs text-muted-foreground">Inicia sesión para votar en esta idea.</p>
+                  <p className="text-[11px] text-muted-foreground">
+                    <Link to="/login" className="font-medium text-primary underline-offset-4 hover:underline">
+                      Inicia sesión
+                    </Link>{' '}
+                    para votar.
+                  </p>
                 ) : (
-                  <p className="text-xs text-muted-foreground">No puedes votar en tu propia idea.</p>
+                  <p className="text-[11px] text-muted-foreground">Tu idea no puede recibir tu propio voto.</p>
                 )}
-                {!isOwner && user ? <CommentSubmitForm ideaId={fc.id} myVote={fc.myVote} /> : null}
-                <CommentList ideaId={fc.id} enabled={fc.isPublished} />
-              </section>
-            </>
-          ) : null}
 
-          {isOwner && fc.status === 'VALIDATED' ? (
-            <>
-              <Separator />
-              <div className="flex flex-col gap-3 rounded-2xl border border-border bg-muted/30 p-4 sm:p-5">
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                  <div>
-                    <Label htmlFor="publish-switch-page" className="text-sm font-medium">
-                      Compartir con la comunidad
-                    </Label>
-                    <p className="text-xs text-muted-foreground">
-                      {fc.isPublished
-                        ? 'Visible en el feed público.'
-                        : 'Solo tú ves los detalles hasta que publiques.'}
-                    </p>
+                {!isOwner && user ? (
+                  <div className="border-t border-border/40 pt-5">
+                    <CommentSubmitForm ideaId={fc.id} myVote={fc.myVote} />
                   </div>
-                  <Switch
-                    id="publish-switch-page"
-                    checked={fc.isPublished}
-                    onCheckedChange={checked => {
-                      if (checked) {
-                        if (!fc.isPublished) setPublishDialogOpen(true)
-                      } else if (fc.isPublished) {
-                        publishMut.mutate(false)
-                      }
-                    }}
-                    disabled={publishMut.isPending}
-                  />
-                </div>
-              </div>
-            </>
-          ) : null}
-        </div>
-      </motion.article>
+                ) : null}
 
-      <IdeaAttachmentsSection attachments={attachments} />
+                <div className="border-t border-border/40 pt-5">
+                  <h4 className="font-serif text-base text-foreground">Comentarios</h4>
+                  <div className="mt-3">
+                    <CommentList ideaId={fc.id} enabled={fc.isPublished} />
+                  </div>
+                </div>
+              </>
+            ) : null}
+          </div>
+        </section>
+      ) : null}
     </>
   )
 }

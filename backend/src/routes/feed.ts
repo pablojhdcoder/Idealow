@@ -1,13 +1,16 @@
 import { Router } from 'express'
 import { sendError } from '../lib/apiError'
+import { asyncHandler } from '../lib/asyncHandler'
 import { feedListRateLimit } from '../middleware/rateLimit'
 import { feedQuerySchema } from '../schemas/idea'
 import { listPublishedFeed } from '../services/feed/listPublishedFeed'
 
 const router = Router()
 
-router.get('/', feedListRateLimit, async (req, res, next) => {
-  try {
+router.get(
+  '/',
+  feedListRateLimit,
+  asyncHandler(async (req, res) => {
     const parsed = feedQuerySchema.safeParse(req.query)
     if (!parsed.success) {
       return sendError(res, 422, 'Validation failed', 'VALIDATION_ERROR', parsed.error.flatten())
@@ -32,9 +35,7 @@ router.get('/', feedListRateLimit, async (req, res, next) => {
       nextCursor: result.nextCursor,
       nextPage: result.nextPage,
     })
-  } catch (err) {
-    next(err)
-  }
-})
+  }),
+)
 
 export default router

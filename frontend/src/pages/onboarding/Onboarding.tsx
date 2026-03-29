@@ -1,13 +1,16 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ChevronRight, ChevronLeft, Loader2, Check } from 'lucide-react'
-import { useAuthStore, type User } from '@/stores/authStore'
+import { useAuthStore } from '@/stores/authStore'
 import { SectorPicker } from '@/components/onboarding/SectorPicker'
 import { ExperienceCard } from '@/components/onboarding/ExperienceCard'
 import { GoalCard } from '@/components/onboarding/GoalCard'
 import { Button } from '@/components/ui/button'
+import { appPageMainClassName } from '@/lib/appPageLayout'
 import { Progress } from '@/components/ui/progress'
+import { patchProfile, type PatchProfileBody } from '@/lib/api/users'
+import { consumePostAuthReturn, sanitizePostAuthReturnPath } from '@/lib/postAuthRedirect'
 
 export default function Onboarding() {
   const [step, setStep]             = useState(0)
@@ -17,6 +20,7 @@ export default function Onboarding() {
   const [saving, setSaving]         = useState(false)
   const [done, setDone]             = useState(false)
   const navigate = useNavigate()
+  const location = useLocation()
   const setUser = useAuthStore(s => s.setUser)
   const canContinue =
     (step === 0 && sectors.length > 0) ||
@@ -26,18 +30,28 @@ export default function Onboarding() {
   const handleFinish = async () => {
     setSaving(true)
     try {
-      const res = await fetch('/api/users/profile', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ sectors, experienceLevel: experience, goal }),
+      const data = await patchProfile({
+        sectors,
+        experienceLevel: experience as NonNullable<PatchProfileBody['experienceLevel']>,
+        goal: goal as NonNullable<PatchProfileBody['goal']>,
       })
-      if (res.ok) {
-        const data = (await res.json()) as { user: User }
-        setUser(data.user)
-      }
+      setUser({
+        id: data.user.id,
+        email: data.user.email,
+        username: data.user.username,
+        avatarUrl: data.user.avatarUrl ?? undefined,
+        sectors: data.user.sectors,
+        goal: data.user.goal,
+      })
       setDone(true)
-      setTimeout(() => navigate('/dashboard'), 1200)
+      const fromState = sanitizePostAuthReturnPath(
+        (location.state as { from?: string } | null)?.from,
+      )
+      const fromStored = consumePostAuthReturn()
+      const nextPath = fromStored ?? fromState ?? '/dashboard'
+      setTimeout(() => navigate(nextPath), 1200)
+    } catch {
+      // Error al guardar: permanece en el paso para reintentar
     } finally {
       setSaving(false)
     }
@@ -61,8 +75,8 @@ export default function Onboarding() {
               <Check className="size-10 text-primary" strokeWidth={3} />
             </motion.div>
           </div>
-          <p className="font-serif text-2xl text-foreground">All set!</p>
-          <p className="text-sm text-muted-foreground">Preparing your space...</p>
+          <p className="font-serif text-2xl text-foreground">¡Listo!</p>
+          <p className="text-sm text-muted-foreground">Preparando tu espacio…</p>
         </motion.div>
       </div>
     )
@@ -75,7 +89,7 @@ export default function Onboarding() {
         className="w-full [&>div]:rounded-none [&_[data-slot='progress-track']]:h-1 [&_[data-slot='progress-track']]:rounded-none"
       />
 
-      <div className="mx-auto w-full max-w-3xl flex-1 px-4 py-10 sm:px-6">
+      <div className={appPageMainClassName('flex-1 py-10')}>
         <p className="mb-2 text-xs font-medium tracking-widest text-primary uppercase">
           Step {step + 1} of 3
         </p>
@@ -88,14 +102,14 @@ export default function Onboarding() {
             transition={{ duration: 0.3 }}
           >
             <h1 className="font-serif text-2xl text-foreground sm:text-3xl">
-              {step === 0 && 'What areas will you focus your ideas on?'}
-              {step === 1 && 'How would you describe your experience?'}
-              {step === 2 && 'What are you building right now?'}
+              {step === 0 && '¿En qué áreas centrarás tus ideas?'}
+              {step === 1 && '¿Cómo describirías tu experiencia?'}
+              {step === 2 && '¿Qué estás construyendo ahora?'}
             </h1>
             <p className="mb-6 mt-1.5 text-sm text-muted-foreground">
-              {step === 0 && 'Choose up to 5 sectors'}
-              {step === 1 && 'Your builder level'}
-              {step === 2 && 'Your main objective'}
+              {step === 0 && 'Elige hasta 5 sectores'}
+              {step === 1 && 'Tu nivel como builder'}
+              {step === 2 && 'Tu objetivo principal'}
             </p>
 
             {step === 0 && <SectorPicker selected={sectors} onChange={setSectors} />}
@@ -125,7 +139,7 @@ export default function Onboarding() {
             onClick={next}
             className="h-11 rounded-full px-6"
           >
-            {step === 2 ? (saving ? <><Loader2 className="size-4 animate-spin" /> Saving...</> : 'Finish') : 'Next'}
+            {step === 2 ? (saving ? <><Loader2 className="size-4 animate-spin" /> Guardando…</> : 'Finalizar') : 'Siguiente'}
             {step < 2 && <ChevronRight className="size-4" />}
           </Button>
         </div>

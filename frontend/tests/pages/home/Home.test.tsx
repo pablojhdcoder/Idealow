@@ -15,9 +15,10 @@ describe('Home', () => {
   it('muestra el héroe y acciones principales', () => {
     renderHome()
     const h1 = screen.getByRole('heading', { level: 1 })
-    expect(h1).toHaveTextContent(/Capture ideas in any format/i)
-    expect(screen.getAllByRole('link', { name: /^sign in$/i }).length).toBeGreaterThanOrEqual(1)
-    expect(screen.getByRole('link', { name: /get started/i })).toHaveAttribute('href', '/register')
+    expect(h1).toHaveTextContent(/Captura ideas en cualquier formato/i)
+    expect(screen.getAllByRole('link', { name: /iniciar sesión/i }).length).toBeGreaterThanOrEqual(1)
+    expect(screen.getByRole('link', { name: 'Empezar' })).toHaveAttribute('href', '/register')
+    expect(screen.getByRole('link', { name: 'Empezar gratis' })).toHaveAttribute('href', '/register')
   })
 
   it('incluye regiones semánticas banner, main y contentinfo', () => {
@@ -29,9 +30,9 @@ describe('Home', () => {
 
   it('lista las cuatro capacidades del producto', () => {
     renderHome()
-    expect(screen.getByText('Any input')).toBeInTheDocument()
-    expect(screen.getByText('Guided refinement')).toBeInTheDocument()
-    expect(screen.getByText('Reality check')).toBeInTheDocument()
-    expect(screen.getByText('Flashcard-ready')).toBeInTheDocument()
+    expect(screen.getByText('Cualquier entrada')).toBeInTheDocument()
+    expect(screen.getByText('Refinamiento guiado')).toBeInTheDocument()
+    expect(screen.getByText('Contraste con la realidad')).toBeInTheDocument()
+    expect(screen.getByText('Listo para ficha')).toBeInTheDocument()
   })
 })

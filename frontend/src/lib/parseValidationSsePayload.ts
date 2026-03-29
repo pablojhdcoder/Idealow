@@ -51,7 +51,7 @@ export function parseAiSocialSearch(raw: unknown): AiSocialSearchPayload | undef
   if (!raw || typeof raw !== 'object') return undefined
   const o = raw as Record<string, unknown>
   const out: AiSocialSearchPayload = {}
-  for (const key of ['x', 'instagram', 'tiktok'] as const) {
+  for (const key of ['youtube', 'x', 'instagram', 'tiktok'] as const) {
     const p = o[key]
     if (!p || typeof p !== 'object') continue
     const po = p as Record<string, unknown>

@@ -1,4 +1,5 @@
 import type { IdeaSummary } from '@/types/idea'
+import type { IdeaFlashcard } from '@/types/flashcard'
 import { parseJsonResponse } from './client'
 
 export async function semanticSearchIdeas(params: {
@@ -26,4 +27,20 @@ export async function fetchSimilarIdeas(
     { credentials: 'include' },
   )
   return parseJsonResponse<{ ideas: IdeaSummary[] }>(res)
+}
+
+/** Ideas publicadas en la comunidad similares por embedding a una idea tuya. */
+export async function fetchSimilarCommunityFeed(
+  ideaId: string,
+  limit?: number,
+): Promise<{ items: IdeaFlashcard[] }> {
+  const qs =
+    limit != null
+      ? `?${new URLSearchParams({ limit: String(limit) }).toString()}`
+      : ''
+  const res = await fetch(
+    `/api/ideas/${encodeURIComponent(ideaId)}/similar-feed${qs}`,
+    { credentials: 'include' },
+  )
+  return parseJsonResponse<{ items: IdeaFlashcard[] }>(res)
 }

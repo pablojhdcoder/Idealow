@@ -98,20 +98,20 @@ export function VoteButtons({
           type="button"
           variant={active ? 'default' : 'outline'}
           size="sm"
-          className="h-auto min-h-10 flex-1 flex-col gap-0.5 rounded-2xl py-2"
+          className="h-auto min-h-[2.5rem] flex-1 flex-col gap-0.5 rounded-full border-border/60 py-1.5"
           disabled={disabled || busy}
           onClick={() => mutation.mutate(vote)}
         >
-          <span className="flex items-center justify-center gap-1.5 text-xs font-medium">
+          <span className="flex items-center justify-center gap-1 text-[11px] font-medium">
             {icon}
             {label}
           </span>
           <motion.span
             key={count}
-            initial={{ opacity: 0, y: -6 }}
+            initial={{ opacity: 0, y: -4 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.2 }}
-            className="text-[10px] font-semibold tabular-nums text-muted-foreground"
+            className="text-[10px] font-medium tabular-nums text-muted-foreground"
           >
             {count}
           </motion.span>
@@ -121,7 +121,7 @@ export function VoteButtons({
   }
 
   return (
-    <div className="grid grid-cols-3 gap-2">
+    <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
       {btn('USEFUL', 'Útil', <ThumbsUp className="size-3.5" />)}
       {btn('INTERESTING', 'Interesante', <Lightbulb className="size-3.5" />)}
       {btn('NOT_USEFUL', 'Poco útil', <ThumbsDown className="size-3.5" />)}

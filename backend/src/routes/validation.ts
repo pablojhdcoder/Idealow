@@ -2,6 +2,7 @@ import type { Request, Response } from 'express'
 import { Router } from 'express'
 import { z } from 'zod'
 import { sendError } from '../lib/apiError'
+import { asyncHandler } from '../lib/asyncHandler'
 import { logger } from '../lib/logger'
 import { prisma } from '../lib/prisma'
 import { requireAuth } from '../middleware/auth'
@@ -22,38 +23,34 @@ router.post(
   requireAuth,
   ideasValidationRateLimit,
   validateParams(ideaIdParamsSchema),
-  async (req, res, next) => {
-    try {
-      if (!req.user) {
-        return sendError(res, 401, 'Unauthorized', 'AUTH_UNAUTHORIZED')
-      }
-      const { id } = req.params as z.infer<typeof ideaIdParamsSchema>
-      const idea = await prisma.idea.findFirst({
-        where: { id, userId: req.user.userId },
-        select: { id: true, status: true, validationScore: true, validationData: true },
-      })
-      if (!idea) {
-        return sendError(res, 404, 'Idea not found', 'VALIDATION_IDEA_NOT_FOUND')
-      }
-      if (idea.validationScore != null && idea.validationData != null) {
-        return res.json({ status: 'already_validated', ideaId: id })
-      }
-      if (idea.status !== 'REFINING' && idea.status !== 'VALIDATED') {
-        return sendError(
-          res,
-          400,
-          'Refine the idea before running validation.',
-          'VALIDATION_BAD_STATUS',
-        )
-      }
-      void runValidation(id, req.user.userId).catch(err => {
-        logger.error({ ideaId: id, err }, 'runValidation failed')
-      })
-      return res.json({ status: 'started', ideaId: id })
-    } catch (err) {
-      next(err)
+  asyncHandler(async (req, res) => {
+    if (!req.user) {
+      return sendError(res, 401, 'Unauthorized', 'AUTH_UNAUTHORIZED')
     }
-  },
+    const { id } = req.params as z.infer<typeof ideaIdParamsSchema>
+    const idea = await prisma.idea.findFirst({
+      where: { id, userId: req.user.userId },
+      select: { id: true, status: true, validationScore: true, validationData: true },
+    })
+    if (!idea) {
+      return sendError(res, 404, 'Idea not found', 'VALIDATION_IDEA_NOT_FOUND')
+    }
+    if (idea.validationScore != null && idea.validationData != null) {
+      return res.json({ status: 'already_validated', ideaId: id })
+    }
+    if (idea.status !== 'REFINING' && idea.status !== 'VALIDATED') {
+      return sendError(
+        res,
+        400,
+        'Refine the idea before running validation.',
+        'VALIDATION_BAD_STATUS',
+      )
+    }
+    void runValidation(id, req.user.userId).catch(err => {
+      logger.error({ ideaId: id, err }, 'runValidation failed')
+    })
+    return res.json({ status: 'started', ideaId: id })
+  }),
 )
 
 router.get(
@@ -61,7 +58,7 @@ router.get(
   requireAuth,
   ideasValidationSseRateLimit,
   validateParams(ideaIdParamsSchema),
-  async (req: Request, res: Response) => {
+  asyncHandler(async (req: Request, res: Response) => {
     if (!req.user) {
       return sendError(res, 401, 'Unauthorized', 'AUTH_UNAUTHORIZED')
     }
@@ -89,7 +86,7 @@ router.get(
     req.on('close', () => {
       unregisterValidationSseClient(id, res)
     })
-  },
+  }),
 )
 
 export default router

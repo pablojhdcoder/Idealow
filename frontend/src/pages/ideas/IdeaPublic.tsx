@@ -1,15 +1,19 @@
-import { useEffect } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, Copy, Loader2, Share2 } from 'lucide-react'
-import { toast } from 'sonner'
-import { Button } from '@/components/ui/button'
+import { Link, useParams, useSearchParams } from 'react-router-dom'
+import { Lightbulb, Loader2, Share2 } from 'lucide-react'
+import { buttonVariants } from '@/components/ui/button'
 import {
   IdeaFlashcardDetailView,
   flashcardQueryKey,
 } from '@/components/ideas/IdeaFlashcardDetailView'
+import { PublicFlashcardRegisterGate } from '@/components/ideas/PublicFlashcardRegisterGate'
+import { PublicFlashcardTeaser } from '@/components/ideas/PublicFlashcardTeaser'
 import { fetchIdeaFlashcardDetail } from '@/lib/api/ideas'
 import { ApiError } from '@/lib/api/client'
+import { appPageMainClassName } from '@/lib/appPageLayout'
+import { cn } from '@/lib/utils'
+import { useAuthStore } from '@/stores/authStore'
 
 function truncate(text: string, max = 155): string {
   const t = text.trim()
@@ -36,8 +40,20 @@ function upsertMeta(
 }
 
 export default function IdeaPublic() {
-  const navigate = useNavigate()
   const { id } = useParams<{ id: string }>()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const fullFromQuery = searchParams.get('full') === '1'
+  const user = useAuthStore(s => s.user)
+  const authLoading = useAuthStore(s => s.isLoading)
+
+  const [showReveal, setShowReveal] = useState(false)
+
+  useEffect(() => {
+    if (fullFromQuery) {
+      setShowReveal(true)
+    }
+  }, [fullFromQuery])
+
   const q = useQuery({
     queryKey: id ? flashcardQueryKey(id) : ['idea-flashcard', 'none'],
     queryFn: () => fetchIdeaFlashcardDetail(id!),
@@ -86,40 +102,48 @@ export default function IdeaPublic() {
     }
   }, [id, q.data?.flashcard])
 
-  const copyPublicLink = async () => {
-    try {
-      const url = `${window.location.origin}/flashcard/${encodeURIComponent(id ?? '')}`
-      await navigator.clipboard.writeText(url)
-      toast.success('Enlace copiado al portapapeles')
-    } catch {
-      toast.error('No se pudo copiar el enlace')
-    }
-  }
+  const openReveal = useCallback(() => {
+    setShowReveal(true)
+    setSearchParams({ full: '1' }, { replace: true })
+  }, [setSearchParams])
+
+  const backToTeaser = useCallback(() => {
+    setShowReveal(false)
+    setSearchParams({}, { replace: true })
+  }, [setSearchParams])
 
   if (!id) {
     return (
-      <main className="mx-auto flex min-h-screen max-w-2xl items-center justify-center px-4">
+      <main className={appPageMainClassName('flex min-h-screen items-center justify-center')}>
         <p className="text-sm text-muted-foreground">Idea no encontrada.</p>
       </main>
     )
   }
 
+  const showDetailForUser = showReveal && user
+  const showGate = showReveal && !authLoading && !user
+  const showAuthSpinner = showReveal && authLoading
+
   return (
     <div className="min-h-screen bg-[#FAFAF8] dark:bg-background">
-      <main className="mx-auto max-w-3xl px-4 pb-16 pt-6 sm:px-6 sm:pt-8">
-        <div className="mb-8 flex flex-wrap items-center gap-2">
-          <Button type="button" variant="outline" className="rounded-full" onClick={() => navigate(-1)}>
-            <ArrowLeft className="size-4" />
-            Volver
-          </Button>
-          <Button type="button" variant="outline" className="rounded-full" onClick={() => void copyPublicLink()}>
-            <Copy className="size-4" />
-            Copiar enlace
-          </Button>
+      <main className={appPageMainClassName('pb-16 pt-6 sm:pt-8')}>
+        <div className="mb-8 flex flex-wrap items-center justify-between gap-3">
           <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">
             <Share2 className="size-3.5" />
             Enlace público
           </span>
+          {showDetailForUser ? (
+            <Link
+              to="/dashboard"
+              className={cn(
+                buttonVariants({ variant: 'default' }),
+                'inline-flex shrink-0 gap-2 rounded-full shadow-sm',
+              )}
+            >
+              <Lightbulb className="size-4" aria-hidden />
+              Crear más ideas así
+            </Link>
+          ) : null}
         </div>
 
         {q.isLoading && (
@@ -134,7 +158,22 @@ export default function IdeaPublic() {
           </p>
         )}
 
-        {q.data && (
+        {q.data && !showReveal && <PublicFlashcardTeaser flashcard={q.data.flashcard} onReveal={openReveal} />}
+
+        {q.data && showAuthSpinner && (
+          <div className="flex justify-center py-24">
+            <Loader2 className="size-10 animate-spin text-primary" aria-label="Comprobando sesión" />
+          </div>
+        )}
+
+        {q.data && showGate && id ? (
+          <PublicFlashcardRegisterGate
+            onBackToTeaser={backToTeaser}
+            postAuthReturnPath={`/flashcard/${encodeURIComponent(id)}?full=1`}
+          />
+        ) : null}
+
+        {q.data && showDetailForUser && (
           <IdeaFlashcardDetailView
             ideaId={id}
             flashcard={q.data.flashcard}

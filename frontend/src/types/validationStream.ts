@@ -13,6 +13,8 @@ export type AiPlatformEstimate = {
 }
 
 export type AiSocialSearchPayload = {
+  /** Señal 0–100 alineada con la API de YouTube (misma forma que x/instagram/tiktok). */
+  youtube?: AiPlatformEstimate
   x?: AiPlatformEstimate
   instagram?: AiPlatformEstimate
   tiktok?: AiPlatformEstimate

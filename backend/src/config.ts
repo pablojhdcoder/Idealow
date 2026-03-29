@@ -40,6 +40,15 @@ const embeddingDimensions =
     ? Number(embeddingDimensionsRaw)
     : 1536
 
+/** Máx. distancia coseno (pgvector `<=>`) para considerar un match semántico. Por defecto ~sim ≥ 0,66. */
+function resolveSemanticMaxCosineDistance(): number {
+  const raw = env.SEMANTIC_MAX_COSINE_DISTANCE.trim()
+  const n = raw.length > 0 ? Number(raw) : NaN
+  const fallback = 0.34
+  const v = Number.isFinite(n) ? n : fallback
+  return Math.min(0.55, Math.max(0.18, v))
+}
+
 /** Orígenes permitidos para CORS (cookies). Lista separada por comas en `CORS_ORIGIN`. */
 export const parseCorsOrigins = (raw: string | undefined): string[] => {
   const fallback = ['http://localhost:3000']
@@ -78,6 +87,8 @@ export const config = {
     deploymentEmbeddings: azureEmbeddingsDeployment,
   },
   embeddingDimensions: Number.isFinite(embeddingDimensions) ? embeddingDimensions : 1536,
+  /** Máx. `embedding <=> query` para incluir filas (ideas más lejanas se descartan). */
+  semanticMaxCosineDistance: resolveSemanticMaxCosineDistance(),
 }
 
 export function hasEmbeddingsConfig(): boolean {

@@ -17,7 +17,7 @@ publican en un feed comunitario donde otros usuarios votan y comentan.
 - AI:        **Microsoft Foundry / Azure OpenAI** (SDK `openai` con `AzureOpenAI`; deployments en el recurso Azure)
 - Embeddings: vectorización de ideas/archivos para búsqueda semántica y recomendaciones
 - PWA:       vite-plugin-pwa (instalable en Android e iOS)
-- Deploy:    CubePath (configurar más adelante, sin Docker por ahora)
+- Deploy:    CubePath (VPS); guía en `.cursor/docs/engineering/cubepath-deploy.md` (sin Docker en el repo)
 
 ## Puertos locales
 - Frontend: http://localhost:3000
@@ -54,4 +54,4 @@ publican en un feed comunitario donde otros usuarios votan y comentan.
 - UI local estilo shadcn en `frontend/src/components/ui` (editable, sin libreria monolitica cerrada)
 
 ## Regla de oro
-Ideas privadas por defecto. Publicar es siempre una decisión consciente del usuario.
+Por defecto las ideas están pensadas para el feed comunitario **tras validar**; el usuario puede marcarlas como privadas al crearlas (`isPublished: false`). El producto trata la privacidad como opción explícita.

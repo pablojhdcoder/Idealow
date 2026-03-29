@@ -16,6 +16,7 @@ import { uploadAttachedFilesForIdea, UploadFileError } from '@/lib/api/files'
 import { ideasQueryKey } from '@/hooks/useIdeasQuery'
 import { buildNewIdeaStarterContent, getDashboardStarterById } from '@/lib/dashboardSuggestions'
 import { readPrivateIdeasByDefault, writePrivateIdeasByDefault } from '@/lib/ideaVisibilityPreference'
+import { appPageMainClassName } from '@/lib/appPageLayout'
 
 const SECTOR_OPTIONS = [
   { value: '', label: 'Sin preferencia' },
@@ -172,7 +173,7 @@ export default function NewIdea() {
   return (
     <div className="min-h-screen bg-background">
       <AppShellHeader />
-      <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
+      <main className={appPageMainClassName('py-8')}>
         <Link
           to={backTo}
           className="inline-flex size-9 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"

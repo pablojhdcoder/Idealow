@@ -55,42 +55,22 @@ export class IdeaService {
 
 ## Error Handling
 
-Define typed application errors. Never throw raw strings or generic `Error`:
+En este repo los servicios y rutas usan **`HttpError`** (`backend/src/lib/httpError.ts`) con `statusCode` y `code` string. El handler global en `middleware/errors.ts` convierte `HttpError` en JSON `{ error, code, details? }` y en desarrollo adjunta más detalle en 500.
+
+Patrón equivalente al ejemplo genérico con `AppError`:
 
 ```typescript
-// lib/errors.ts
-export class AppError extends Error {
+// lib/httpError.ts (simplificado)
+export class HttpError extends Error {
   constructor(
-    public message: string,
-    public statusCode: number,
-    public code: string
+    public readonly statusCode: number,
+    message: string,
+    public readonly code: string,
+    public readonly details?: unknown,
   ) {
     super(message)
+    this.name = 'HttpError'
   }
-}
-
-export class NotFoundError extends AppError {
-  constructor(resource: string) {
-    super(`${resource} not found`, 404, 'NOT_FOUND')
-  }
-}
-
-export class UnauthorizedError extends AppError {
-  constructor() {
-    super('Unauthorized', 401, 'UNAUTHORIZED')
-  }
-}
-```
-
-Global error handler catches and converts:
-```typescript
-// middleware/errors.ts
-export const errorHandler = (err: unknown, req: Request, res: Response, next: NextFunction) => {
-  if (err instanceof AppError) {
-    return res.status(err.statusCode).json({ error: err.message, code: err.code })
-  }
-  console.error(err)
-  res.status(500).json({ error: 'Internal server error', code: 'INTERNAL' })
 }
 ```
 

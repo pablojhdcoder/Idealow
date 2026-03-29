@@ -14,6 +14,7 @@ import { fetchIdeaFlashcardDetail } from '@/lib/api/ideas'
 import { postStartValidation } from '@/lib/api/validation'
 import { ApiError } from '@/lib/api/client'
 import { hydrateValidationSnapshot } from '@/lib/hydrateValidationSnapshot'
+import { appPageMainClassName } from '@/lib/appPageLayout'
 
 export default function IdeaValidate() {
   const { id } = useParams<{ id: string }>()
@@ -82,7 +83,7 @@ export default function IdeaValidate() {
     return (
       <div className="min-h-screen bg-background">
         <AppShellHeader />
-        <main className="mx-auto max-w-3xl px-4 py-12 text-center text-sm text-muted-foreground">
+        <main className={appPageMainClassName('py-12 text-center text-sm text-muted-foreground')}>
           Idea no encontrada.
         </main>
       </div>
@@ -92,7 +93,7 @@ export default function IdeaValidate() {
   return (
     <div className="min-h-screen bg-[#FAFAF8] dark:bg-background">
       <AppShellHeader />
-      <main className="mx-auto max-w-6xl px-4 pb-16 pt-6 sm:px-6 sm:pt-8">
+      <main className={appPageMainClassName('pb-16 pt-6 sm:pt-8')}>
         <Button
           type="button"
           variant="outline"
@@ -154,7 +155,7 @@ export default function IdeaValidate() {
         )}
 
         {accessQ.isSuccess && accessQ.data?.isOwner && hydrated != null && (
-          <ValidationProgress state={hydrated} onClose={backToFicha} />
+          <ValidationProgress state={hydrated} />
         )}
       </main>
     </div>

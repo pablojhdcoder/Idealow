@@ -1,6 +1,10 @@
 import type { Request } from 'express'
 import { Router } from 'express'
+import bcrypt from 'bcryptjs'
+import { Prisma } from '@prisma/client'
 import { sendError } from '../lib/apiError'
+import { asyncHandler } from '../lib/asyncHandler'
+import { HttpError } from '../lib/httpError'
 import { requireAuth } from '../middleware/auth'
 import { suggestionsRateLimit } from '../middleware/rateLimit'
 import { validateBody } from '../middleware/validate'
@@ -12,9 +16,9 @@ import { z } from 'zod'
 const router = Router()
 type RequestWithUser = Request & { user: { userId: string } }
 
+/** Solo avatares servidos por esta API (subida previa) o vacío para limpiar. Sin URLs externas. */
 const avatarUrlField = z
   .union([
-    z.string().url(),
     z.literal(''),
     z.string().regex(/^\/api\/files\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i),
   ])
@@ -28,6 +32,8 @@ const profileSchema = z
     avatarUrl: avatarUrlField,
     /** Fichero ya subido con `POST /api/files/upload` (imagen). */
     avatarFileId: z.string().uuid().optional(),
+    username: z.string().trim().min(3).max(30).optional(),
+    email: z.string().trim().email().optional(),
   })
   .refine(data => !(data.avatarFileId !== undefined && data.avatarUrl !== undefined), {
     message: 'Cannot send both avatarFileId and avatarUrl',
@@ -38,85 +44,177 @@ const profileSchema = z
       data.experienceLevel !== undefined ||
       data.goal !== undefined ||
       data.avatarUrl !== undefined ||
-      data.avatarFileId !== undefined,
+      data.avatarFileId !== undefined ||
+      data.username !== undefined ||
+      data.email !== undefined,
     {
       message: 'At least one profile field must be provided',
     },
   )
 
-router.patch('/profile', requireAuth, validateBody(profileSchema), async (req, res) => {
-  try {
-    const request = req as RequestWithUser
-    const parsed = profileSchema.parse(req.body)
+const changePasswordSchema = z.object({
+  currentPassword: z.string().min(1),
+  newPassword: z.string().min(8),
+})
 
-    const previous = await prisma.user.findUnique({
-      where: { id: request.user.userId },
-      select: { avatarUrl: true },
-    })
+router.patch(
+  '/profile',
+  requireAuth,
+  validateBody(profileSchema),
+  asyncHandler(async (req, res) => {
+    try {
+      const request = req as RequestWithUser
+      const parsed = profileSchema.parse(req.body)
 
-    let nextAvatarUrl: string | null | undefined
-    if (parsed.avatarFileId !== undefined) {
-      const file = await prisma.file.findFirst({
-        where: { id: parsed.avatarFileId, userId: request.user.userId },
+      const previous = await prisma.user.findUnique({
+        where: { id: request.user.userId },
+        select: { avatarUrl: true, email: true, username: true },
       })
-      if (!file || !file.mimeType.startsWith('image/')) {
-        return sendError(res, 422, 'Invalid avatar image file', 'USERS_AVATAR_FILE_INVALID')
+      if (!previous) return sendError(res, 404, 'Usuario no encontrado', 'USERS_NOT_FOUND')
+
+      if (parsed.username !== undefined) {
+        const nextUsername = parsed.username.trim()
+        if (nextUsername !== previous.username) {
+          const taken = await prisma.user.findUnique({
+            where: { username: nextUsername },
+            select: { id: true },
+          })
+          if (taken)
+            return sendError(res, 409, 'Ese nombre de usuario ya está en uso', 'USERS_USERNAME_TAKEN')
+        }
       }
-      nextAvatarUrl = `/api/files/${file.id}`
-    } else if (parsed.avatarUrl !== undefined) {
-      nextAvatarUrl =
-        parsed.avatarUrl.trim().length > 0 ? parsed.avatarUrl.trim() : null
+
+      if (parsed.email !== undefined) {
+        const nextEmail = parsed.email.trim().toLowerCase()
+        if (nextEmail !== previous.email.toLowerCase()) {
+          const taken = await prisma.user.findUnique({
+            where: { email: nextEmail },
+            select: { id: true },
+          })
+          if (taken) return sendError(res, 409, 'Ese correo ya está registrado', 'USERS_EMAIL_TAKEN')
+        }
+      }
+
+      let nextAvatarUrl: string | null | undefined
+      if (parsed.avatarFileId !== undefined) {
+        const file = await prisma.file.findFirst({
+          where: { id: parsed.avatarFileId, userId: request.user.userId },
+        })
+        if (!file || !file.mimeType.startsWith('image/')) {
+          return sendError(res, 422, 'Archivo de imagen de avatar no válido', 'USERS_AVATAR_FILE_INVALID')
+        }
+        nextAvatarUrl = `/api/files/${file.id}`
+      } else if (parsed.avatarUrl !== undefined) {
+        const raw = parsed.avatarUrl.trim()
+        if (raw.length === 0) {
+          nextAvatarUrl = null
+        } else {
+          const fileId = raw.slice('/api/files/'.length)
+          const file = await prisma.file.findFirst({
+            where: { id: fileId, userId: request.user.userId },
+          })
+          if (!file || !file.mimeType.startsWith('image/')) {
+            return sendError(res, 422, 'Archivo de imagen de avatar no válido', 'USERS_AVATAR_FILE_INVALID')
+          }
+          nextAvatarUrl = `/api/files/${file.id}`
+        }
+      }
+
+      const data = {
+        ...(parsed.sectors !== undefined ? { sectors: parsed.sectors } : {}),
+        ...(parsed.experienceLevel !== undefined ? { experienceLevel: parsed.experienceLevel } : {}),
+        ...(parsed.goal !== undefined ? { goal: parsed.goal } : {}),
+        ...(nextAvatarUrl !== undefined ? { avatarUrl: nextAvatarUrl } : {}),
+        ...(parsed.username !== undefined ? { username: parsed.username.trim() } : {}),
+        ...(parsed.email !== undefined ? { email: parsed.email.trim().toLowerCase() } : {}),
+      }
+
+      let user
+      try {
+        user = await prisma.user.update({
+          where: { id: request.user.userId },
+          data,
+          select: {
+            id: true,
+            email: true,
+            username: true,
+            avatarUrl: true,
+            sectors: true,
+            goal: true,
+            experienceLevel: true,
+          },
+        })
+      } catch (e) {
+        if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
+          return sendError(
+            res,
+            409,
+            'Correo o nombre de usuario ya en uso',
+            'USERS_PROFILE_CONFLICT',
+          )
+        }
+        throw e
+      }
+
+      if (nextAvatarUrl !== undefined && previous.avatarUrl !== user.avatarUrl) {
+        await deleteOwnedAvatarFile(request.user.userId, previous.avatarUrl)
+      }
+
+      return res.json({ user })
+    } catch (e) {
+      if (e instanceof HttpError) throw e
+      throw new HttpError(500, 'Error al actualizar el perfil', 'USERS_PROFILE_UPDATE_FAILED')
     }
+  }),
+)
 
-    const data = {
-      ...(parsed.sectors !== undefined ? { sectors: parsed.sectors } : {}),
-      ...(parsed.experienceLevel !== undefined ? { experienceLevel: parsed.experienceLevel } : {}),
-      ...(parsed.goal !== undefined ? { goal: parsed.goal } : {}),
-      ...(nextAvatarUrl !== undefined ? { avatarUrl: nextAvatarUrl } : {}),
-    }
-
-    const user = await prisma.user.update({
-      where: { id: request.user.userId },
-      data,
-      select: {
-        id: true,
-        email: true,
-        username: true,
-        avatarUrl: true,
-        sectors: true,
-        goal: true,
-        experienceLevel: true,
-      },
-    })
-
-    if (nextAvatarUrl !== undefined && previous?.avatarUrl !== user.avatarUrl) {
-      await deleteOwnedAvatarFile(request.user.userId, previous?.avatarUrl)
-    }
-
-    return res.json({ user })
-  } catch {
-    return sendError(res, 500, 'Failed to update profile', 'USERS_PROFILE_UPDATE_FAILED')
-  }
-})
-
-router.get('/suggestions', requireAuth, suggestionsRateLimit, async (req, res) => {
-  try {
+router.post(
+  '/password',
+  requireAuth,
+  validateBody(changePasswordSchema),
+  asyncHandler(async (req, res) => {
     const request = req as RequestWithUser
-    const exists = await prisma.user.findUnique({
+    const { currentPassword, newPassword } = req.body as z.infer<typeof changePasswordSchema>
+
+    const row = await prisma.user.findUnique({
       where: { id: request.user.userId },
-      select: { id: true },
+      select: { id: true, passwordHash: true },
     })
-    if (!exists) return sendError(res, 404, 'User not found', 'USERS_NOT_FOUND')
-    /** Ejemplos fijos (no se llama a ningún modelo). */
-    return res.json({ suggestions: [...STATIC_IDEA_SUGGESTIONS] })
-  } catch {
-    return sendError(
-      res,
-      500,
-      'Failed to generate suggestions',
-      'USERS_SUGGESTIONS_FAILED',
-    )
-  }
-})
+    if (!row) return sendError(res, 404, 'Usuario no encontrado', 'USERS_NOT_FOUND')
+
+    const ok = await bcrypt.compare(currentPassword, row.passwordHash)
+    if (!ok)
+      return sendError(res, 401, 'La contraseña actual no es correcta', 'USERS_PASSWORD_INCORRECT')
+
+    const passwordHash = await bcrypt.hash(newPassword, 12)
+    await prisma.user.update({
+      where: { id: request.user.userId },
+      data: { passwordHash },
+    })
+
+    return res.json({ success: true })
+  }),
+)
+
+router.get(
+  '/suggestions',
+  requireAuth,
+  suggestionsRateLimit,
+  asyncHandler(async (req, res) => {
+    try {
+      const request = req as RequestWithUser
+      const exists = await prisma.user.findUnique({
+        where: { id: request.user.userId },
+        select: { id: true },
+      })
+      if (!exists) return sendError(res, 404, 'Usuario no encontrado', 'USERS_NOT_FOUND')
+      /** Ejemplos fijos (no se llama a ningún modelo). */
+      return res.json({ suggestions: [...STATIC_IDEA_SUGGESTIONS] })
+    } catch (e) {
+      if (e instanceof HttpError) throw e
+      throw new HttpError(500, 'Error al obtener sugerencias', 'USERS_SUGGESTIONS_FAILED')
+    }
+  }),
+)
 
 export default router

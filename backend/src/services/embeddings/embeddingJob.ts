@@ -39,7 +39,7 @@ async function runIdeaEmbeddingJob(ideaId: string): Promise<void> {
   try {
     const idea = await prisma.idea.findUnique({
       where: { id: ideaId },
-      select: { id: true, title: true, summary: true, refinedContent: true },
+      select: { id: true, title: true, summary: true, sector: true, refinedContent: true },
     })
     if (!idea) {
       return

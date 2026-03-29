@@ -2,31 +2,32 @@ import { motion } from 'framer-motion'
 import { Layers, Mic, Radar, Wand2 } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
+import { APP_PAGE_WIDTH_CLASS } from '@/lib/appPageLayout'
 
 const FEATURES = [
   {
     icon: Mic,
-    title: 'Any input',
+    title: 'Cualquier entrada',
     description:
-      'Paste a note, drop a file, or record audio. We normalize it into text you can work with.',
+      'Pega una nota, arrastra un archivo o graba audio. Lo unificamos en texto con el que puedes trabajar.',
   },
   {
     icon: Wand2,
-    title: 'Guided refinement',
+    title: 'Refinamiento guiado',
     description:
-      'A short wizard helps you sharpen the idea so it’s actionable instead of vague.',
+      'Un asistente breve te ayuda a afilar la idea para que sea accionable, no vaga.',
   },
   {
     icon: Radar,
-    title: 'Reality check',
+    title: 'Contraste con la realidad',
     description:
-      'Validation layers score your idea against trends, communities, and competition — when you’re ready.',
+      'Capas de validación puntúan tu idea frente a tendencias, comunidades y competencia cuando tú quieras.',
   },
   {
     icon: Layers,
-    title: 'Flashcard-ready',
+    title: 'Listo para ficha',
     description:
-      'Save a clean title, summary, and structure. Publish to a community feed only if you want to.',
+      'Guarda título, resumen y estructura claros. Publica en el feed solo si lo deseas.',
   },
 ] as const
 
@@ -53,16 +54,16 @@ export function HomeFeatures({ className }: HomeFeaturesProps) {
       className={cn('px-4 py-16 sm:px-6 sm:py-20', className)}
       aria-labelledby="home-features-heading"
     >
-      <div className="mx-auto max-w-5xl">
+      <div className={APP_PAGE_WIDTH_CLASS}>
         <h2
           id="home-features-heading"
           className="font-serif text-2xl text-foreground sm:text-3xl"
         >
-          Built for messy sparks → clear next steps
+          De la chispa caótica al siguiente paso claro
         </h2>
         <p className="mt-2 max-w-2xl text-sm text-muted-foreground sm:text-base">
-          Idealow meets you where the idea lands, then helps you structure it without losing the
-          original energy.
+          Idealow te recibe donde aterriza la idea y te ayuda a estructurarla sin perder la energía
+          original.
         </p>
 
         <motion.ul

@@ -38,7 +38,7 @@ export function HomeHero({ className }: HomeHeroProps) {
             className="mb-6 inline-flex items-center gap-1.5 rounded-full border border-amber-200/80 bg-amber-50 px-3 py-1 text-amber-800"
           >
             <Sparkles className="size-3.5" aria-hidden />
-            Private by default
+            Tú decides qué compartes
           </Badge>
         </motion.div>
 
@@ -49,7 +49,7 @@ export function HomeHero({ className }: HomeHeroProps) {
           transition={{ duration: 0.45, delay: 0.1 }}
           className="font-serif text-balance text-4xl tracking-tight text-foreground sm:text-5xl md:text-6xl"
         >
-          Capture ideas in any format. Refine them with clarity.
+          Captura ideas en cualquier formato. Refina con claridad.
         </motion.h1>
 
         <motion.p
@@ -58,8 +58,8 @@ export function HomeHero({ className }: HomeHeroProps) {
           transition={{ duration: 0.45, delay: 0.18 }}
           className="mx-auto mt-5 max-w-xl text-pretty text-base text-muted-foreground sm:text-lg"
         >
-          Turn text, links, audio, images, or video into structured ideas — then validate against
-          real-world signals and keep them as polished flashcards. You choose what to share.
+          Convierte texto, enlaces, audio, imágenes o vídeo en ideas estructuradas; valídalas con
+          señales reales y guárdalas como fichas pulidas. Tú eliges qué publicar en la comunidad.
         </motion.p>
 
         <motion.div
@@ -69,13 +69,13 @@ export function HomeHero({ className }: HomeHeroProps) {
           className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row sm:gap-4"
         >
           <Link to="/register" className={buttonVariants({ size: 'lg' })}>
-            Start free
+            Empezar gratis
           </Link>
           <Link
             to="/login"
             className={buttonVariants({ variant: 'outline', size: 'lg' })}
           >
-            I already have an account
+            Ya tengo cuenta
           </Link>
         </motion.div>
       </div>

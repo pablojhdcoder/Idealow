@@ -1,6 +1,7 @@
 import type { Prisma } from '@prisma/client'
 
 const MAX_CHARS = 30_000
+const MAX_SEARCH_QUERY_CHARS = 2_000
 
 function asRecord(v: Prisma.JsonValue | null): Record<string, unknown> | null {
   if (v && typeof v === 'object' && !Array.isArray(v)) {
@@ -24,11 +25,27 @@ function keywordsFrom(obj: Record<string, unknown>, key: string): string {
 }
 
 /**
- * Texto estable para embeddings: título, resumen y campos relevantes de refinedContent (orden fijo).
+ * Misma plantilla que las ideas indexadas (`title:` + `description:`) para acercar el vector de la consulta al espacio de recuperación.
+ */
+export function buildEmbeddingTextForSearchQuery(query: string): string {
+  const t = query.trim().slice(0, MAX_SEARCH_QUERY_CHARS)
+  if (!t) {
+    return t
+  }
+  return [
+    'Document type: startup idea for semantic retrieval.',
+    `title: ${t}`,
+    `description: ${t}`,
+  ].join('\n')
+}
+
+/**
+ * Texto estable para embeddings: sin repetir pitch/resumen; sector y campos refinados cuando existen.
  */
 export function buildEmbeddingTextForIdea(input: {
   title: string
   summary: string | null
+  sector: string | null
   refinedContent: Prisma.JsonValue | null
 }): string {
   const root = asRecord(input.refinedContent)
@@ -39,6 +56,7 @@ export function buildEmbeddingTextForIdea(input: {
 
   const title = input.title.trim()
   const summary = (input.summary ?? '').trim()
+  const sector = (input.sector ?? '').trim().toLowerCase()
 
   const problem = pickString(fromRefined, 'problem_statement') || pickString(fromRoot, 'problem')
   const solution = pickString(fromRefined, 'solution') || pickString(fromRoot, 'solution')
@@ -47,21 +65,40 @@ export function buildEmbeddingTextForIdea(input: {
     pickString(fromRoot, 'target_audience') ||
     pickString(fromRefined, 'target_audience')
   const pitch =
-    pickString(fromRefined, 'elevator_pitch') ||
-    pickString(fromRoot, 'elevator_pitch') ||
-    summary
+    pickString(fromRefined, 'elevator_pitch') || pickString(fromRoot, 'elevator_pitch') || summary
   const kw =
     keywordsFrom(fromRefined, 'search_keywords') || keywordsFrom(fromRoot, 'search_keywords')
 
-  const lines = [
+  const description = summary || pitch
+  const extraPitch =
+    pitch && summary && pitch !== summary && pitch.trim().length > 0 ? pitch.trim() : ''
+
+  const lines: string[] = [
+    'Document type: startup idea for semantic retrieval.',
     `title: ${title}`,
-    `summary: ${summary || pitch}`,
-    `pitch: ${pitch}`,
-    `problem: ${problem}`,
-    `solution: ${solution}`,
-    `audience: ${audience}`,
-    kw ? `keywords: ${kw}` : '',
-  ].filter(Boolean)
+  ]
+
+  if (description) {
+    lines.push(`description: ${description}`)
+  }
+  if (extraPitch) {
+    lines.push(`elevator_pitch: ${extraPitch}`)
+  }
+  if (problem) {
+    lines.push(`problem: ${problem}`)
+  }
+  if (solution) {
+    lines.push(`solution: ${solution}`)
+  }
+  if (audience) {
+    lines.push(`audience: ${audience}`)
+  }
+  if (kw) {
+    lines.push(`keywords: ${kw}`)
+  }
+  if (sector) {
+    lines.push(`sector: ${sector}`)
+  }
 
   const joined = lines.join('\n').trim()
   if (joined.length <= MAX_CHARS) {

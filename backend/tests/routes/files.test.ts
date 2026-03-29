@@ -187,7 +187,7 @@ describe('GET /api/files/:id', () => {
     expect(response.body.length).toBeGreaterThan(0)
   })
 
-  it('permite lectura publica si la imagen es avatar de algun usuario', async () => {
+  it('permite lectura publica si el propietario del fichero lo usa como avatar', async () => {
     const app = buildApp()
     prismaFileFindUnique.mockResolvedValue({
       id: fileId,
@@ -200,7 +200,10 @@ describe('GET /api/files/:id', () => {
     const response = await request(app).get(`/api/files/${fileId}`)
 
     expect(response.status).toBe(200)
-    expect(prismaUserFindFirst).toHaveBeenCalled()
+    expect(prismaUserFindFirst).toHaveBeenCalledWith({
+      where: { avatarUrl: `/api/files/${fileId}`, id: 'user-2' },
+      select: { id: true },
+    })
   })
 
   it('devuelve 403 si no es propietario ni avatar publico', async () => {

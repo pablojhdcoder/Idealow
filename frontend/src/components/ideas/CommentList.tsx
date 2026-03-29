@@ -40,10 +40,10 @@ function CommentAvatar({ comment }: { comment: FeedbackComment }) {
 
   if (url) {
     return (
-      <img src={url} alt="" className="size-8 shrink-0 rounded-full object-cover ring-2 ring-border" />
+      <img src={url} alt="" className="size-7 shrink-0 rounded-full object-cover ring-1 ring-border/60" />
     )
   }
-  return <div className="size-8 shrink-0 rounded-full bg-muted" />
+  return <div className="size-7 shrink-0 rounded-full bg-muted/80" />
 }
 
 type Props = {
@@ -70,9 +70,9 @@ export function CommentList({ ideaId, enabled }: Props) {
 
   if (q.isLoading) {
     return (
-      <div className="flex items-center gap-2 py-4 text-sm text-muted-foreground">
-        <Loader2 className="size-4 animate-spin" />
-        Cargando comentarios…
+      <div className="flex items-center gap-2 py-2 text-xs text-muted-foreground">
+        <Loader2 className="size-3.5 animate-spin" aria-hidden />
+        Cargando…
       </div>
     )
   }
@@ -83,28 +83,28 @@ export function CommentList({ ideaId, enabled }: Props) {
 
   if (flat.length === 0) {
     return (
-      <p className="text-sm text-muted-foreground">
-        Aún no hay comentarios con texto. Vota y opcionalmente deja un mensaje (máx. 280 caracteres).
+      <p className="text-xs leading-relaxed text-muted-foreground">
+        Nadie ha comentado aún. Tras votar puedes añadir un mensaje breve.
       </p>
     )
   }
 
   return (
-    <div className="space-y-3">
-      <ul className="space-y-3">
+    <div className="space-y-0">
+      <ul className="divide-y divide-border/50">
         {flat.map(c => (
-          <li key={c.id} className="flex gap-3 rounded-2xl border border-border/80 bg-muted/20 p-3">
+          <li key={c.id} className="flex gap-3 py-3 first:pt-0">
             <CommentAvatar comment={c} />
             <div className="min-w-0 flex-1">
-              <div className="flex flex-wrap items-baseline gap-2">
+              <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
                 <span className="text-sm font-medium text-foreground">{c.user.username}</span>
                 <span className="text-[10px] text-muted-foreground">{formatDate(c.createdAt)}</span>
-                <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
+                <span className="rounded-full bg-primary/10 px-1.5 py-px text-[10px] font-medium text-primary">
                   {c.vote}
                 </span>
               </div>
               {c.comment ? (
-                <p className="mt-1 text-sm text-foreground">{c.comment}</p>
+                <p className="mt-1 text-sm leading-relaxed text-foreground">{c.comment}</p>
               ) : null}
             </div>
           </li>
@@ -113,9 +113,9 @@ export function CommentList({ ideaId, enabled }: Props) {
       {q.hasNextPage ? (
         <Button
           type="button"
-          variant="outline"
+          variant="ghost"
           size="sm"
-          className="w-full rounded-2xl"
+          className="mt-2 w-full rounded-full text-xs text-muted-foreground"
           disabled={q.isFetchingNextPage}
           onClick={() => void q.fetchNextPage()}
         >

@@ -15,6 +15,7 @@ Se copiaron los siguientes archivos a `engineering/`:
 
 - `api-design.md`
 - `architecture.md`
+- `cubepath-deploy.md` — despliegue en CubePath (VPS): DB, env, proxy, SSE, checklist
 - `git-workflow.md`
 - `llm-patterns.md`
 - `logging.md`

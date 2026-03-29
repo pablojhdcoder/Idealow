@@ -20,7 +20,19 @@ const app = express()
 app.set('trust proxy', config.trustProxy)
 app.use(
   helmet({
-    contentSecurityPolicy: false,
+    /** API JSON: política mínima; el CSP del SPA lo sirve el host estático (Vite/build). */
+    ...(config.nodeEnv === 'production'
+      ? {
+          contentSecurityPolicy: {
+            directives: {
+              defaultSrc: ["'none'"],
+              baseUri: ["'none'"],
+              formAction: ["'none'"],
+              frameAncestors: ["'none'"],
+            },
+          },
+        }
+      : { contentSecurityPolicy: false }),
     crossOriginResourcePolicy: { policy: 'cross-origin' },
     ...(config.nodeEnv !== 'production' ? { strictTransportSecurity: false } : {}),
   }),
@@ -37,7 +49,8 @@ const corsOptions: CorsOptions = {
   credentials: true,
 }
 app.use(cors(corsOptions))
-app.use(express.json())
+/** Refinamiento: hasta 10 respuestas × 8000 caracteres + JSON; margen por seguridad. */
+app.use(express.json({ limit: '1mb' }))
 app.use(cookieParser())
 app.use(requestLogger)
 
@@ -60,4 +73,20 @@ app.listen(config.port, () => {
     },
     'backend server started',
   )
+  if (config.nodeEnv === 'production') {
+    const onlyLocalhost =
+      config.corsOrigins.length > 0 &&
+      config.corsOrigins.every(o => /localhost|127\.0\.0\.1/.test(o))
+    if (onlyLocalhost) {
+      logger.warn(
+        { corsOrigins: config.corsOrigins },
+        'CORS only allows localhost origins; set CORS_ORIGIN to your production SPA URL(s)',
+      )
+    }
+    if (config.trustProxy === false) {
+      logger.warn(
+        'TRUST_PROXY is disabled; behind a reverse proxy set TRUST_PROXY=1 (or a hop count) for correct IP-based rate limits',
+      )
+    }
+  }
 })

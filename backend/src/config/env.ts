@@ -26,6 +26,12 @@ export const env = {
   /** Alias legado en .env.example; se usa si no hay AZURE_OPENAI_DEPLOYMENT_EMBEDDINGS. */
   EMBEDDING_MODEL: process.env.EMBEDDING_MODEL ?? '',
   EMBEDDING_DIMENSIONS: process.env.EMBEDDING_DIMENSIONS ?? '',
+  /**
+   * Umbral de distancia coseno pgvector (`<=>`): menor = más estricto.
+   * Equivale a similitud coseno ≥ (1 − valor) con vectores normalizados.
+   * Rango recomendado en .env: 0.28–0.42 (por defecto se aplica en config.ts).
+   */
+  SEMANTIC_MAX_COSINE_DISTANCE: process.env.SEMANTIC_MAX_COSINE_DISTANCE ?? '',
   UPLOAD_DIR: process.env.UPLOAD_DIR,
   MAX_UPLOAD_MB: process.env.MAX_UPLOAD_MB,
   YOUTUBE_API_KEY: process.env.YOUTUBE_API_KEY,

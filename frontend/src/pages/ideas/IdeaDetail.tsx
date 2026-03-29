@@ -3,6 +3,7 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { ArrowLeft, Loader2 } from 'lucide-react'
 import AppShellHeader from '@/components/layout/AppShellHeader'
 import { Button } from '@/components/ui/button'
+import { IdeaExternalSharePanel } from '@/components/ideas/IdeaExternalSharePanel'
 import {
   IdeaFlashcardDetailView,
   flashcardQueryKey,
@@ -10,6 +11,7 @@ import {
 import { fetchIdeaFlashcardDetail } from '@/lib/api/ideas'
 import { ApiError } from '@/lib/api/client'
 import { backLabelForPath, safeReturnPath } from '@/lib/ideaDetailNavigation'
+import { appPageMainClassName } from '@/lib/appPageLayout'
 
 export default function IdeaDetail() {
   const { id } = useParams<{ id: string }>()
@@ -28,7 +30,7 @@ export default function IdeaDetail() {
     return (
       <div className="min-h-screen bg-background">
         <AppShellHeader />
-        <main className="mx-auto max-w-3xl px-4 py-12 text-center text-sm text-muted-foreground">
+        <main className={appPageMainClassName('py-12 text-center text-sm text-muted-foreground')}>
           Idea no encontrada.
         </main>
       </div>
@@ -38,7 +40,7 @@ export default function IdeaDetail() {
   return (
     <div className="min-h-screen bg-[#FAFAF8] dark:bg-background">
       <AppShellHeader />
-      <main className="mx-auto max-w-3xl px-4 pb-16 pt-6 sm:px-6 sm:pt-8">
+      <main className={appPageMainClassName('pb-16 pt-6 sm:pt-8')}>
         <div className="mb-8 flex flex-wrap items-center gap-3">
           <Button
             type="button"
@@ -79,12 +81,20 @@ export default function IdeaDetail() {
         )}
 
         {q.data && (
-          <IdeaFlashcardDetailView
-            ideaId={id}
-            flashcard={q.data.flashcard}
-            isOwner={q.data.isOwner}
-            attachments={q.data.attachments}
-          />
+          <div className="space-y-8">
+            <IdeaFlashcardDetailView
+              ideaId={id}
+              flashcard={q.data.flashcard}
+              isOwner={q.data.isOwner}
+              attachments={q.data.attachments}
+            />
+            <IdeaExternalSharePanel
+              ideaId={id}
+              refinedTitle={q.data.flashcard.refinedTitle}
+              status={q.data.flashcard.status}
+              isPublished={q.data.flashcard.isPublished}
+            />
+          </div>
         )}
       </main>
     </div>

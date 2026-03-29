@@ -9,6 +9,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useIdeasQuery } from '@/hooks/useIdeasQuery'
 import { cn } from '@/lib/utils'
+import { appPageMainClassName } from '@/lib/appPageLayout'
 
 function formatDate(iso: string) {
   try {
@@ -21,7 +22,7 @@ function formatDate(iso: string) {
 export default function Dashboard() {
   const navigate = useNavigate()
   const user = useAuthStore(s => s.user)
-  const name = user?.username || user?.email?.split('@')[0] || 'there'
+  const name = user?.username || user?.email?.split('@')[0] || 'aquí'
 
   const { data: ideas, isLoading } = useIdeasQuery()
   const recent = (ideas ?? []).slice(0, 3)
@@ -29,12 +30,12 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-background">
       <AppShellHeader />
-      <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
+      <main className={appPageMainClassName('py-8')}>
         <h1 className="font-serif text-2xl text-foreground sm:text-3xl">
-          Welcome, {name} 👋
+          Hola, {name} 👋
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          What idea do you want to explore today?
+          ¿Qué idea quieres explorar hoy?
         </p>
 
         <Link
@@ -46,18 +47,18 @@ export default function Dashboard() {
             <Plus className="size-6" strokeWidth={2.5} />
           </div>
           <div>
-            <p className="font-semibold text-foreground">Capture a new idea</p>
+            <p className="font-semibold text-foreground">Capturar una idea nueva</p>
             <p className="mt-0.5 text-sm text-muted-foreground">
-              Text, URL, audio, image or video
+              Texto, URL, audio, imagen o vídeo
             </p>
           </div>
         </Link>
 
         <section className="mt-10">
           <div className="mb-4 flex items-center justify-between">
-            <h2 className="font-semibold text-foreground">Recent ideas</h2>
+            <h2 className="font-semibold text-foreground">Ideas recientes</h2>
             <Link to="/ideas" className="text-sm text-primary hover:underline">
-              View all
+              Ver todas
             </Link>
           </div>
           <motion.div
@@ -77,7 +78,7 @@ export default function Dashboard() {
                 <CardContent className="flex flex-col items-center gap-3 py-12">
                   <Lightbulb className="size-8 text-muted-foreground/40" />
                   <p className="text-sm text-muted-foreground">
-                    You still have no ideas. Capture your first one!
+                    Aún no tienes ideas. ¡Captura la primera!
                   </p>
                 </CardContent>
               </Card>
@@ -114,7 +115,7 @@ export default function Dashboard() {
 
         <section className="mt-10">
           <div className="mb-4 flex items-center gap-2">
-            <h2 className="font-semibold text-foreground">Suggested prompts</h2>
+            <h2 className="font-semibold text-foreground">Sugerencias para empezar</h2>
             <Badge variant="secondary" className="bg-amber-100 text-amber-700">
               AI
             </Badge>
@@ -126,7 +127,7 @@ export default function Dashboard() {
         whileHover={{ scale: 1.08 }}
         whileTap={{ scale: 0.93 }}
         className="fixed bottom-6 right-6 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg"
-        aria-label="New idea"
+        aria-label="Nueva idea"
         onClick={() => navigate('/ideas/new', { state: { from: '/dashboard' } })}
       >
         <Plus size={22} />

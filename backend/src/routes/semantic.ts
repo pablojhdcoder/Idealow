@@ -1,6 +1,7 @@
 import { Router } from 'express'
 import { z } from 'zod'
 import { sendError } from '../lib/apiError'
+import { asyncHandler } from '../lib/asyncHandler'
 import { requireAuth } from '../middleware/auth'
 import { semanticExploreRateLimit } from '../middleware/rateLimit'
 import { hasEmbeddingsConfig } from '../config'
@@ -13,8 +14,11 @@ const searchQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(20).optional(),
 })
 
-router.get('/search', requireAuth, semanticExploreRateLimit, async (req, res, next) => {
-  try {
+router.get(
+  '/search',
+  requireAuth,
+  semanticExploreRateLimit,
+  asyncHandler(async (req, res) => {
     if (!req.user) {
       return sendError(res, 401, 'Unauthorized', 'AUTH_UNAUTHORIZED')
     }
@@ -33,9 +37,7 @@ router.get('/search', requireAuth, semanticExploreRateLimit, async (req, res, ne
     const limit = parsed.data.limit ?? 10
     const ideas = await semanticSearchForUser(req.user.userId, parsed.data.q, limit)
     return res.json({ ideas })
-  } catch (err) {
-    next(err)
-  }
-})
+  }),
+)
 
 export default router

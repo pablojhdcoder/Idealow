@@ -44,6 +44,9 @@ model Idea {
   validationData  Json?
   competitors     Json?
 
+  /** Lease entre réplicas: solo una validación en curso por idea (TTL vía consulta stale). */
+  validationStartedAt DateTime?
+
   isPublished Boolean  @default(true)
   publishedAt DateTime?
   createdAt   DateTime @default(now())

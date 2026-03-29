@@ -1,4 +1,3 @@
-import type { NextFunction, Request, Response } from 'express'
 import { Router } from 'express'
 import { z } from 'zod'
 import { sendError } from '../lib/apiError'
@@ -28,9 +27,13 @@ import { cleanupOrphanedUploads } from '../services/files/cleanupOrphanedUploads
 import { hasEmbeddingsConfig } from '../config'
 import { prisma } from '../lib/prisma'
 import { similarIdeasForUser } from '../services/embeddings/similarity'
-import { getIdeaFlashcardForViewer } from '../services/ideas/ideaFlashcard'
+import {
+  getIdeaFlashcardForViewer,
+  listSimilarPublishedFlashcardsForAnchor,
+} from '../services/ideas/ideaFlashcard'
 import { listIdeaFeedbackComments, submitIdeaFeedback } from '../services/ideas/feedbackService'
 import { updateIdeaPublishState } from '../services/ideas/updateIdeaPublish'
+import { asyncHandler } from '../lib/asyncHandler'
 
 const router = Router()
 
@@ -52,8 +55,10 @@ function shouldCleanupOrphanUploadsAfterCreateError(err: unknown): boolean {
   return !skip.has(err.code)
 }
 
-router.get('/', requireAuth, async (req, res, next) => {
-  try {
+router.get(
+  '/',
+  requireAuth,
+  asyncHandler(async (req, res) => {
     if (!req.user) {
       return sendError(res, 401, 'Unauthorized', 'AUTH_UNAUTHORIZED')
     }
@@ -63,79 +68,103 @@ router.get('/', requireAuth, async (req, res, next) => {
     }
     const result = await listIdeasForUser(req.user.userId, parsed.data)
     return res.json(result)
-  } catch (err) {
-    next(err)
-  }
-})
+  }),
+)
 
 router.get(
   '/:id/similar',
   requireAuth,
   semanticExploreRateLimit,
   validateParams(ideaIdParamsSchema),
-  async (req, res, next) => {
-    try {
-      if (!req.user) {
-        return sendError(res, 401, 'Unauthorized', 'AUTH_UNAUTHORIZED')
-      }
-      const { id } = req.params as z.infer<typeof ideaIdParamsSchema>
-      const parsedQ = similarQuerySchema.safeParse(req.query)
-      if (!parsedQ.success) {
-        return sendError(res, 422, 'Validation failed', 'VALIDATION_ERROR', parsedQ.error.flatten())
-      }
-      const limit = parsedQ.data.limit ?? 8
-      const idea = await prisma.idea.findFirst({
-        where: { id, userId: req.user.userId },
-        select: { id: true },
-      })
-      if (!idea) {
-        return sendError(res, 404, 'Idea not found', 'IDEAS_NOT_FOUND')
-      }
-      if (!hasEmbeddingsConfig()) {
-        return sendError(
-          res,
-          503,
-          'Similar ideas is not configured (set AZURE_OPENAI_DEPLOYMENT_EMBEDDINGS or EMBEDDING_MODEL).',
-          'SEMANTIC_NOT_CONFIGURED',
-        )
-      }
-      const ideas = await similarIdeasForUser(req.user.userId, id, limit)
-      return res.json({ ideas })
-    } catch (err) {
-      next(err)
+  asyncHandler(async (req, res) => {
+    if (!req.user) {
+      return sendError(res, 401, 'Unauthorized', 'AUTH_UNAUTHORIZED')
     }
-  },
+    const { id } = req.params as z.infer<typeof ideaIdParamsSchema>
+    const parsedQ = similarQuerySchema.safeParse(req.query)
+    if (!parsedQ.success) {
+      return sendError(res, 422, 'Validation failed', 'VALIDATION_ERROR', parsedQ.error.flatten())
+    }
+    const limit = parsedQ.data.limit ?? 8
+    const idea = await prisma.idea.findFirst({
+      where: { id, userId: req.user.userId },
+      select: { id: true },
+    })
+    if (!idea) {
+      return sendError(res, 404, 'Idea not found', 'IDEAS_NOT_FOUND')
+    }
+    if (!hasEmbeddingsConfig()) {
+      return sendError(
+        res,
+        503,
+        'Similar ideas is not configured (set AZURE_OPENAI_DEPLOYMENT_EMBEDDINGS or EMBEDDING_MODEL).',
+        'SEMANTIC_NOT_CONFIGURED',
+      )
+    }
+    const ideas = await similarIdeasForUser(req.user.userId, id, limit)
+    return res.json({ ideas })
+  }),
+)
+
+/** Ideas publicadas en la comunidad con embedding, ordenadas por similitud a la idea del usuario (ancla). */
+router.get(
+  '/:id/similar-feed',
+  requireAuth,
+  semanticExploreRateLimit,
+  validateParams(ideaIdParamsSchema),
+  asyncHandler(async (req, res) => {
+    if (!req.user) {
+      return sendError(res, 401, 'Unauthorized', 'AUTH_UNAUTHORIZED')
+    }
+    const { id } = req.params as z.infer<typeof ideaIdParamsSchema>
+    const parsedQ = similarQuerySchema.safeParse(req.query)
+    if (!parsedQ.success) {
+      return sendError(res, 422, 'Validation failed', 'VALIDATION_ERROR', parsedQ.error.flatten())
+    }
+    const limit = parsedQ.data.limit ?? 8
+    if (!hasEmbeddingsConfig()) {
+      return sendError(
+        res,
+        503,
+        'Similar ideas is not configured (set AZURE_OPENAI_DEPLOYMENT_EMBEDDINGS or EMBEDDING_MODEL).',
+        'SEMANTIC_NOT_CONFIGURED',
+      )
+    }
+    const items = await listSimilarPublishedFlashcardsForAnchor(
+      id,
+      req.user.userId,
+      req.user.userId,
+      limit,
+    )
+    return res.json({ items })
+  }),
 )
 
 router.get(
   '/:id/feedback',
   validateParams(ideaIdParamsSchema),
-  async (req, res, next) => {
-    try {
-      const { id } = req.params as z.infer<typeof ideaIdParamsSchema>
-      const parsed = ideaFeedbackListQuerySchema.safeParse(req.query)
-      if (!parsed.success) {
-        return sendError(res, 422, 'Validation failed', 'VALIDATION_ERROR', parsed.error.flatten())
-      }
-      const limit = parsed.data.limit ?? 20
-      const { items, nextCursor } = await listIdeaFeedbackComments(id, {
-        cursor: parsed.data.cursor,
-        limit,
-      })
-      return res.json({
-        comments: items.map(c => ({
-          id: c.id,
-          comment: c.comment,
-          vote: c.vote,
-          createdAt: c.createdAt.toISOString(),
-          user: c.user,
-        })),
-        nextCursor,
-      })
-    } catch (err) {
-      next(err)
+  asyncHandler(async (req, res) => {
+    const { id } = req.params as z.infer<typeof ideaIdParamsSchema>
+    const parsed = ideaFeedbackListQuerySchema.safeParse(req.query)
+    if (!parsed.success) {
+      return sendError(res, 422, 'Validation failed', 'VALIDATION_ERROR', parsed.error.flatten())
     }
-  },
+    const limit = parsed.data.limit ?? 20
+    const { items, nextCursor } = await listIdeaFeedbackComments(id, {
+      cursor: parsed.data.cursor,
+      limit,
+    })
+    return res.json({
+      comments: items.map(c => ({
+        id: c.id,
+        comment: c.comment,
+        vote: c.vote,
+        createdAt: c.createdAt.toISOString(),
+        user: c.user,
+      })),
+      nextCursor,
+    })
+  }),
 )
 
 router.post(
@@ -144,24 +173,20 @@ router.post(
   ideasFeedbackPostRateLimit,
   validateParams(ideaIdParamsSchema),
   validateBody(ideaFeedbackBodySchema),
-  async (req, res, next) => {
-    try {
-      if (!req.user) {
-        return sendError(res, 401, 'Unauthorized', 'AUTH_UNAUTHORIZED')
-      }
-      const { id } = req.params as z.infer<typeof ideaIdParamsSchema>
-      const body = req.body as z.infer<typeof ideaFeedbackBodySchema>
-      const result = await submitIdeaFeedback({
-        ideaId: id,
-        userId: req.user.userId,
-        vote: body.vote,
-        comment: body.comment,
-      })
-      return res.status(200).json(result)
-    } catch (err) {
-      next(err)
+  asyncHandler(async (req, res) => {
+    if (!req.user) {
+      return sendError(res, 401, 'Unauthorized', 'AUTH_UNAUTHORIZED')
     }
-  },
+    const { id } = req.params as z.infer<typeof ideaIdParamsSchema>
+    const body = req.body as z.infer<typeof ideaFeedbackBodySchema>
+    const result = await submitIdeaFeedback({
+      ideaId: id,
+      userId: req.user.userId,
+      vote: body.vote,
+      comment: body.comment,
+    })
+    return res.status(200).json(result)
+  }),
 )
 
 router.patch(
@@ -170,68 +195,60 @@ router.patch(
   ideasPatchRateLimit,
   validateParams(ideaIdParamsSchema),
   validateBody(patchIdeaBodySchema),
-  async (req, res, next) => {
-    try {
-      if (!req.user) {
-        return sendError(res, 401, 'Unauthorized', 'AUTH_UNAUTHORIZED')
-      }
-      const { id } = req.params as z.infer<typeof ideaIdParamsSchema>
-      const { isPublished } = req.body as z.infer<typeof patchIdeaBodySchema>
-      const updated = await updateIdeaPublishState(req.user.userId, id, isPublished)
-      return res.json({
-        id: updated.id,
-        isPublished: updated.isPublished,
-        publishedAt: updated.publishedAt ? updated.publishedAt.toISOString() : null,
-      })
-    } catch (err) {
-      next(err)
+  asyncHandler(async (req, res) => {
+    if (!req.user) {
+      return sendError(res, 401, 'Unauthorized', 'AUTH_UNAUTHORIZED')
     }
-  },
+    const { id } = req.params as z.infer<typeof ideaIdParamsSchema>
+    const { isPublished } = req.body as z.infer<typeof patchIdeaBodySchema>
+    const updated = await updateIdeaPublishState(req.user.userId, id, isPublished)
+    return res.json({
+      id: updated.id,
+      isPublished: updated.isPublished,
+      publishedAt: updated.publishedAt ? updated.publishedAt.toISOString() : null,
+    })
+  }),
 )
 
 router.get(
   '/:id',
   optionalAuth,
   validateParams(ideaIdParamsSchema),
-  async (req, res, next) => {
-    try {
-      const { id } = req.params as z.infer<typeof ideaIdParamsSchema>
-      const viewerId = req.user?.userId
-      const { flashcard, isOwner, validationSnapshot } = await getIdeaFlashcardForViewer(id, viewerId)
-      const files = await prisma.file.findMany({
-        where: { ideaId: id },
-        select: {
-          id: true,
-          originalName: true,
-          mimeType: true,
-          sizeBytes: true,
-          createdAt: true,
-        },
-        orderBy: { createdAt: 'asc' },
-      })
-      const attachments = files.map(f => ({
-        id: f.id,
-        originalName: f.originalName,
-        mimeType: f.mimeType,
-        sizeBytes: f.sizeBytes,
-        createdAt: f.createdAt.toISOString(),
-      }))
-      return res.json({ flashcard, isOwner, attachments, validationSnapshot })
-    } catch (err) {
-      next(err)
-    }
-  },
+  asyncHandler(async (req, res) => {
+    const { id } = req.params as z.infer<typeof ideaIdParamsSchema>
+    const viewerId = req.user?.userId
+    const { flashcard, isOwner, validationSnapshot } = await getIdeaFlashcardForViewer(id, viewerId)
+    const files = await prisma.file.findMany({
+      where: { ideaId: id },
+      select: {
+        id: true,
+        originalName: true,
+        mimeType: true,
+        sizeBytes: true,
+        createdAt: true,
+      },
+      orderBy: { createdAt: 'asc' },
+    })
+    const attachments = files.map(f => ({
+      id: f.id,
+      originalName: f.originalName,
+      mimeType: f.mimeType,
+      sizeBytes: f.sizeBytes,
+      createdAt: f.createdAt.toISOString(),
+    }))
+    return res.json({ flashcard, isOwner, attachments, validationSnapshot })
+  }),
 )
 
-const createIdeaHandler = async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    if (!req.user) {
-      return sendError(res, 401, 'Unauthorized', 'AUTH_UNAUTHORIZED')
-    }
-    const userId = req.user.userId
-    const { content, fileId, fileIds, sector, isPublished } = req.body as CreateIdeaBody
-    const mergedIds = [...new Set([...(fileIds ?? []), ...(fileId ? [fileId] : [])])]
+const createIdeaHandler = asyncHandler(async (req, res) => {
+  if (!req.user) {
+    return sendError(res, 401, 'Unauthorized', 'AUTH_UNAUTHORIZED')
+  }
+  const userId = req.user.userId
+  const { content, fileId, fileIds, sector, isPublished } = req.body as CreateIdeaBody
+  const mergedIds = [...new Set([...(fileIds ?? []), ...(fileId ? [fileId] : [])])]
 
+  try {
     const result = await createIdeaFromInput({
       userId,
       content,
@@ -243,19 +260,18 @@ const createIdeaHandler = async (req: Request, res: Response, next: NextFunction
     return res.status(201).json(result)
   } catch (err) {
     if (req.user && shouldCleanupOrphanUploadsAfterCreateError(err)) {
-      const { fileId, fileIds } = req.body as CreateIdeaBody
-      const mergedIds = [...new Set([...(fileIds ?? []), ...(fileId ? [fileId] : [])])]
-      if (mergedIds.length > 0) {
+      const merged = [...new Set([...(fileIds ?? []), ...(fileId ? [fileId] : [])])]
+      if (merged.length > 0) {
         try {
           const cleanup = await cleanupOrphanedUploads({
             userId: req.user.userId,
-            fileIds: mergedIds,
+            fileIds: merged,
           })
           if (cleanup.filesystemErrors > 0) {
             logger.warn(
               {
                 userId: req.user.userId,
-                fileIds: mergedIds,
+                fileIds: merged,
                 cleanup,
               },
               'Partial cleanup after failed idea creation',
@@ -265,7 +281,7 @@ const createIdeaHandler = async (req: Request, res: Response, next: NextFunction
           logger.warn(
             {
               userId: req.user.userId,
-              fileIds: mergedIds,
+              fileIds: merged,
               cleanupError,
             },
             'Cleanup failed after idea creation error',
@@ -273,9 +289,9 @@ const createIdeaHandler = async (req: Request, res: Response, next: NextFunction
         }
       }
     }
-    next(err)
+    throw err
   }
-}
+})
 
 router.post('/', requireAuth, ideasCreateRateLimit, validateBody(createIdeaSchema), createIdeaHandler)
 
@@ -284,18 +300,14 @@ router.post(
   requireAuth,
   ideasRefineRateLimit,
   validateParams(ideaIdParamsSchema),
-  async (req, res, next) => {
-    try {
-      if (!req.user) {
-        return sendError(res, 401, 'Unauthorized', 'AUTH_UNAUTHORIZED')
-      }
-      const { id } = req.params as z.infer<typeof ideaIdParamsSchema>
-      const questions = await loadRefinementQuestions(req.user.userId, id)
-      return res.json(questions)
-    } catch (err) {
-      next(err)
+  asyncHandler(async (req, res) => {
+    if (!req.user) {
+      return sendError(res, 401, 'Unauthorized', 'AUTH_UNAUTHORIZED')
     }
-  },
+    const { id } = req.params as z.infer<typeof ideaIdParamsSchema>
+    const questions = await loadRefinementQuestions(req.user.userId, id)
+    return res.json(questions)
+  }),
 )
 
 router.post(
@@ -304,19 +316,15 @@ router.post(
   ideasRefineRateLimit,
   validateParams(ideaIdParamsSchema),
   validateBody(refineAnswersBodySchema),
-  async (req, res, next) => {
-    try {
-      if (!req.user) {
-        return sendError(res, 401, 'Unauthorized', 'AUTH_UNAUTHORIZED')
-      }
-      const { id } = req.params as z.infer<typeof ideaIdParamsSchema>
-      const { answers } = req.body as z.infer<typeof refineAnswersBodySchema>
-      const result = await submitRefinement(req.user.userId, id, answers)
-      return res.json(result)
-    } catch (err) {
-      next(err)
+  asyncHandler(async (req, res) => {
+    if (!req.user) {
+      return sendError(res, 401, 'Unauthorized', 'AUTH_UNAUTHORIZED')
     }
-  },
+    const { id } = req.params as z.infer<typeof ideaIdParamsSchema>
+    const { answers } = req.body as z.infer<typeof refineAnswersBodySchema>
+    const result = await submitRefinement(req.user.userId, id, answers)
+    return res.json(result)
+  }),
 )
 
 export default router

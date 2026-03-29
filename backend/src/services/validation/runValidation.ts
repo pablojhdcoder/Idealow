@@ -37,6 +37,12 @@ async function executeValidation(ideaId: string, userId: string): Promise<void> 
     return
   }
 
+  /** Una sola ejecución por idea: resultados persistidos en BD. */
+  if (idea.validationScore != null && idea.validationData != null) {
+    logger.info({ ideaId }, 'validation already persisted, skip')
+    return
+  }
+
   if (idea.status !== 'REFINING' && idea.status !== 'VALIDATED') {
     emit(ideaId, {
       type: 'error',
@@ -124,6 +130,11 @@ async function executeValidation(ideaId: string, userId: string): Promise<void> 
 
   const competitorList = results.competitors?.competitors ?? []
 
+  const publishMeta = await prisma.idea.findFirst({
+    where: { id: ideaId, userId },
+    select: { isPublished: true, publishedAt: true },
+  })
+
   await prisma.idea.update({
     where: { id: ideaId },
     data: {
@@ -131,6 +142,7 @@ async function executeValidation(ideaId: string, userId: string): Promise<void> 
       validationData: { ...results, ...scoreReport },
       competitors: competitorList,
       status: 'VALIDATED',
+      ...(publishMeta?.isPublished && publishMeta.publishedAt == null ? { publishedAt: new Date() } : {}),
     },
   })
 

@@ -11,6 +11,8 @@ const path_1 = __importDefault(require("path"));
 const uploads_1 = require("openai/uploads");
 const pdf_parse_1 = require("pdf-parse");
 const config_1 = require("../../config");
+const httpError_1 = require("../../lib/httpError");
+const uploadLimits_1 = require("../../lib/uploadLimits");
 const azureOpenAI_1 = require("../../lib/azureOpenAI");
 const chatCompletionSamplingFallback_1 = require("../ai/chatCompletionSamplingFallback");
 const openaiMessageText_1 = require("../ai/openaiMessageText");
@@ -38,6 +40,9 @@ async function processMedia(filePathOrUrl, mimeType) {
         const bytes = isUrl
             ? Buffer.from((await axios_1.default.get(filePathOrUrl, { responseType: 'arraybuffer' })).data)
             : await promises_1.default.readFile(filePathOrUrl);
+        if (bytes.length > uploadLimits_1.MAX_WHISPER_INPUT_BYTES) {
+            throw new httpError_1.HttpError(413, 'El audio o vídeo supera el límite del servicio de transcripción (~25 MB). Sube un archivo más corto o comprímelo.', 'IDEAS_MEDIA_PROVIDER_LIMIT');
+        }
         const transcription = await client.audio.transcriptions.create({
             file: await (0, uploads_1.toFile)(bytes, `audio.${ext || 'mp3'}`),
             model: config_1.config.azure.deploymentWhisper,
@@ -49,6 +54,9 @@ async function processMedia(filePathOrUrl, mimeType) {
         const bytes = isUrl
             ? Buffer.from((await axios_1.default.get(filePathOrUrl, { responseType: 'arraybuffer' })).data)
             : await promises_1.default.readFile(filePathOrUrl);
+        if (bytes.length > uploadLimits_1.MAX_VISION_INPUT_BYTES) {
+            throw new httpError_1.HttpError(413, 'La imagen es demasiado grande para el modelo de visión (límite ~25 MB por petición en Azure; con base64 el máximo práctico es menor). Reduce resolución o comprime el archivo.', 'IDEAS_MEDIA_PROVIDER_LIMIT');
+        }
         const base64 = bytes.toString('base64');
         const mediaType = ext === 'png' ? 'image/png' : ext === 'webp' ? 'image/webp' : 'image/jpeg';
         const msg = await (0, chatCompletionSamplingFallback_1.chatCompletionsCreateWithSamplingFallback)(client, {

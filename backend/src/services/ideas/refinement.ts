@@ -8,6 +8,8 @@ import {
   synthesizeAnswers,
 } from '../ai/refiner'
 import { scheduleIdeaEmbedding } from '../embeddings/embeddingJob'
+import { runValidation } from '../validation/runValidation'
+import { logger } from '../../lib/logger'
 type ExtractionShape = {
   problem?: string
   solution?: string
@@ -99,6 +101,13 @@ export async function submitRefinement(
   })
 
   scheduleIdeaEmbedding(updated.id)
+
+  /** Validación de mercado: una sola vez por idea, en segundo plano (no al abrir la pantalla). */
+  if (idea.validationScore == null) {
+    void runValidation(updated.id, userId).catch(err => {
+      logger.error({ ideaId: updated.id, err }, 'runValidation after refinement failed')
+    })
+  }
 
   return { idea: updated, nextStep: 'validation' as const }
 }

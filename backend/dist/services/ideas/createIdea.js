@@ -42,6 +42,9 @@ async function createIdeaFromInput(input) {
             });
         }
         catch (e) {
+            if (e instanceof httpError_1.HttpError) {
+                throw e;
+            }
             if (e instanceof Error && e.message.startsWith('UNSUPPORTED_MEDIA:')) {
                 throw new httpError_1.HttpError(422, e.message.replace('UNSUPPORTED_MEDIA:', '').trim(), 'IDEAS_UNSUPPORTED_MEDIA');
             }

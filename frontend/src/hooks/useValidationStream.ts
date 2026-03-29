@@ -1,27 +1,38 @@
 import { useEffect, useRef, useState } from 'react'
 import { postStartValidation, validationStreamUrl } from '@/lib/api/validation'
+import { parseDonePayloadExtras } from '@/lib/parseValidationSsePayload'
+import type {
+  CompetitorCard,
+  GapAnalysis,
+  ValidationReference,
+  YoutubeSample,
+} from '@/lib/parseValidationSsePayload'
 import { ApiError } from '@/lib/api/client'
+import type { AiSocialSearchPayload, SourceKey } from '@/types/validationStream'
 
-export type SourceKey = 'reddit' | 'trends' | 'competitors' | 'social' | 'news'
-
-/** Estimación IA por red (sin API en vivo) — coincide con `ai_social_search` del backend. */
-export type AiPlatformEstimate = {
-  signal: number
-  synthetic_findings: string
-}
-
-export type AiSocialSearchPayload = {
-  x?: AiPlatformEstimate
-  instagram?: AiPlatformEstimate
-  tiktok?: AiPlatformEstimate
-}
+export type {
+  AiPlatformEstimate,
+  AiSocialSearchPayload,
+  SourceKey,
+} from '@/types/validationStream'
 
 export type SourceStatus = {
   status: 'idle' | 'searching' | 'done' | 'error'
   score?: number
   summary?: string
   message?: string
+  references?: ValidationReference[]
   aiSocialSearch?: AiSocialSearchPayload
+  youtubeLongSamples?: YoutubeSample[]
+  youtubeShortSamples?: YoutubeSample[]
+  youtubeLongCount?: number
+  youtubeShortsCount?: number
+  exploreQuery?: string
+  competitors?: CompetitorCard[]
+  gapAnalysis?: GapAnalysis
+  trendExploreLinks?: { label: string; url: string }[]
+  redditSubreddits?: string[]
+  bestQuote?: { text: string; url?: string }
 }
 
 export type ValidationStreamState = {
@@ -58,23 +69,6 @@ function isSourceKey(s: string): s is SourceKey {
 
 type SsePayload = Record<string, unknown>
 
-function parseAiSocialSearch(raw: unknown): AiSocialSearchPayload | undefined {
-  if (!raw || typeof raw !== 'object') return undefined
-  const o = raw as Record<string, unknown>
-  const out: AiSocialSearchPayload = {}
-  for (const key of ['x', 'instagram', 'tiktok'] as const) {
-    const p = o[key]
-    if (!p || typeof p !== 'object') continue
-    const po = p as Record<string, unknown>
-    const sig = typeof po.signal === 'number' ? po.signal : Number(po.signal)
-    const synthetic_findings =
-      typeof po.synthetic_findings === 'string' ? po.synthetic_findings : ''
-    if (!Number.isFinite(sig) || !synthetic_findings.trim()) continue
-    out[key] = { signal: sig, synthetic_findings }
-  }
-  return Object.keys(out).length > 0 ? out : undefined
-}
-
 export function useValidationStream(ideaId: string | null, enabled: boolean) {
   const [state, setState] = useState<ValidationStreamState>({
     ...initialSources,
@@ -108,11 +102,27 @@ export function useValidationStream(ideaId: string | null, enabled: boolean) {
     const url = validationStreamUrl(ideaId)
     const es = new EventSource(url, { withCredentials: true })
 
+    const startValidationOnce = () => {
+      if (startedRef.current) return
+      startedRef.current = true
+      void postStartValidation(ideaId).catch((e: unknown) => {
+        const msg =
+          e instanceof ApiError ? e.message : 'No se pudo iniciar la validación'
+        setState(prev => ({ ...prev, startError: msg }))
+        es.close()
+      })
+    }
+
     es.onmessage = (event: MessageEvent<string>) => {
       let data: SsePayload
       try {
         data = JSON.parse(event.data) as SsePayload
       } catch {
+        return
+      }
+
+      if (data.type === 'ready') {
+        startValidationOnce()
         return
       }
 
@@ -157,15 +167,14 @@ export function useValidationStream(ideaId: string | null, enabled: boolean) {
         if (st === 'done') {
           const score = typeof data.score === 'number' ? data.score : undefined
           const summary = typeof data.summary === 'string' ? data.summary : undefined
-          const aiSocialSearch =
-            src === 'social' ? parseAiSocialSearch(data.ai_social_search) : undefined
+          const extras = parseDonePayloadExtras(src, data)
           setState(prev => ({
             ...prev,
             [src]: {
               status: 'done',
               score,
               summary,
-              ...(aiSocialSearch ? { aiSocialSearch } : {}),
+              ...extras,
             },
           }))
         }
@@ -181,18 +190,12 @@ export function useValidationStream(ideaId: string | null, enabled: boolean) {
       es.close()
     }
 
-    es.onopen = () => {
-      if (startedRef.current) return
-      startedRef.current = true
-      void postStartValidation(ideaId).catch((e: unknown) => {
-        const msg =
-          e instanceof ApiError ? e.message : 'No se pudo iniciar la validación'
-        setState(prev => ({ ...prev, startError: msg }))
-        es.close()
-      })
-    }
+    const fallbackTimer = window.setTimeout(() => {
+      startValidationOnce()
+    }, 250)
 
     return () => {
+      window.clearTimeout(fallbackTimer)
       es.close()
     }
   }, [ideaId, enabled])

@@ -156,6 +156,7 @@ function mapIdeaRowToFlashcard(idea, votes, myVote) {
         isPublished: idea.isPublished,
         publishedAt: idea.publishedAt ? idea.publishedAt.toISOString() : null,
         author: {
+            id: idea.user.id,
             username: idea.user.username,
             avatarUrl: idea.user.avatarUrl,
         },
@@ -169,7 +170,7 @@ async function getIdeaFlashcardForViewer(ideaId, viewerUserId) {
     const idea = await prisma_1.prisma.idea.findUnique({
         where: { id: ideaId },
         include: {
-            user: { select: { username: true, avatarUrl: true } },
+            user: { select: { id: true, username: true, avatarUrl: true } },
         },
     });
     if (!idea) {
@@ -197,5 +198,9 @@ async function getIdeaFlashcardForViewer(ideaId, viewerUserId) {
         createdAt: idea.createdAt,
         user: idea.user,
     }, votes, myVote);
-    return { flashcard, isOwner };
+    return {
+        flashcard,
+        isOwner,
+        validationSnapshot: isOwner ? idea.validationData : null,
+    };
 }

@@ -12,13 +12,13 @@ const fileInFlight = new Set();
 async function persistIdeaVector(ideaId, vector) {
     const v = JSON.stringify(vector);
     await prisma_1.prisma.$executeRaw `
-    UPDATE "Idea" SET embedding = ${v}::vector WHERE id = ${ideaId}::uuid
+    UPDATE "Idea" SET embedding = ${v}::vector WHERE id = ${ideaId}
   `;
 }
 async function persistFileVector(fileId, vector) {
     const v = JSON.stringify(vector);
     await prisma_1.prisma.$executeRaw `
-    UPDATE "File" SET embedding = ${v}::vector WHERE id = ${fileId}::uuid
+    UPDATE "File" SET embedding = ${v}::vector WHERE id = ${fileId}
   `;
 }
 function scheduleIdeaEmbedding(ideaId) {

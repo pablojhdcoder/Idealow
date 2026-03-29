@@ -197,7 +197,7 @@ router.get(
     try {
       const { id } = req.params as z.infer<typeof ideaIdParamsSchema>
       const viewerId = req.user?.userId
-      const { flashcard, isOwner } = await getIdeaFlashcardForViewer(id, viewerId)
+      const { flashcard, isOwner, validationSnapshot } = await getIdeaFlashcardForViewer(id, viewerId)
       const files = await prisma.file.findMany({
         where: { ideaId: id },
         select: {
@@ -216,7 +216,7 @@ router.get(
         sizeBytes: f.sizeBytes,
         createdAt: f.createdAt.toISOString(),
       }))
-      return res.json({ flashcard, isOwner, attachments })
+      return res.json({ flashcard, isOwner, attachments, validationSnapshot })
     } catch (err) {
       next(err)
     }
@@ -229,7 +229,7 @@ const createIdeaHandler = async (req: Request, res: Response, next: NextFunction
       return sendError(res, 401, 'Unauthorized', 'AUTH_UNAUTHORIZED')
     }
     const userId = req.user.userId
-    const { content, fileId, fileIds, sector } = req.body as CreateIdeaBody
+    const { content, fileId, fileIds, sector, isPublished } = req.body as CreateIdeaBody
     const mergedIds = [...new Set([...(fileIds ?? []), ...(fileId ? [fileId] : [])])]
 
     const result = await createIdeaFromInput({
@@ -238,6 +238,7 @@ const createIdeaHandler = async (req: Request, res: Response, next: NextFunction
       fileId,
       fileIds: mergedIds.length > 0 ? mergedIds : undefined,
       sector,
+      isPublished,
     })
     return res.status(201).json(result)
   } catch (err) {

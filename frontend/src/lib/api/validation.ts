@@ -1,7 +1,7 @@
 import { parseJsonResponse } from './client'
 
 export type StartValidationResponse = {
-  status: 'started'
+  status: 'started' | 'already_validated'
   ideaId: string
 }
 

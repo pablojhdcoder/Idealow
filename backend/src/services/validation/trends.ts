@@ -16,7 +16,9 @@ const trendsSchema = z.object({
   related_topics: z.array(z.string()).optional(),
 })
 
-export type TrendsValidationResult = z.infer<typeof trendsSchema>
+export type TrendsValidationResult = z.infer<typeof trendsSchema> & {
+  explore_links?: { label: string; url: string }[]
+}
 
 export async function validateTrends(idea: ValidationIdeaInput): Promise<TrendsValidationResult> {
   const client = getAzureOpenAIClient()
@@ -51,7 +53,13 @@ Return ONLY JSON:
       score: 40,
       summary: 'Trend signal unavailable (invalid model JSON). Neutral default applied.',
       related_topics: [],
+      explore_links: [],
     }
   }
-  return parsed.data
+  const topics = parsed.data.related_topics ?? []
+  const explore_links = topics.slice(0, 10).map(label => ({
+    label,
+    url: `https://www.google.com/search?q=${encodeURIComponent(label)}`,
+  }))
+  return { ...parsed.data, explore_links }
 }

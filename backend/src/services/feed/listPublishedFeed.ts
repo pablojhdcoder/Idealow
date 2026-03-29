@@ -44,7 +44,7 @@ function textSearchWhere(q: string): Prisma.IdeaWhereInput {
 }
 
 const selectUser = {
-  user: { select: { username: true, avatarUrl: true } },
+  user: { select: { id: true, username: true, avatarUrl: true } },
 } as const
 
 type IdeaRow = Prisma.IdeaGetPayload<{ include: typeof selectUser }>
@@ -76,6 +76,7 @@ function toPayloadRows(ideas: IdeaRow[], voteMap: Map<string, import('../ideas/i
 export async function listPublishedFeed(params: ListFeedParams): Promise<ListFeedResult> {
   const baseWhere: Prisma.IdeaWhereInput = {
     isPublished: true,
+    status: 'VALIDATED',
     ...(params.sector ? { sector: params.sector } : {}),
     ...(params.filter === 'strong' ? strongWhere() : {}),
     ...textSearchWhere(params.q ?? ''),

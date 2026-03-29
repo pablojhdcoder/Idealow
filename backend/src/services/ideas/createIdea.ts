@@ -14,6 +14,8 @@ export type CreateIdeaInput = {
   fileId?: string
   fileIds?: string[]
   sector?: string
+  /** Si no se envía, true (pública en comunidad tras validar). */
+  isPublished?: boolean
 }
 
 export type CreateIdeaResult = {
@@ -31,7 +33,7 @@ const MAX_SOURCE_TEXT_CHARS = 50_000
  * Orquesta: resolver texto (contenido directo o uno/varios archivos), extraer idea con IA y persistir.
  */
 export async function createIdeaFromInput(input: CreateIdeaInput): Promise<CreateIdeaResult> {
-  const { userId, content, fileId, fileIds, sector } = input
+  const { userId, content, fileId, fileIds, sector, isPublished = true } = input
 
   const mergedIds = [...new Set([...(fileIds ?? []), ...(fileId ? [fileId] : [])])]
 
@@ -62,6 +64,9 @@ export async function createIdeaFromInput(input: CreateIdeaInput): Promise<Creat
         data: { sourceText },
       })
     } catch (e) {
+      if (e instanceof HttpError) {
+        throw e
+      }
       if (e instanceof Error && e.message.startsWith('UNSUPPORTED_MEDIA:')) {
         throw new HttpError(
           422,
@@ -126,6 +131,7 @@ export async function createIdeaFromInput(input: CreateIdeaInput): Promise<Creat
       rawContent: rawText,
       sector: extracted.sector || sector,
       status: 'DRAFT',
+      isPublished,
       /** Base para el wizard de refinamiento (mismos campos que devuelve el extractor). */
       refinedContent: { ...extracted },
       files:

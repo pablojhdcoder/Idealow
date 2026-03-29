@@ -33,7 +33,11 @@ describe('mapIdeaRowToFlashcard', () => {
     isPublished: true,
     publishedAt: new Date('2026-01-01T12:00:00.000Z'),
     createdAt: new Date('2026-01-02T12:00:00.000Z'),
-    user: { username: 'alice', avatarUrl: null as string | null },
+    user: {
+      id: 'aaaaaaaa-bbbb-4ccc-dddd-eeeeeeeeeeee',
+      username: 'alice',
+      avatarUrl: null as string | null,
+    },
   }
 
   it('mapea refined, veredicto, competidores y votos', () => {

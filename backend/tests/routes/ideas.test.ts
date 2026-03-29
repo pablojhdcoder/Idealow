@@ -182,6 +182,7 @@ describe('POST /api/ideas', () => {
       fileId: undefined,
       fileIds: undefined,
       sector: undefined,
+      isPublished: true,
     })
     expect(response.body).toEqual({
       ideaId: 'idea-1',

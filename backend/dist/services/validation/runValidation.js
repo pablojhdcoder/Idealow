@@ -36,6 +36,11 @@ async function executeValidation(ideaId, userId) {
         emit(ideaId, { type: 'error', code: 'VALIDATION_IDEA_NOT_FOUND', message: 'Idea not found' });
         return;
     }
+    /** Una sola ejecución por idea: resultados persistidos en BD. */
+    if (idea.validationScore != null && idea.validationData != null) {
+        logger_1.logger.info({ ideaId }, 'validation already persisted, skip');
+        return;
+    }
     if (idea.status !== 'REFINING' && idea.status !== 'VALIDATED') {
         emit(ideaId, {
             type: 'error',

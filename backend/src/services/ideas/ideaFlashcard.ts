@@ -11,6 +11,7 @@ export type CommunityVotes = {
 }
 
 export type IdeaFlashcardAuthor = {
+  id: string
   username: string
   avatarUrl: string | null
 }
@@ -201,7 +202,7 @@ type IdeaWithUser = {
   isPublished: boolean
   publishedAt: Date | null
   createdAt: Date
-  user: { username: string; avatarUrl: string | null }
+  user: { id: string; username: string; avatarUrl: string | null }
 }
 
 export function mapIdeaRowToFlashcard(
@@ -232,6 +233,7 @@ export function mapIdeaRowToFlashcard(
     isPublished: idea.isPublished,
     publishedAt: idea.publishedAt ? idea.publishedAt.toISOString() : null,
     author: {
+      id: idea.user.id,
       username: idea.user.username,
       avatarUrl: idea.user.avatarUrl,
     },
@@ -245,11 +247,16 @@ export function mapIdeaRowToFlashcard(
 export async function getIdeaFlashcardForViewer(
   ideaId: string,
   viewerUserId: string | undefined,
-): Promise<{ flashcard: IdeaFlashcardPayload; isOwner: boolean }> {
+): Promise<{
+  flashcard: IdeaFlashcardPayload
+  isOwner: boolean
+  /** Solo propietario: JSON completo de validación para la UI sin re-ejecutar pipelines. */
+  validationSnapshot: Prisma.JsonValue | null
+}> {
   const idea = await prisma.idea.findUnique({
     where: { id: ideaId },
     include: {
-      user: { select: { username: true, avatarUrl: true } },
+      user: { select: { id: true, username: true, avatarUrl: true } },
     },
   })
 
@@ -258,7 +265,8 @@ export async function getIdeaFlashcardForViewer(
   }
 
   const isOwner = viewerUserId != null && idea.userId === viewerUserId
-  if (!isOwner && !idea.isPublished) {
+  const communityVisible = idea.isPublished && idea.status === 'VALIDATED'
+  if (!isOwner && !communityVisible) {
     throw new HttpError(404, 'Idea not found', 'IDEAS_NOT_FOUND')
   }
 
@@ -286,5 +294,9 @@ export async function getIdeaFlashcardForViewer(
     myVote,
   )
 
-  return { flashcard, isOwner }
+  return {
+    flashcard,
+    isOwner,
+    validationSnapshot: isOwner ? idea.validationData : null,
+  }
 }

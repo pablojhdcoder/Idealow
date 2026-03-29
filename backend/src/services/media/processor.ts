@@ -4,6 +4,11 @@ import path from 'path'
 import { toFile } from 'openai/uploads'
 import { PDFParse } from 'pdf-parse'
 import { config } from '../../config'
+import { HttpError } from '../../lib/httpError'
+import {
+  MAX_VISION_INPUT_BYTES,
+  MAX_WHISPER_INPUT_BYTES,
+} from '../../lib/uploadLimits'
 import { getAzureOpenAIClient } from '../../lib/azureOpenAI'
 import { chatCompletionsCreateWithSamplingFallback } from '../ai/chatCompletionSamplingFallback'
 import { completionContentToPlainText } from '../ai/openaiMessageText'
@@ -38,6 +43,14 @@ export async function processMedia(filePathOrUrl: string, mimeType?: string): Pr
       ? Buffer.from((await axios.get<ArrayBuffer>(filePathOrUrl, { responseType: 'arraybuffer' })).data)
       : await fs.readFile(filePathOrUrl)
 
+    if (bytes.length > MAX_WHISPER_INPUT_BYTES) {
+      throw new HttpError(
+        413,
+        'El audio o vídeo supera el límite del servicio de transcripción (~25 MB). Sube un archivo más corto o comprímelo.',
+        'IDEAS_MEDIA_PROVIDER_LIMIT',
+      )
+    }
+
     const transcription = await client.audio.transcriptions.create({
       file: await toFile(bytes, `audio.${ext || 'mp3'}`),
       model: config.azure.deploymentWhisper,
@@ -51,6 +64,14 @@ export async function processMedia(filePathOrUrl: string, mimeType?: string): Pr
     const bytes = isUrl
       ? Buffer.from((await axios.get<ArrayBuffer>(filePathOrUrl, { responseType: 'arraybuffer' })).data)
       : await fs.readFile(filePathOrUrl)
+
+    if (bytes.length > MAX_VISION_INPUT_BYTES) {
+      throw new HttpError(
+        413,
+        'La imagen es demasiado grande para el modelo de visión (límite ~25 MB por petición en Azure; con base64 el máximo práctico es menor). Reduce resolución o comprime el archivo.',
+        'IDEAS_MEDIA_PROVIDER_LIMIT',
+      )
+    }
 
     const base64 = bytes.toString('base64')
     const mediaType = ext === 'png' ? 'image/png' : ext === 'webp' ? 'image/webp' : 'image/jpeg'

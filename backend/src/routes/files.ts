@@ -171,9 +171,9 @@ router.get('/:id', optionalAuth, async (req, res) => {
     if (!allowed && file.ideaId) {
       const idea = await prisma.idea.findUnique({
         where: { id: file.ideaId },
-        select: { userId: true, isPublished: true },
+        select: { userId: true, isPublished: true, status: true },
       })
-      if (idea?.isPublished) {
+      if (idea?.isPublished && idea.status === 'VALIDATED') {
         allowed = true
       } else if (idea && request.user?.userId === idea.userId) {
         allowed = true

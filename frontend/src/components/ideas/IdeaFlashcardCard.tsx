@@ -25,22 +25,25 @@ type Props = {
 }
 
 function AuthorChip({ author }: { author: FlashcardCardModel['author'] }) {
-  const [url, setUrl] = useState<string | null>(author.avatarUrl)
+  const serverUrl = author.avatarUrl?.trim() || null
+  const [fallbackUrl, setFallbackUrl] = useState<string | null>(null)
 
   useEffect(() => {
-    if (author.avatarUrl) return
+    if (serverUrl) {
+      setFallbackUrl(null)
+      return
+    }
     let active = true
     void (async () => {
-      const u = await getUserAvatarUrl({
-        id: author.username,
-        fullName: author.username,
-      })
-      if (active && u) setUrl(u)
+      const u = await getUserAvatarUrl({ id: author.id })
+      if (active && u) setFallbackUrl(u)
     })()
     return () => {
       active = false
     }
-  }, [author.avatarUrl, author.username])
+  }, [serverUrl, author.id])
+
+  const url = serverUrl ?? fallbackUrl
 
   return (
     <div className="mt-3 flex items-center gap-2">

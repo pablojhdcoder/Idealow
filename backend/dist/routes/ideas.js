@@ -147,7 +147,7 @@ router.get('/:id', auth_1.optionalAuth, (0, validate_1.validateParams)(ideaIdPar
     try {
         const { id } = req.params;
         const viewerId = req.user?.userId;
-        const { flashcard, isOwner } = await (0, ideaFlashcard_1.getIdeaFlashcardForViewer)(id, viewerId);
+        const { flashcard, isOwner, validationSnapshot } = await (0, ideaFlashcard_1.getIdeaFlashcardForViewer)(id, viewerId);
         const files = await prisma_1.prisma.file.findMany({
             where: { ideaId: id },
             select: {
@@ -166,7 +166,7 @@ router.get('/:id', auth_1.optionalAuth, (0, validate_1.validateParams)(ideaIdPar
             sizeBytes: f.sizeBytes,
             createdAt: f.createdAt.toISOString(),
         }));
-        return res.json({ flashcard, isOwner, attachments });
+        return res.json({ flashcard, isOwner, attachments, validationSnapshot });
     }
     catch (err) {
         next(err);

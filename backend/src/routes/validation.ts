@@ -30,10 +30,13 @@ router.post(
       const { id } = req.params as z.infer<typeof ideaIdParamsSchema>
       const idea = await prisma.idea.findFirst({
         where: { id, userId: req.user.userId },
-        select: { id: true, status: true },
+        select: { id: true, status: true, validationScore: true, validationData: true },
       })
       if (!idea) {
         return sendError(res, 404, 'Idea not found', 'VALIDATION_IDEA_NOT_FOUND')
+      }
+      if (idea.validationScore != null && idea.validationData != null) {
+        return res.json({ status: 'already_validated', ideaId: id })
       }
       if (idea.status !== 'REFINING' && idea.status !== 'VALIDATED') {
         return sendError(
@@ -79,6 +82,8 @@ router.get(
       res.flushHeaders()
     }
 
+    // Antes de registrar: primer chunk para proxies que bufferizan SSE; el cliente arranca el POST al leer `ready`.
+    res.write(`data: ${JSON.stringify({ type: 'ready' })}\n\n`)
     registerValidationSseClient(id, res)
 
     req.on('close', () => {

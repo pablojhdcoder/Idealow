@@ -16,12 +16,12 @@ async function searchIdeasByVector(params) {
     const { userId, vector, limit, excludeIdeaId } = params;
     const v = vectorParam(vector);
     const excludeClause = excludeIdeaId != null
-        ? client_1.Prisma.sql `AND id <> ${excludeIdeaId}::uuid`
+        ? client_1.Prisma.sql `AND id <> ${excludeIdeaId}`
         : client_1.Prisma.empty;
     const rows = await prisma_1.prisma.$queryRaw `
     SELECT id, title, summary, sector, status, "isPublished", "validationScore", "createdAt"
     FROM "Idea"
-    WHERE "userId" = ${userId}::uuid
+    WHERE "userId" = ${userId}
       AND embedding IS NOT NULL
       ${excludeClause}
     ORDER BY embedding <=> ${v}::vector
@@ -37,18 +37,18 @@ async function similarIdeasForUser(userId, ideaId, limit) {
     const rows = await prisma_1.prisma.$queryRaw `
     SELECT id, title, summary, sector, status, "isPublished", "validationScore", "createdAt"
     FROM "Idea"
-    WHERE "userId" = ${userId}::uuid
+    WHERE "userId" = ${userId}
       AND embedding IS NOT NULL
-      AND id <> ${ideaId}::uuid
+      AND id <> ${ideaId}
       AND EXISTS (
         SELECT 1 FROM "Idea" anchor
-        WHERE anchor.id = ${ideaId}::uuid
-          AND anchor."userId" = ${userId}::uuid
+        WHERE anchor.id = ${ideaId}
+          AND anchor."userId" = ${userId}
           AND anchor.embedding IS NOT NULL
       )
     ORDER BY embedding <=> (
       SELECT embedding FROM "Idea"
-      WHERE id = ${ideaId}::uuid AND "userId" = ${userId}::uuid
+      WHERE id = ${ideaId} AND "userId" = ${userId}
       LIMIT 1
     )
     LIMIT ${limit}

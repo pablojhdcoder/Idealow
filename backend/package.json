@@ -8,6 +8,7 @@
     "build": "tsc",
     "test": "vitest run",
     "test:ai-endpoints": "tsx scripts/test-ai-endpoints.ts",
+    "test:validation-news-youtube": "tsx scripts/test-validation-news-youtube.ts",
     "start": "node dist/index.js",
     "db:migrate": "prisma migrate dev",
     "db:generate": "prisma generate",

@@ -31,6 +31,12 @@ vi.mock('../../../src/services/embeddings/embeddingJob', () => ({
   scheduleFileEmbedding: vi.fn(),
 }))
 
+const runValidationMock = vi.hoisted(() => vi.fn().mockResolvedValue(undefined))
+
+vi.mock('../../../src/services/validation/runValidation', () => ({
+  runValidation: runValidationMock,
+}))
+
 const fiveQs = () =>
   ['q1', 'q2', 'q3', 'q4', 'q5'].map(id => ({
     id,
@@ -61,6 +67,7 @@ const synthesis = () => ({
 describe('refinement service', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    runValidationMock.mockClear()
   })
 
   it('loadRefinementQuestions lanza 404 si la idea no existe', async () => {
@@ -108,6 +115,7 @@ describe('refinement service', () => {
       summary: 'S',
       sector: 'tech',
       refinedContent: { problem: 'p' },
+      validationScore: null,
       user: { sectors: ['tech'], goal: 'SIDE_PROJECT' },
     })
     synthesizeAnswersMock.mockResolvedValue(synthesis())
@@ -138,6 +146,30 @@ describe('refinement service', () => {
       }),
     })
     expect(result.nextStep).toBe('validation')
+    expect(runValidationMock).toHaveBeenCalledWith('idea-1', 'user-1')
+  })
+
+  it('submitRefinement no vuelve a lanzar validación si ya existe score', async () => {
+    prismaFindFirstMock.mockResolvedValue({
+      id: 'idea-1',
+      userId: 'user-1',
+      title: 'T',
+      summary: 'S',
+      sector: 'tech',
+      refinedContent: { problem: 'p' },
+      validationScore: 80,
+      user: { sectors: ['tech'], goal: 'SIDE_PROJECT' },
+    })
+    synthesizeAnswersMock.mockResolvedValue(synthesis())
+    prismaUpdateMock.mockResolvedValue({
+      id: 'idea-1',
+      title: 'Nuevo título',
+      summary: 'Pitch',
+      status: 'REFINING',
+    })
+
+    await submitRefinement('user-1', 'idea-1', [{ questionId: 'q1', answer: 'A1' }])
+    expect(runValidationMock).not.toHaveBeenCalled()
   })
 
   it('submitRefinement propaga HttpError de synthesizeAnswers', async () => {

@@ -18,22 +18,25 @@ function formatDate(iso: string) {
 }
 
 function CommentAvatar({ comment }: { comment: FeedbackComment }) {
-  const [url, setUrl] = useState<string | null>(comment.user.avatarUrl)
+  const serverUrl = comment.user.avatarUrl?.trim() || null
+  const [fallbackUrl, setFallbackUrl] = useState<string | null>(null)
 
   useEffect(() => {
-    if (comment.user.avatarUrl) return
+    if (serverUrl) {
+      setFallbackUrl(null)
+      return
+    }
     let active = true
     void (async () => {
-      const u = await getUserAvatarUrl({
-        id: comment.user.username,
-        fullName: comment.user.username,
-      })
-      if (active && u) setUrl(u)
+      const u = await getUserAvatarUrl({ id: comment.user.id })
+      if (active && u) setFallbackUrl(u)
     })()
     return () => {
       active = false
     }
-  }, [comment.user.avatarUrl, comment.user.username])
+  }, [serverUrl, comment.user.id])
+
+  const url = serverUrl ?? fallbackUrl
 
   if (url) {
     return (

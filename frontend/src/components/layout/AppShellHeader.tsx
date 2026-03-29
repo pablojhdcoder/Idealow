@@ -21,9 +21,7 @@ export default function AppShellHeader({ title = 'Idealow' }: Props) {
     }
     let active = true
     void (async () => {
-      const url = await getUserAvatarUrl(
-        user ? { id: user.id, email: user.email, fullName: user.username } : null,
-      )
+      const url = await getUserAvatarUrl(user ? { id: user.id } : null)
       if (active) setAvatarUrl(url ?? '')
     })()
     return () => {

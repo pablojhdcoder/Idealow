@@ -1,6 +1,16 @@
 import { env, validateCriticalEnv } from './config/env'
+import { AI_ALIGNED_MAX_UPLOAD_MB } from './lib/uploadLimits'
 
 validateCriticalEnv()
+
+function resolveMaxUploadMb(): number {
+  const raw = env.MAX_UPLOAD_MB?.trim()
+  if (!raw) return AI_ALIGNED_MAX_UPLOAD_MB
+  const n = Number(raw)
+  if (!Number.isFinite(n) || n <= 0) return AI_ALIGNED_MAX_UPLOAD_MB
+  /** No permitir subidas que luego la IA no pueda ingerir (visión con base64 es el cuello de botella). */
+  return Math.min(n, AI_ALIGNED_MAX_UPLOAD_MB)
+}
 
 const parseTrustProxy = (value: string | undefined): boolean | number | string => {
   if (!value) {
@@ -52,7 +62,7 @@ export const config = {
   jwtAudience: env.JWT_AUDIENCE || 'idealow2-frontend',
   trustProxy: parseTrustProxy(env.TRUST_PROXY),
   uploadDir: env.UPLOAD_DIR || './uploads',
-  maxUploadMb: Number(env.MAX_UPLOAD_MB || 25),
+  maxUploadMb: resolveMaxUploadMb(),
   /** YouTube Data API: cuota gratuita con clave en Google Cloud. */
   youtubeApiKey: env.YOUTUBE_API_KEY || '',
   nodeEnv: env.NODE_ENV || 'development',

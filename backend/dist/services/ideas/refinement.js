@@ -6,6 +6,8 @@ const prisma_1 = require("../../lib/prisma");
 const httpError_1 = require("../../lib/httpError");
 const refiner_1 = require("../ai/refiner");
 const embeddingJob_1 = require("../embeddings/embeddingJob");
+const runValidation_1 = require("../validation/runValidation");
+const logger_1 = require("../../lib/logger");
 function extractionFromRefinedContent(refinedContent, fallbackSummary) {
     if (refinedContent && typeof refinedContent === 'object' && !Array.isArray(refinedContent)) {
         const o = refinedContent;
@@ -68,5 +70,11 @@ async function submitRefinement(userId, ideaId, answers) {
         },
     });
     (0, embeddingJob_1.scheduleIdeaEmbedding)(updated.id);
+    /** Validación de mercado: una sola vez por idea, en segundo plano (no al abrir la pantalla). */
+    if (idea.validationScore == null) {
+        void (0, runValidation_1.runValidation)(updated.id, userId).catch(err => {
+            logger_1.logger.error({ ideaId: updated.id, err }, 'runValidation after refinement failed');
+        });
+    }
     return { idea: updated, nextStep: 'validation' };
 }

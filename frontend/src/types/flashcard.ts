@@ -7,6 +7,8 @@ export type CommunityVotes = {
 }
 
 export type FlashcardAuthor = {
+  /** Para avatar Dicebear sin foto subida: misma semilla que en perfil/header. */
+  id: string
   username: string
   avatarUrl: string | null
 }
@@ -64,6 +66,8 @@ export type IdeaFlashcardDetailResponse = {
   flashcard: IdeaFlashcard
   isOwner: boolean
   attachments: IdeaAttachment[]
+  /** Solo propietario: payload completo de validación persistida (JSON de `validationData`). */
+  validationSnapshot?: unknown | null
 }
 
 export type FeedbackComment = {

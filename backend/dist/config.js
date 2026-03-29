@@ -3,7 +3,18 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.config = exports.parseCorsOrigins = void 0;
 exports.hasEmbeddingsConfig = hasEmbeddingsConfig;
 const env_1 = require("./config/env");
+const uploadLimits_1 = require("./lib/uploadLimits");
 (0, env_1.validateCriticalEnv)();
+function resolveMaxUploadMb() {
+    const raw = env_1.env.MAX_UPLOAD_MB?.trim();
+    if (!raw)
+        return uploadLimits_1.AI_ALIGNED_MAX_UPLOAD_MB;
+    const n = Number(raw);
+    if (!Number.isFinite(n) || n <= 0)
+        return uploadLimits_1.AI_ALIGNED_MAX_UPLOAD_MB;
+    /** No permitir subidas que luego la IA no pueda ingerir (visión con base64 es el cuello de botella). */
+    return Math.min(n, uploadLimits_1.AI_ALIGNED_MAX_UPLOAD_MB);
+}
 const parseTrustProxy = (value) => {
     if (!value) {
         return false;
@@ -50,7 +61,7 @@ exports.config = {
     jwtAudience: env_1.env.JWT_AUDIENCE || 'idealow2-frontend',
     trustProxy: parseTrustProxy(env_1.env.TRUST_PROXY),
     uploadDir: env_1.env.UPLOAD_DIR || './uploads',
-    maxUploadMb: Number(env_1.env.MAX_UPLOAD_MB || 25),
+    maxUploadMb: resolveMaxUploadMb(),
     /** YouTube Data API: cuota gratuita con clave en Google Cloud. */
     youtubeApiKey: env_1.env.YOUTUBE_API_KEY || '',
     nodeEnv: env_1.env.NODE_ENV || 'development',

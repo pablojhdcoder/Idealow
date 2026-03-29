@@ -19,6 +19,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { getUserAvatarUrl } from '@/lib/avatar'
 import { uploadFile } from '@/lib/api/files'
 import { ApiError } from '@/lib/api/client'
+import { readPrivateIdeasByDefault, writePrivateIdeasByDefault } from '@/lib/ideaVisibilityPreference'
 
 export default function Profile() {
   const navigate = useNavigate()
@@ -35,7 +36,7 @@ export default function Profile() {
   const avatarBusy = savingAvatar || resettingAvatar
   const avatarFileInputRef = useRef<HTMLInputElement>(null)
   const [notifyEmail, setNotifyEmail] = useState(true)
-  const [privateByDefault, setPrivateByDefault] = useState(true)
+  const [privateByDefault, setPrivateByDefault] = useState(readPrivateIdeasByDefault)
   const [openResetDialog, setOpenResetDialog] = useState(false)
 
   const completion = useMemo(() => {
@@ -50,17 +51,13 @@ export default function Profile() {
     if (!user) return
     let active = true
     void (async () => {
-      const generated = await getUserAvatarUrl({
-        id: user.id,
-        email: user.email,
-        fullName: user.username,
-      })
+      const generated = await getUserAvatarUrl({ id: user.id })
       if (active) setGeneratedAvatarUrl(generated ?? '')
     })()
     return () => {
       active = false
     }
-  }, [user?.id, user?.email, user?.username])
+  }, [user?.id])
 
   useEffect(
     () => () => {
@@ -398,7 +395,10 @@ export default function Profile() {
                       <TooltipTrigger render={<button type="button" className="text-muted-foreground hover:text-foreground" />}>
                         <CircleHelp className="size-4" />
                       </TooltipTrigger>
-                      <TooltipContent>Mantiene la regla de privacidad por defecto de la app.</TooltipContent>
+                      <TooltipContent>
+                        Las ideas nuevas están pensadas para publicarse en la comunidad tras validar. La preferencia se
+                        guarda en este dispositivo y se aplica al abrir «Nueva idea».
+                      </TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
                 </div>
@@ -415,10 +415,19 @@ export default function Profile() {
 
                 <div className="flex items-center justify-between rounded-xl border border-border p-3">
                   <div>
-                    <p className="text-sm font-medium text-foreground">Ideas privadas por defecto</p>
-                    <p className="text-xs text-muted-foreground">Recomendado para mantener control total.</p>
+                    <p className="text-sm font-medium text-foreground">Sugerir modo privado al crear ideas</p>
+                    <p className="text-xs text-muted-foreground">
+                      Si lo activas, en «Nueva idea» verás marcada la opción de no publicar en la comunidad. Idealow
+                      recomienda compartir tras validar para recibir votos y comentarios.
+                    </p>
                   </div>
-                  <Switch checked={privateByDefault} onCheckedChange={setPrivateByDefault} />
+                  <Switch
+                    checked={privateByDefault}
+                    onCheckedChange={v => {
+                      setPrivateByDefault(v)
+                      writePrivateIdeasByDefault(v)
+                    }}
+                  />
                 </div>
 
                 <Separator />
@@ -435,7 +444,8 @@ export default function Profile() {
                       <Button
                         onClick={() => {
                           setNotifyEmail(true)
-                          setPrivateByDefault(true)
+                          setPrivateByDefault(false)
+                          writePrivateIdeasByDefault(false)
                           setOpenResetDialog(false)
                         }}
                       >

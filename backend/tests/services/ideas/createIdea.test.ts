@@ -92,6 +92,7 @@ describe('createIdeaFromInput', () => {
         userId: 'user-1',
         title: 'Idea final',
         rawContent: 'texto manual\n\ntexto desde archivo',
+        isPublished: true,
         refinedContent: expect.objectContaining({
           title: 'Idea final',
           problem: 'Problema',
@@ -203,6 +204,33 @@ describe('createIdeaFromInput', () => {
     expect(extractIdeaMock).toHaveBeenCalledWith('contenido extraido del pdf', 'education')
     expect(result.ideaId).toBe('idea-pdf-1')
     expect(result.extracted.title).toBe('Idea desde PDF')
+  })
+
+  it('persiste isPublished false cuando el cliente lo pide', async () => {
+    prismaFileFindFirstMock.mockResolvedValue(null)
+    extractIdeaMock.mockResolvedValue({
+      title: 'Privada',
+      problem: 'P',
+      solution: 'S',
+      target_audience: 'A',
+      sector: 'tech',
+      elevator_pitch: 'Pitch',
+      confidence: 0.9,
+      search_keywords: ['x'],
+    })
+    prismaIdeaCreateMock.mockResolvedValue({ id: 'idea-private' })
+
+    await createIdeaFromInput({
+      userId: 'user-1',
+      content: 'texto',
+      isPublished: false,
+    })
+
+    expect(prismaIdeaCreateMock).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        isPublished: false,
+      }),
+    })
   })
 
   it('retorna 503 cuando falta deployment de Whisper para audio', async () => {

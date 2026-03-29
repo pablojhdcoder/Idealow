@@ -58,7 +58,7 @@ describe('GET /api/feed', () => {
           validationBreakdown: null,
           isPublished: true,
           publishedAt: '2026-01-01T00:00:00.000Z',
-          author: { username: 'u', avatarUrl: null },
+          author: { id: '00000000-0000-4000-8000-000000000099', username: 'u', avatarUrl: null },
           communityVotes: { useful: 0, interesting: 0, notUseful: 0 },
           createdAt: '2026-01-01T00:00:00.000Z',
           status: 'VALIDATED',

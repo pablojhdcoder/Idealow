@@ -10,6 +10,8 @@ export const createIdeaSchema = z
     /** Varias fuentes: varios archivos ya subidos */
     fileIds: z.array(z.string().uuid()).max(MAX_FILES_PER_IDEA).optional(),
     sector: z.string().optional(),
+    /** Por defecto true: visible en feed comunitario tras validar; el cliente puede enviar false. */
+    isPublished: z.boolean().optional().default(true),
   })
   .refine(
     (data) => {

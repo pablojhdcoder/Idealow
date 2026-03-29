@@ -28,6 +28,8 @@ export type CreateIdeaBody = {
   fileId?: string
   fileIds?: string[]
   sector?: string
+  /** Por defecto el servidor asume true si se omite. */
+  isPublished?: boolean
 }
 
 export async function createIdea(body: CreateIdeaBody): Promise<CreateIdeaResponse> {

@@ -58,7 +58,7 @@ async function listIdeaFeedbackComments(ideaId, options) {
             comment: true,
             vote: true,
             createdAt: true,
-            user: { select: { username: true, avatarUrl: true } },
+            user: { select: { id: true, username: true, avatarUrl: true } },
         },
     });
     const hasMore = rows.length > options.limit;

@@ -19,10 +19,10 @@ export async function submitIdeaFeedback(params: {
 
   const idea = await prisma.idea.findUnique({
     where: { id: ideaId },
-    select: { id: true, isPublished: true, userId: true },
+    select: { id: true, isPublished: true, status: true, userId: true },
   })
 
-  if (!idea || !idea.isPublished) {
+  if (!idea || !idea.isPublished || idea.status !== 'VALIDATED') {
     throw new HttpError(404, 'Published idea not found', 'FEEDBACK_IDEA_NOT_FOUND')
   }
 
@@ -52,7 +52,7 @@ export type FeedbackCommentRow = {
   comment: string | null
   vote: string
   createdAt: Date
-  user: { username: string; avatarUrl: string | null }
+  user: { id: string; username: string; avatarUrl: string | null }
 }
 
 export async function listIdeaFeedbackComments(
@@ -61,10 +61,10 @@ export async function listIdeaFeedbackComments(
 ): Promise<{ items: FeedbackCommentRow[]; nextCursor: string | null }> {
   const idea = await prisma.idea.findUnique({
     where: { id: ideaId },
-    select: { id: true, isPublished: true },
+    select: { id: true, isPublished: true, status: true },
   })
 
-  if (!idea || !idea.isPublished) {
+  if (!idea || !idea.isPublished || idea.status !== 'VALIDATED') {
     throw new HttpError(404, 'Published idea not found', 'FEEDBACK_IDEA_NOT_FOUND')
   }
 
@@ -82,7 +82,7 @@ export async function listIdeaFeedbackComments(
       comment: true,
       vote: true,
       createdAt: true,
-      user: { select: { username: true, avatarUrl: true } },
+      user: { select: { id: true, username: true, avatarUrl: true } },
     },
   })
 

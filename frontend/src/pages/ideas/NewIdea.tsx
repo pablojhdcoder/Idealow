@@ -15,6 +15,7 @@ import { createIdea } from '@/lib/api/ideas'
 import { uploadAttachedFilesForIdea, UploadFileError } from '@/lib/api/files'
 import { ideasQueryKey } from '@/hooks/useIdeasQuery'
 import { buildNewIdeaStarterContent, getDashboardStarterById } from '@/lib/dashboardSuggestions'
+import { readPrivateIdeasByDefault, writePrivateIdeasByDefault } from '@/lib/ideaVisibilityPreference'
 
 const SECTOR_OPTIONS = [
   { value: '', label: 'Sin preferencia' },
@@ -31,6 +32,9 @@ const SECTOR_OPTIONS = [
 ] as const
 
 const MAX_FILES = 12
+/** Mismo tope que el backend: alineado con el límite de visión + base64 en Azure (~18 MB). */
+const MAX_FILE_SIZE_MB = 18
+const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024
 
 type AttachedFile = {
   key: string
@@ -59,6 +63,8 @@ export default function NewIdea() {
   const [content, setContent] = useState('')
   const [sector, setSector] = useState('')
   const [attachedFiles, setAttachedFiles] = useState<AttachedFile[]>([])
+  /** Si true, la idea no se compartirá en el feed comunitario tras validar (solo tú la ves hasta que publiques). */
+  const [keepPrivate, setKeepPrivate] = useState(readPrivateIdeasByDefault)
 
   useEffect(() => {
     if (appliedQueryStarter.current) return
@@ -97,6 +103,10 @@ export default function NewIdea() {
           toast.message(`Máximo ${MAX_FILES} archivos por idea`)
           break
         }
+        if (file.size > MAX_FILE_SIZE_BYTES) {  
+          toast.error(`«${file.name}» supera el máximo de 50 MB por archivo`)
+          continue
+        }
         const dup = next.some(
           f => f.file.name === file.name && f.file.size === file.size && f.file.lastModified === file.lastModified,
         )
@@ -125,6 +135,7 @@ export default function NewIdea() {
         content: trimmed || undefined,
         fileIds: fileIds.length > 0 ? fileIds : undefined,
         sector: sector || undefined,
+        isPublished: !keepPrivate,
       })
     },
     onSuccess: data => {
@@ -179,6 +190,8 @@ export default function NewIdea() {
               <h1 className="font-serif text-2xl text-foreground">Capturar idea</h1>
               <p className="text-sm text-muted-foreground">
                 Puedes combinar texto con varios archivos (audio, imagen, vídeo, PDF, notas) como fuentes.
+                Máximo {MAX_FILE_SIZE_MB} MB por archivo (tope alineado con lo que el proveedor de IA acepta al
+                analizar el archivo).
               </p>
             </div>
           </div>
@@ -212,6 +225,34 @@ export default function NewIdea() {
                   </option>
                 ))}
               </select>
+            </div>
+
+            <div className="rounded-2xl border border-primary/20 bg-primary/[0.06] p-4 sm:p-5">
+              <p className="text-sm font-medium text-foreground">Visibilidad en la comunidad</p>
+              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                Por defecto tu idea se publicará en Idealow cuando termine la validación de mercado, para que la
+                comunidad pueda votar y comentar. Te lo recomendamos: así obtienes señal real sobre la idea.
+              </p>
+              <label className="mt-4 flex cursor-pointer items-start gap-3 rounded-xl border border-border/80 bg-background/80 p-3">
+                <input
+                  type="checkbox"
+                  checked={keepPrivate}
+                  onChange={e => {
+                    const v = e.target.checked
+                    setKeepPrivate(v)
+                    writePrivateIdeasByDefault(v)
+                  }}
+                  disabled={busy}
+                  className="border-input text-primary focus-visible:ring-ring mt-0.5 size-4 shrink-0 rounded-sm focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
+                />
+                <span className="text-sm leading-snug text-foreground">
+                  <span className="font-medium">No publicar en la comunidad</span>
+                  <span className="text-muted-foreground">
+                    {' '}
+                    — la idea seguirá siendo solo tuya hasta que decidas publicarla desde la ficha.
+                  </span>
+                </span>
+              </label>
             </div>
 
             <input

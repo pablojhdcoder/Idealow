@@ -85,7 +85,12 @@ describe('POST /api/validation/ideas/:id/validate', () => {
   })
 
   it('202/200 y dispara runValidation en REFINING', async () => {
-    prismaFindFirst.mockResolvedValue({ id: '550e8400-e29b-41d4-a716-446655440000', status: 'REFINING' })
+    prismaFindFirst.mockResolvedValue({
+      id: '550e8400-e29b-41d4-a716-446655440000',
+      status: 'REFINING',
+      validationScore: null,
+      validationData: null,
+    })
     const app = buildApp()
     const id = '550e8400-e29b-41d4-a716-446655440000'
     const res = await request(app)
@@ -94,6 +99,23 @@ describe('POST /api/validation/ideas/:id/validate', () => {
     expect(res.status).toBe(200)
     expect(res.body).toEqual({ status: 'started', ideaId: id })
     expect(runValidationMock).toHaveBeenCalledWith(id, 'user-1')
+  })
+
+  it('200 already_validated si ya hay resultado persistido', async () => {
+    prismaFindFirst.mockResolvedValue({
+      id: '550e8400-e29b-41d4-a716-446655440000',
+      status: 'VALIDATED',
+      validationScore: 72,
+      validationData: { validation_score: 72 },
+    })
+    const app = buildApp()
+    const id = '550e8400-e29b-41d4-a716-446655440000'
+    const res = await request(app)
+      .post(`/api/validation/ideas/${id}/validate`)
+      .set('Authorization', `Bearer ${signTestToken('user-1')}`)
+    expect(res.status).toBe(200)
+    expect(res.body).toEqual({ status: 'already_validated', ideaId: id })
+    expect(runValidationMock).not.toHaveBeenCalled()
   })
 })
 

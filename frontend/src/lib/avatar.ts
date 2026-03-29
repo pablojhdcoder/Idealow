@@ -24,6 +24,9 @@ function computeDeterministicHashBase36(inputText: string) {
   return positiveHash.toString(36)
 }
 
+/** `User.id` en Prisma (`@default(uuid())`). Misma semilla en perfil, feed y comentarios. */
+const USER_UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
 export const generateUserAvatar = async (seed: string) => {
   const cleanSeed = seed || Math.random().toString(36).substr(2, 9)
   await ensureDicebear()
@@ -68,7 +71,11 @@ export const generateAvatarDataUrl = async (seed: string) => {
 }
 
 export const createUserSeed = (userId: string | number, email?: string, fullName?: string) => {
-  const userIdStr = userId ? String(userId) : ''
+  const userIdStr = userId != null && String(userId).trim() !== '' ? String(userId).trim() : ''
+  if (USER_UUID_RE.test(userIdStr)) {
+    return computeDeterministicHashBase36(userIdStr.toLowerCase())
+  }
+
   const combinedString = `${userIdStr}${email || ''}${fullName || ''}`
 
   if (combinedString.length > 0) {

@@ -29,6 +29,7 @@ describe('submitIdeaFeedback', () => {
     prismaIdeaFindUniqueMock.mockResolvedValue({
       id: 'idea-1',
       isPublished: true,
+      status: 'VALIDATED',
       userId: 'owner-1',
     })
     prismaIdeaFeedbackUpsertMock.mockResolvedValue({})

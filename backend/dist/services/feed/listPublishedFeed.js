@@ -20,7 +20,7 @@ function textSearchWhere(q) {
     };
 }
 const selectUser = {
-    user: { select: { username: true, avatarUrl: true } },
+    user: { select: { id: true, username: true, avatarUrl: true } },
 };
 function toPayloadRows(ideas, voteMap) {
     return ideas.map(idea => (0, ideaFlashcard_1.mapIdeaRowToFlashcard)({

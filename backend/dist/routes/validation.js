@@ -20,10 +20,13 @@ router.post('/ideas/:id/validate', auth_1.requireAuth, rateLimit_1.ideasValidati
         const { id } = req.params;
         const idea = await prisma_1.prisma.idea.findFirst({
             where: { id, userId: req.user.userId },
-            select: { id: true, status: true },
+            select: { id: true, status: true, validationScore: true, validationData: true },
         });
         if (!idea) {
             return (0, apiError_1.sendError)(res, 404, 'Idea not found', 'VALIDATION_IDEA_NOT_FOUND');
+        }
+        if (idea.validationScore != null && idea.validationData != null) {
+            return res.json({ status: 'already_validated', ideaId: id });
         }
         if (idea.status !== 'REFINING' && idea.status !== 'VALIDATED') {
             return (0, apiError_1.sendError)(res, 400, 'Refine the idea before running validation.', 'VALIDATION_BAD_STATUS');
@@ -56,6 +59,8 @@ router.get('/ideas/:id/validate/stream', auth_1.requireAuth, rateLimit_1.ideasVa
     if (typeof res.flushHeaders === 'function') {
         res.flushHeaders();
     }
+    // Antes de registrar: primer chunk para proxies que bufferizan SSE; el cliente arranca el POST al leer `ready`.
+    res.write(`data: ${JSON.stringify({ type: 'ready' })}\n\n`);
     (0, sseHub_1.registerValidationSseClient)(id, res);
     req.on('close', () => {
         (0, sseHub_1.unregisterValidationSseClient)(id, res);

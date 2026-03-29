@@ -14,7 +14,7 @@ model User {
   passwordHash    String
   avatarUrl       String?
   bio             String?
-  sectors         String[]
+  sectors         String[] @default([])
   experienceLevel String   @default("BEGINNER")
   goal            String   @default("SIDE_PROJECT")
   createdAt       DateTime @default(now())
@@ -44,7 +44,7 @@ model Idea {
   validationData  Json?
   competitors     Json?
 
-  isPublished Boolean  @default(false)
+  isPublished Boolean  @default(true)
   publishedAt DateTime?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt

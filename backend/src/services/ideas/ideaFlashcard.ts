@@ -2,6 +2,7 @@ import type { Prisma } from '@prisma/client'
 import { prisma } from '../../lib/prisma'
 import { HttpError } from '../../lib/httpError'
 import { similarPublishedIdeaIdsByAnchor } from '../embeddings/similarity'
+import { refinedIdeaSchema, type RefinedIdeaPayload } from '../ai/refiner'
 
 export type Verdict = 'STRONG_SIGNAL' | 'MODERATE_SIGNAL' | 'WEAK_SIGNAL' | 'NO_SIGNAL'
 
@@ -63,6 +64,21 @@ function asRecord(v: unknown): Record<string, unknown> | null {
     return v as Record<string, unknown>
   }
   return null
+}
+
+/** Síntesis del wizard guardada pero aún sin confirmar revisión → el cliente puede reabrir el paso de edición. */
+function parsePendingRefinedReview(
+  refinedContent: Prisma.JsonValue | null,
+  refinementConfirmedAt: Date | null,
+  validationScore: number | null,
+): RefinedIdeaPayload | null {
+  if (validationScore != null || refinementConfirmedAt != null) return null
+  const root = asRecord(refinedContent)
+  if (!root) return null
+  const refined = root.refined
+  if (!refined || typeof refined !== 'object' || Array.isArray(refined)) return null
+  const result = refinedIdeaSchema.safeParse(refined)
+  return result.success ? result.data : null
 }
 
 function pickString(obj: Record<string, unknown>, key: string): string {
@@ -276,6 +292,11 @@ export async function getIdeaFlashcardForViewer(
   isOwner: boolean
   /** Solo propietario: JSON completo de validación para la UI sin re-ejecutar pipelines. */
   validationSnapshot: Prisma.JsonValue | null
+  /** Solo propietario: si ya existe informe de mercado persistido. */
+  hasMarketValidation: boolean
+  /** Solo propietario: confirmación de la revisión post-wizard (antes de lanzar validación). */
+  refinementConfirmedAt: string | null
+  pendingRefinedReview: RefinedIdeaPayload | null
 }> {
   const idea = await prisma.idea.findUnique({
     where: { id: ideaId },
@@ -322,6 +343,12 @@ export async function getIdeaFlashcardForViewer(
     flashcard,
     isOwner,
     validationSnapshot: isOwner ? idea.validationData : null,
+    hasMarketValidation: idea.validationScore != null,
+    refinementConfirmedAt:
+      isOwner && idea.refinementConfirmedAt ? idea.refinementConfirmedAt.toISOString() : null,
+    pendingRefinedReview: isOwner
+      ? parsePendingRefinedReview(idea.refinedContent, idea.refinementConfirmedAt, idea.validationScore)
+      : null,
   }
 }
 

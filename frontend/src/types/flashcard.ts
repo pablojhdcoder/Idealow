@@ -1,3 +1,5 @@
+import type { RefinedIdeaFields } from '@/lib/refinedIdeaPayload'
+
 export type Verdict = 'STRONG_SIGNAL' | 'MODERATE_SIGNAL' | 'WEAK_SIGNAL' | 'NO_SIGNAL'
 
 export type CommunityVotes = {
@@ -68,6 +70,12 @@ export type IdeaFlashcardDetailResponse = {
   attachments: IdeaAttachment[]
   /** Solo propietario: payload completo de validación persistida (JSON de `validationData`). */
   validationSnapshot?: unknown | null
+  /** Si ya existe informe de mercado persistido. */
+  hasMarketValidation: boolean
+  /** Solo propietario: confirmación de revisión antes de lanzar validación. */
+  refinementConfirmedAt: string | null
+  /** Propietario: refinamiento sintetizado pendiente de confirmar (reanudar sin repetir preguntas). */
+  pendingRefinedReview: RefinedIdeaFields | null
 }
 
 export type FeedbackComment = {

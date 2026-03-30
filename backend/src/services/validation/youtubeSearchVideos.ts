@@ -213,7 +213,7 @@ async function searchYoutubeOnce(
         params: {
           part: 'snippet',
           type: 'video',
-          maxResults: 12,
+          maxResults: 4,
           q: q.trim(),
           key,
           order: 'relevance',
@@ -274,7 +274,8 @@ export async function youtubeSearchVideos(
     }
   }
 
-  const targetMax = 14
+  /** Máximo de vídeos únicos a acumular por variante (cada llamada a search.list pide como mucho 4). */
+  const targetMax = 4
 
   if (variant === 'short_form') {
     for (const q of queries) {
@@ -303,10 +304,10 @@ export async function youtubeSearchVideos(
     return rb - ra
   })
 
-  const samples = merged.slice(0, 5)
+  const samples = merged.slice(0, 4)
   return {
     count: samples.length,
-    titles: samples.map(s => s.title).slice(0, 5),
+    titles: samples.map(s => s.title).slice(0, 4),
     samples,
   }
 }

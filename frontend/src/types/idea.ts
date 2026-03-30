@@ -24,6 +24,8 @@ export type IdeaSummary = {
   status: string
   isPublished: boolean
   validationScore: number | null
+  /** null hasta confirmar la revisión post-wizard (antes de lanzar validación). */
+  refinementConfirmedAt: string | null
   createdAt: string
 }
 
@@ -54,6 +56,17 @@ export type SubmitRefinementResponse = {
     status: string
     sector: string | null
     refinedContent?: unknown
+    [key: string]: unknown
+  }
+  nextStep: 'review_refined'
+}
+
+export type ConfirmRefinementResponse = {
+  idea: {
+    id: string
+    title: string
+    summary: string | null
+    status: string
     [key: string]: unknown
   }
   nextStep: 'validation'

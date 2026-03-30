@@ -1,6 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { HttpError } from '../../../src/lib/httpError'
-import { loadRefinementQuestions, submitRefinement } from '../../../src/services/ideas/refinement'
+import {
+  confirmRefinedContent,
+  loadRefinementQuestions,
+  submitRefinement,
+} from '../../../src/services/ideas/refinement'
 
 const { prismaFindFirstMock, prismaUpdateMock } = vi.hoisted(() => ({
   prismaFindFirstMock: vi.fn(),
@@ -145,8 +149,8 @@ describe('refinement service', () => {
         }),
       }),
     })
-    expect(result.nextStep).toBe('validation')
-    expect(runValidationMock).toHaveBeenCalledWith('idea-1', 'user-1')
+    expect(result.nextStep).toBe('review_refined')
+    expect(runValidationMock).not.toHaveBeenCalled()
   })
 
   it('submitRefinement no vuelve a lanzar validación si ya existe score', async () => {
@@ -170,6 +174,58 @@ describe('refinement service', () => {
 
     await submitRefinement('user-1', 'idea-1', [{ questionId: 'q1', answer: 'A1' }])
     expect(runValidationMock).not.toHaveBeenCalled()
+  })
+
+  it('confirmRefinedContent persiste edición y lanza validación', async () => {
+    prismaFindFirstMock.mockResolvedValue({
+      id: 'idea-1',
+      userId: 'user-1',
+      title: 'T',
+      summary: 'S',
+      refinedContent: {
+        refined: synthesis(),
+        wizardAnswers: [],
+      },
+      validationScore: null,
+    })
+    const edited = { ...synthesis(), refined_title: 'Título editado' }
+    prismaUpdateMock.mockResolvedValue({
+      id: 'idea-1',
+      title: 'Título editado',
+      summary: edited.elevator_pitch,
+      status: 'REFINING',
+    })
+
+    const result = await confirmRefinedContent('user-1', 'idea-1', edited)
+
+    expect(prismaUpdateMock).toHaveBeenCalledWith({
+      where: { id: 'idea-1' },
+      data: expect.objectContaining({
+        title: 'Título editado',
+        summary: edited.elevator_pitch,
+        refinedContent: expect.objectContaining({ refined: edited }),
+        refinementConfirmedAt: expect.any(Date),
+      }),
+    })
+    expect(result.nextStep).toBe('validation')
+    expect(runValidationMock).toHaveBeenCalledWith('idea-1', 'user-1')
+  })
+
+  it('confirmRefinedContent devuelve 422 si no hay bloque refined', async () => {
+    prismaFindFirstMock.mockResolvedValue({
+      id: 'idea-1',
+      userId: 'user-1',
+      title: 'T',
+      summary: 'S',
+      refinedContent: { title: 'x' },
+      validationScore: null,
+    })
+
+    await expect(confirmRefinedContent('user-1', 'idea-1', synthesis())).rejects.toMatchObject({
+      statusCode: 422,
+      code: 'IDEAS_REFINED_WIZARD_INCOMPLETE',
+    })
+    expect(prismaUpdateMock).not.toHaveBeenCalled()
   })
 
   it('submitRefinement propaga HttpError de synthesizeAnswers', async () => {

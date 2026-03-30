@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import { useAuthStore } from '@/stores/authStore'
+import { AppLogo } from '@/components/layout/AppLogo'
 import { AppUserMenu } from '@/components/layout/AppUserMenu'
 import { getUserAvatarUrl } from '@/lib/avatar'
 import { appPageMainClassName } from '@/lib/appPageLayout'
@@ -36,9 +37,10 @@ export default function AppShellHeader({ title = 'Idealow' }: Props) {
         <div className="flex min-w-0 flex-1 items-center gap-6">
           <Link
             to="/dashboard"
-            className="shrink-0 font-serif text-2xl tracking-tight text-foreground transition-colors hover:text-primary"
+            className="flex min-w-0 shrink-0 items-center gap-2 font-serif text-2xl tracking-tight text-foreground transition-colors hover:text-primary"
           >
-            {title}
+            <AppLogo size="sm" decorative alignWithWordmark className="max-h-8 shrink-0" />
+            <span className="truncate">{title}</span>
           </Link>
         </div>
         <AppUserMenu avatarUrl={avatarUrl} displayName={displayName} email={email} />

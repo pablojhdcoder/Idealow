@@ -19,10 +19,15 @@ import {
   listIdeasQuerySchema,
   patchIdeaBodySchema,
   refineAnswersBodySchema,
+  refineConfirmBodySchema,
   type CreateIdeaBody,
 } from '../schemas/idea'
 import { createIdeaFromInput, listIdeasForUser } from '../services/ideas'
-import { loadRefinementQuestions, submitRefinement } from '../services/ideas/refinement'
+import {
+  confirmRefinedContent,
+  loadRefinementQuestions,
+  submitRefinement,
+} from '../services/ideas/refinement'
 import { cleanupOrphanedUploads } from '../services/files/cleanupOrphanedUploads'
 import { hasEmbeddingsConfig } from '../config'
 import { prisma } from '../lib/prisma'
@@ -217,7 +222,14 @@ router.get(
   asyncHandler(async (req, res) => {
     const { id } = req.params as z.infer<typeof ideaIdParamsSchema>
     const viewerId = req.user?.userId
-    const { flashcard, isOwner, validationSnapshot } = await getIdeaFlashcardForViewer(id, viewerId)
+    const {
+      flashcard,
+      isOwner,
+      validationSnapshot,
+      hasMarketValidation,
+      refinementConfirmedAt,
+      pendingRefinedReview,
+    } = await getIdeaFlashcardForViewer(id, viewerId)
     const files = await prisma.file.findMany({
       where: { ideaId: id },
       select: {
@@ -236,7 +248,15 @@ router.get(
       sizeBytes: f.sizeBytes,
       createdAt: f.createdAt.toISOString(),
     }))
-    return res.json({ flashcard, isOwner, attachments, validationSnapshot })
+    return res.json({
+      flashcard,
+      isOwner,
+      attachments,
+      validationSnapshot,
+      hasMarketValidation,
+      refinementConfirmedAt,
+      pendingRefinedReview,
+    })
   }),
 )
 
@@ -323,6 +343,23 @@ router.post(
     const { id } = req.params as z.infer<typeof ideaIdParamsSchema>
     const { answers } = req.body as z.infer<typeof refineAnswersBodySchema>
     const result = await submitRefinement(req.user.userId, id, answers)
+    return res.json(result)
+  }),
+)
+
+router.post(
+  '/:id/refine/confirm',
+  requireAuth,
+  ideasRefineRateLimit,
+  validateParams(ideaIdParamsSchema),
+  validateBody(refineConfirmBodySchema),
+  asyncHandler(async (req, res) => {
+    if (!req.user) {
+      return sendError(res, 401, 'No autenticado', 'AUTH_UNAUTHORIZED')
+    }
+    const { id } = req.params as z.infer<typeof ideaIdParamsSchema>
+    const body = req.body as z.infer<typeof refineConfirmBodySchema>
+    const result = await confirmRefinedContent(req.user.userId, id, body)
     return res.json(result)
   }),
 )

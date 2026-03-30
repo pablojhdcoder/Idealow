@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { appPageMainClassName } from '@/lib/appPageLayout'
+import { AppLogo } from '@/components/layout/AppLogo'
 import { rememberPostAuthReturn, sanitizePostAuthReturnPath } from '@/lib/postAuthRedirect'
 
 export default function Register() {
@@ -60,7 +61,8 @@ export default function Register() {
         >
         <Card className="p-8">
           <div className="mb-8 text-center">
-            <p className="font-serif text-3xl text-foreground">Crear cuenta</p>
+            <AppLogo size="lg" className="mx-auto" />
+            <p className="mt-4 font-serif text-3xl text-foreground">Crear cuenta</p>
             <p className="mt-2 text-sm text-muted-foreground">Empieza a capturar y validar ideas</p>
           </div>
 

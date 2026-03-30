@@ -4,10 +4,10 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { buttonVariants } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-import type { IdeaListItem } from '@/hooks/useIdeasQuery'
+import type { IdeaSummary } from '@/types/idea'
 
 type Props = {
-  ideas: IdeaListItem[]
+  ideas: IdeaSummary[]
   isLoading: boolean
 }
 

@@ -47,6 +47,9 @@ model Idea {
   /** Lease entre réplicas: solo una validación en curso por idea (TTL vía consulta stale). */
   validationStartedAt DateTime?
 
+  /** El usuario confirmó la revisión post-wizard; en ese momento se lanza la validación de mercado. */
+  refinementConfirmedAt DateTime?
+
   isPublished Boolean  @default(true)
   publishedAt DateTime?
   createdAt   DateTime @default(now())

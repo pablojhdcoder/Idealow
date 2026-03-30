@@ -75,7 +75,7 @@ export const refinementQuestionsResponseSchema = z.object({
 
 export type RefinementQuestionsResponse = z.infer<typeof refinementQuestionsResponseSchema>
 
-const refinedIdeaSchema = z.object({
+export const refinedIdeaSchema = z.object({
   refined_title: z.string().min(1),
   elevator_pitch: z.string().min(1),
   problem_statement: z.string().min(1),
@@ -90,6 +90,45 @@ const refinedIdeaSchema = z.object({
 })
 
 export type RefinedIdeaPayload = z.infer<typeof refinedIdeaSchema>
+
+/** Misma forma que la síntesis IA; usado al confirmar edición del usuario (límites de tamaño). */
+export const refinedIdeaConfirmSchema = refinedIdeaSchema.superRefine((data, ctx) => {
+  const max = 8000
+  const stringKeys: (keyof RefinedIdeaPayload)[] = [
+    'refined_title',
+    'elevator_pitch',
+    'problem_statement',
+    'solution',
+    'target_customer',
+    'monetization',
+    'mvp_feature',
+    'distribution',
+    'why_now',
+    'biggest_risk',
+  ]
+  for (const k of stringKeys) {
+    if (data[k].length > max) {
+      ctx.addIssue({
+        code: 'too_big',
+        maximum: max,
+        origin: 'string',
+        inclusive: true,
+        path: [k],
+      })
+    }
+  }
+  for (let i = 0; i < data.search_keywords.length; i++) {
+    if (data.search_keywords[i]!.length > 200) {
+      ctx.addIssue({
+        code: 'too_big',
+        maximum: 200,
+        origin: 'string',
+        inclusive: true,
+        path: ['search_keywords', i],
+      })
+    }
+  }
+})
 
 export type RefinementAnswerInput = { questionId: string; answer: string }
 

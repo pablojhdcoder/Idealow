@@ -1,4 +1,6 @@
+import type { RefinedIdeaFields } from '@/lib/refinedIdeaPayload'
 import type {
+  ConfirmRefinementResponse,
   CreateIdeaResponse,
   IdeaSummary,
   RefinementQuestionsResponse,
@@ -61,6 +63,19 @@ export async function submitRefineAnswers(
     body: JSON.stringify({ answers }),
   })
   return parseJsonResponse<SubmitRefinementResponse>(res)
+}
+
+export async function submitRefineConfirm(
+  ideaId: string,
+  refined: RefinedIdeaFields,
+): Promise<ConfirmRefinementResponse> {
+  const res = await fetch(`/api/ideas/${encodeURIComponent(ideaId)}/refine/confirm`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(refined),
+  })
+  return parseJsonResponse<ConfirmRefinementResponse>(res)
 }
 
 export async function fetchIdeaFlashcardDetail(ideaId: string): Promise<IdeaFlashcardDetailResponse> {

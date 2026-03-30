@@ -1,10 +1,11 @@
-import type { Prisma } from '@prisma/client'
+import type { Idea, Prisma } from '@prisma/client'
 import { prisma } from '../../lib/prisma'
 import { HttpError } from '../../lib/httpError'
 import {
   generateQuestions,
   type RefinementAnswerInput,
   type RefinementQuestionsResponse,
+  type RefinedIdeaPayload,
   synthesizeAnswers,
 } from '../ai/refiner'
 import { scheduleIdeaEmbedding } from '../embeddings/embeddingJob'
@@ -102,10 +103,59 @@ export async function submitRefinement(
 
   scheduleIdeaEmbedding(updated.id)
 
-  /** Validación de mercado: una sola vez por idea, en segundo plano (no al abrir la pantalla). */
+  /** La validación se inicia tras la revisión/edición del usuario (`confirmRefinedContent`). */
+  return { idea: updated, nextStep: 'review_refined' as const }
+}
+
+/**
+ * Persiste la versión editada del bloque `refined` y arranca la validación de mercado (si aún no hay resultado).
+ */
+export async function confirmRefinedContent(
+  userId: string,
+  ideaId: string,
+  refined: RefinedIdeaPayload,
+): Promise<{ idea: Idea; nextStep: 'validation' }> {
+  const idea = await prisma.idea.findFirst({
+    where: { id: ideaId, userId },
+  })
+  if (!idea) {
+    throw new HttpError(404, 'Idea no encontrada', 'IDEAS_NOT_FOUND')
+  }
+
+  const prevContent =
+    idea.refinedContent && typeof idea.refinedContent === 'object' && !Array.isArray(idea.refinedContent)
+      ? (idea.refinedContent as Record<string, unknown>)
+      : null
+
+  if (!prevContent || prevContent.refined == null || typeof prevContent.refined !== 'object') {
+    throw new HttpError(
+      422,
+      'Primero completa el asistente de refinamiento',
+      'IDEAS_REFINED_WIZARD_INCOMPLETE',
+    )
+  }
+
+  const nextRefinedContent: Prisma.InputJsonValue = {
+    ...prevContent,
+    refined,
+  }
+
+  const updated = await prisma.idea.update({
+    where: { id: idea.id },
+    data: {
+      refinedContent: nextRefinedContent,
+      title: refined.refined_title || idea.title,
+      summary: refined.elevator_pitch,
+      status: 'REFINING',
+      refinementConfirmedAt: new Date(),
+    },
+  })
+
+  scheduleIdeaEmbedding(updated.id)
+
   if (idea.validationScore == null) {
     void runValidation(updated.id, userId).catch(err => {
-      logger.error({ ideaId: updated.id, err }, 'runValidation after refinement failed')
+      logger.error({ ideaId: updated.id, err }, 'runValidation after refined confirm failed')
     })
   }
 

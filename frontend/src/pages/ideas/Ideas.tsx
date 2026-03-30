@@ -581,7 +581,10 @@ export default function Ideas() {
                             {formatDate(idea.createdAt)}
                           </p>
                         </Link>
-                        {idea.status === 'DRAFT' ? (
+                        {(idea.status === 'DRAFT' ||
+                          (idea.status === 'REFINING' &&
+                            idea.validationScore == null &&
+                            !idea.refinementConfirmedAt)) ? (
                           <div className="flex shrink-0 flex-wrap items-center gap-2 sm:justify-end">
                             <Button
                               type="button"
@@ -595,7 +598,7 @@ export default function Ideas() {
                                 setRefineIdeaId(idea.id)
                               }}
                             >
-                              Refinar
+                              {idea.status === 'DRAFT' ? 'Refinar' : 'Continuar refinamiento'}
                             </Button>
                           </div>
                         ) : null}

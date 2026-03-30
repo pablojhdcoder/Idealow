@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { refinedIdeaConfirmSchema } from '../services/ai/refiner'
 
 const MAX_FILES_PER_IDEA = 12
 
@@ -42,6 +43,11 @@ export const refineAnswersBodySchema = z.object({
 })
 
 export type RefineAnswersBody = z.infer<typeof refineAnswersBodySchema>
+
+/** Cuerpo al confirmar la edición del refinamiento antes de validar. */
+export const refineConfirmBodySchema = refinedIdeaConfirmSchema
+
+export type RefineConfirmBody = z.infer<typeof refineConfirmBodySchema>
 
 export const patchIdeaBodySchema = z.object({
   isPublished: z.boolean(),

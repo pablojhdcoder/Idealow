@@ -35,8 +35,11 @@ export default function IdeaValidate() {
     refetchInterval: q => {
       const d = q.state.data
       if (!d?.isOwner) return false
-      if (d.validationSnapshot != null) return false
+      if (d.hasMarketValidation) return false
       if (d.flashcard.status === 'DRAFT') return false
+      /** Sin confirmar la revisión post-wizard no hay validación en curso: no hacer polling infinito. */
+      if (d.refinementConfirmedAt == null) return false
+      if (d.validationSnapshot != null) return false
       return 2500
     },
   })
@@ -48,9 +51,26 @@ export default function IdeaValidate() {
   }, [accessQ.data?.validationSnapshot])
 
   const fc = accessQ.data?.flashcard
+  const hasMarketValidation = accessQ.data?.hasMarketValidation ?? false
+  const refinementConfirmedAt = accessQ.data?.refinementConfirmedAt ?? null
+
   const needsRefinementFirst = Boolean(accessQ.data?.isOwner && fc?.status === 'DRAFT')
+
+  /** Wizard de síntesis hecho, pero el usuario no confirmó la revisión → no arrancó la validación. */
+  const needsRefinementReview = Boolean(
+    accessQ.data?.isOwner &&
+      fc?.status === 'REFINING' &&
+      !hasMarketValidation &&
+      refinementConfirmedAt == null,
+  )
+
   const waitingSnapshot = Boolean(
-    accessQ.data?.isOwner && hydrated == null && fc && fc.status !== 'DRAFT',
+    accessQ.data?.isOwner &&
+      hydrated == null &&
+      fc &&
+      fc.status !== 'DRAFT' &&
+      !needsRefinementReview &&
+      !hasMarketValidation,
   )
 
   useEffect(() => {
@@ -124,12 +144,39 @@ export default function IdeaValidate() {
           >
             <p className="text-sm leading-relaxed text-muted-foreground sm:text-[15px]">
               Termina primero el asistente de refinamiento. La validación de mercado se genera{' '}
-              <span className="font-medium text-foreground">automáticamente una sola vez</span> al enviar las
-              respuestas del wizard.
+              <span className="font-medium text-foreground">automáticamente una sola vez</span> al confirmar la
+              revisión del texto refinado.
             </p>
             <Button type="button" className="mt-6 rounded-full" onClick={backToFicha}>
               Ir a la ficha
             </Button>
+          </div>
+        )}
+
+        {accessQ.isSuccess && accessQ.data?.isOwner && needsRefinementReview && (
+          <div
+            className="rounded-3xl border border-border bg-card px-6 py-10 text-center shadow-sm sm:px-10"
+            role="status"
+          >
+            <p className="text-sm leading-relaxed text-muted-foreground sm:text-[15px]">
+              Falta confirmar la{' '}
+              <span className="font-medium text-foreground">revisión del refinamiento</span>. Hasta entonces no se
+              inicia la validación de mercado. Puedes continuar desde Mis ideas.
+            </p>
+            <Button
+              type="button"
+              className="mt-6 rounded-full"
+              onClick={() =>
+                navigate('/ideas', { state: { openRefineId: id, highlightId: id } })
+              }
+            >
+              Continuar refinamiento
+            </Button>
+            <div className="mt-3">
+              <Button type="button" variant="outline" className="rounded-full" onClick={backToFicha}>
+                Ir a la ficha
+              </Button>
+            </div>
           </div>
         )}
 

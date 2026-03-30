@@ -19,9 +19,10 @@ const { cleanupOrphanedUploadsMock } = vi.hoisted(() => ({
   cleanupOrphanedUploadsMock: vi.fn(),
 }))
 
-const { loadRefinementQuestionsMock, submitRefinementMock } = vi.hoisted(() => ({
+const { loadRefinementQuestionsMock, submitRefinementMock, confirmRefinedContentMock } = vi.hoisted(() => ({
   loadRefinementQuestionsMock: vi.fn(),
   submitRefinementMock: vi.fn(),
+  confirmRefinedContentMock: vi.fn(),
 }))
 
 vi.mock('../../src/services/ideas', () => ({
@@ -31,6 +32,7 @@ vi.mock('../../src/services/ideas', () => ({
 vi.mock('../../src/services/ideas/refinement', () => ({
   loadRefinementQuestions: loadRefinementQuestionsMock,
   submitRefinement: submitRefinementMock,
+  confirmRefinedContent: confirmRefinedContentMock,
 }))
 vi.mock('../../src/services/files/cleanupOrphanedUploads', () => ({
   cleanupOrphanedUploads: cleanupOrphanedUploadsMock,
@@ -343,7 +345,7 @@ describe('POST /api/ideas/:id/refine/answers', () => {
     const token = signTestToken('user-1')
     const body = {
       idea: { id: 'idea-1', title: 'T', status: 'REFINING' },
-      nextStep: 'validation' as const,
+      nextStep: 'review_refined' as const,
     }
     submitRefinementMock.mockResolvedValue(body)
 
@@ -362,6 +364,61 @@ describe('POST /api/ideas/:id/refine/answers', () => {
       { questionId: 'q1', answer: 'Uno' },
       { questionId: 'q2', answer: 'Dos' },
     ])
+    expect(response.body).toEqual(body)
+  })
+})
+
+const refineConfirmPayload = {
+  refined_title: 'Título',
+  elevator_pitch: 'Pitch',
+  problem_statement: 'Problema largo',
+  solution: 'Solución',
+  target_customer: 'Cliente',
+  monetization: 'Subs',
+  mvp_feature: 'Una cosa',
+  distribution: 'SEO',
+  why_now: 'IA',
+  biggest_risk: 'Competencia',
+  search_keywords: ['a', 'b', 'c', 'd', 'e'],
+}
+
+describe('POST /api/ideas/:id/refine/confirm', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('retorna 422 si falta refined_title', async () => {
+    const app = buildApp()
+    const token = signTestToken('user-1')
+    const response = await request(app)
+      .post('/api/ideas/00000000-0000-4000-8000-000000000001/refine/confirm')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ ...refineConfirmPayload, refined_title: '' })
+
+    expect(response.status).toBe(422)
+    expect(confirmRefinedContentMock).not.toHaveBeenCalled()
+  })
+
+  it('retorna 200 y delega en confirmRefinedContent', async () => {
+    const app = buildApp()
+    const token = signTestToken('user-1')
+    const body = {
+      idea: { id: 'idea-1', title: 'T', status: 'REFINING' },
+      nextStep: 'validation' as const,
+    }
+    confirmRefinedContentMock.mockResolvedValue(body)
+
+    const response = await request(app)
+      .post('/api/ideas/00000000-0000-4000-8000-000000000001/refine/confirm')
+      .set('Authorization', `Bearer ${token}`)
+      .send(refineConfirmPayload)
+
+    expect(response.status).toBe(200)
+    expect(confirmRefinedContentMock).toHaveBeenCalledWith(
+      'user-1',
+      '00000000-0000-4000-8000-000000000001',
+      refineConfirmPayload,
+    )
     expect(response.body).toEqual(body)
   })
 })

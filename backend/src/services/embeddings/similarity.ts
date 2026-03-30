@@ -19,6 +19,7 @@ const ideaListSelect = {
   status: true,
   isPublished: true,
   validationScore: true,
+  refinementConfirmedAt: true,
   createdAt: true,
 } as const
 
@@ -75,7 +76,7 @@ export async function searchIdeasByVector(params: {
       : Prisma.empty
 
   const rows = await prisma.$queryRaw<SemanticSearchRow[]>`
-    SELECT id, title, summary, sector, status, "isPublished", "validationScore", "createdAt"
+    SELECT id, title, summary, sector, status, "isPublished", "validationScore", "refinementConfirmedAt", "createdAt"
     FROM "Idea"
     WHERE "userId" = ${userId}
       AND embedding IS NOT NULL
@@ -129,7 +130,7 @@ export async function similarIdeasForUser(
 ): Promise<SemanticSearchRow[]> {
   const maxD = maxCosineDistance ?? config.semanticMaxCosineDistance
   const rows = await prisma.$queryRaw<SemanticSearchRow[]>`
-    SELECT id, title, summary, sector, status, "isPublished", "validationScore", "createdAt"
+    SELECT id, title, summary, sector, status, "isPublished", "validationScore", "refinementConfirmedAt", "createdAt"
     FROM "Idea"
     WHERE "userId" = ${userId}
       AND embedding IS NOT NULL

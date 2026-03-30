@@ -11,6 +11,8 @@ export type IdeaListItem = {
   status: string
   isPublished: boolean
   validationScore: number | null
+  /** null = aún no confirmó la revisión post-wizard (validación no lanzada). */
+  refinementConfirmedAt: Date | null
   createdAt: Date
 }
 
@@ -39,6 +41,7 @@ export async function listIdeasForUser(
       status: true,
       isPublished: true,
       validationScore: true,
+      refinementConfirmedAt: true,
       createdAt: true,
     },
   })

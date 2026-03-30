@@ -3,7 +3,11 @@ import { motion } from 'framer-motion'
 import { ArrowRight } from 'lucide-react'
 import { HomeLandingHeader } from '@/components/home/HomeLandingHeader'
 import { HomeHero } from '@/components/home/HomeHero'
+import { HomeScrollAmbience } from '@/components/home/HomeScrollAmbience'
+import { HomeWhatItDoes } from '@/components/home/HomeWhatItDoes'
 import { HomeFeatures } from '@/components/home/HomeFeatures'
+import { HomeRoadmap } from '@/components/home/HomeRoadmap'
+import { HomeFaq } from '@/components/home/HomeFaq'
 import { HomeFooter } from '@/components/home/HomeFooter'
 import { Card, CardContent } from '@/components/ui/card'
 import { buttonVariants } from '@/components/ui/button'
@@ -17,10 +21,10 @@ function HomeCtaBand() {
         initial={{ opacity: 0, y: 20 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true, margin: '-24px' }}
-        transition={{ duration: 0.4 }}
+        transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] as const }}
         className={APP_PAGE_WIDTH_CLASS}
       >
-        <Card className="overflow-hidden rounded-3xl border-primary/20 bg-gradient-to-br from-primary/10 via-background to-amber-50/40">
+        <Card className="overflow-hidden rounded-3xl border-primary/35 bg-gradient-to-br from-primary/[0.18] via-background to-amber-50/60 shadow-md dark:from-primary/[0.22] dark:to-amber-950/30">
           <CardContent className="flex flex-col items-start gap-6 p-8 sm:flex-row sm:items-center sm:justify-between sm:p-10">
             <div>
               <h2
@@ -30,12 +34,15 @@ function HomeCtaBand() {
                 Cuando quieras, aquí estamos
               </h2>
               <p className="mt-2 max-w-lg text-sm text-muted-foreground sm:text-base">
-                Crea una cuenta en segundos. Sin tarjeta: un espacio más tranquilo para cultivar ideas.
+                Crea una cuenta en segundos.
               </p>
             </div>
             <Link
               to="/register"
-              className={cn(buttonVariants({ size: 'lg' }), 'group shrink-0 gap-2')}
+              className={cn(
+                buttonVariants({ size: 'lg' }),
+                'group shrink-0 gap-2 font-semibold',
+              )}
             >
               Crear tu espacio
               <ArrowRight
@@ -52,14 +59,19 @@ function HomeCtaBand() {
 
 export default function Home() {
   return (
-    <div className="flex min-h-screen flex-col bg-background">
+    <div className="relative flex min-h-screen flex-col bg-background">
+      <HomeScrollAmbience />
       <HomeLandingHeader />
-      <main className="flex-1">
+      <main className="relative z-10 flex-1">
         <HomeHero />
-        <HomeFeatures className="bg-muted/30" />
+        {/* Sin fondo por sección: los gradientes por bloque chocaban y creaban costuras visibles. */}
+        <HomeWhatItDoes />
+        <HomeFeatures />
+        <HomeRoadmap />
+        <HomeFaq />
         <HomeCtaBand />
       </main>
-      <HomeFooter />
+      <HomeFooter className="relative z-10" />
     </div>
   )
 }

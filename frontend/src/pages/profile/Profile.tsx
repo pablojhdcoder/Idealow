@@ -263,18 +263,45 @@ export default function Profile() {
     <div className="min-h-screen bg-background">
       <AppShellHeader />
       <main className={appPageMainClassName('py-8 pb-16')}>
-        <motion.div {...fadeUp} transition={{ duration: 0.28 }} className="mb-5">
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+        >
           <PageBackButton label="Volver al dashboard" to="/dashboard" />
         </motion.div>
-        <motion.div {...fadeUp} transition={{ duration: 0.4 }} className="mb-8">
-          <p className="text-xs font-medium uppercase tracking-widest text-primary/80">Cuenta</p>
-          <h1 className="mt-1 font-serif text-3xl text-foreground sm:text-4xl">Tu perfil</h1>
-          <p className="mt-2 max-w-lg text-sm leading-relaxed text-muted-foreground">
-            Foto, datos de acceso y preferencias. Todo en un solo lugar, con el mismo estilo claro del resto de la app.
-          </p>
-        </motion.div>
+        <motion.section
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+          className={cn(
+            'mt-5',
+            'relative overflow-hidden rounded-3xl border border-primary/15',
+            'bg-gradient-to-br from-primary/[0.09] via-background to-amber-500/[0.06]',
+            'px-5 py-7 shadow-sm sm:px-8 sm:py-9',
+          )}
+        >
+          <div
+            className="pointer-events-none absolute -right-16 -top-20 size-56 rounded-full bg-primary/10 blur-3xl"
+            aria-hidden
+          />
+          <div className="relative flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-wrap items-start gap-4">
+              <div className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-md shadow-primary/25">
+                <UserCircle className="size-6" strokeWidth={2.2} />
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs font-medium uppercase tracking-widest text-primary/80">Cuenta</p>
+                <h1 className="mt-1 font-serif text-3xl tracking-tight text-foreground sm:text-4xl">Tu perfil</h1>
+                <p className="mt-1.5 max-w-xl text-sm leading-relaxed text-muted-foreground">
+                  Foto, datos de acceso y preferencias. Todo en un solo lugar.
+                </p>
+              </div>
+            </div>
+          </div>
+        </motion.section>
 
-        <div className="grid gap-8 lg:grid-cols-[1fr_min(100%,380px)] lg:items-start lg:gap-10">
+        <div className="mt-6 grid gap-8 lg:grid-cols-[1fr_min(100%,380px)] lg:items-start lg:gap-10 sm:mt-7">
           <div className="space-y-8">
             <motion.div
               {...fadeUp}

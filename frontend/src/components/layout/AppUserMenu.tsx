@@ -62,7 +62,7 @@ export function AppUserMenu({ avatarUrl, displayName, email }: Props) {
             onClick={() => navigate('/dashboard')}
           >
             <LayoutDashboard className="size-4" />
-            Panel
+            Dashboard
           </DropdownMenuItem>
           <DropdownMenuItem
             className="cursor-pointer rounded-xl"

@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
 import {
@@ -280,6 +280,7 @@ export function IdeaFlashcardDetailView({
   attachments,
   sharePanel,
 }: Props) {
+  const location = useLocation()
   const queryClient = useQueryClient()
   const [publishDialogOpen, setPublishDialogOpen] = useState(false)
   const user = useAuthStore(s => s.user)
@@ -441,7 +442,7 @@ export function IdeaFlashcardDetailView({
               {isOwner && (fc.status === 'REFINING' || fc.status === 'VALIDATED') ? (
                 <Link
                   to={`/ideas/${encodeURIComponent(ideaId)}/validar`}
-                  state={{ from: `/ideas/${encodeURIComponent(ideaId)}` }}
+                  state={location.state}
                   className="group inline-flex shrink-0 items-center gap-1.5 self-start rounded-full border border-border/60 bg-muted/30 px-3 py-1.5 text-xs font-medium text-foreground transition hover:border-primary/25 hover:bg-primary/5 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   {fc.status === 'VALIDATED' ? 'Ver informe completo' : 'Validación de mercado'}

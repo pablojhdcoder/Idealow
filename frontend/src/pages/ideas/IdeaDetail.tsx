@@ -44,7 +44,8 @@ export default function IdeaDetail() {
       <main className={appPageMainClassName('pb-16 pt-6 sm:pt-8')}>
         <div className="mb-8 flex flex-wrap items-center gap-3">
           <PageBackButton label={backLabel} onClick={() => navigate(returnTo)} />
-          {(q.data?.flashcard.status === 'REFINING' || q.data?.flashcard.status === 'VALIDATED') && (
+          {q.data?.isOwner &&
+            (q.data.flashcard.status === 'REFINING' || q.data.flashcard.status === 'VALIDATED') && (
             <Button
               type="button"
               variant="outline"

@@ -13,13 +13,13 @@ export async function updateIdeaPublishState(
   })
 
   if (!idea) {
-    throw new HttpError(404, 'Idea not found', 'IDEAS_NOT_FOUND')
+    throw new HttpError(404, 'Idea no encontrada', 'IDEAS_NOT_FOUND')
   }
 
   if (isPublished && idea.status !== 'VALIDATED') {
     throw new HttpError(
       400,
-      'Only validated ideas can be published to the community.',
+      'Solo las ideas validadas pueden publicarse en la comunidad.',
       'IDEAS_PUBLISH_NOT_VALIDATED',
     )
   }

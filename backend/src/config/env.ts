@@ -66,7 +66,7 @@ export function validateCriticalEnv(): void {
   if (missingKeys.length > 0) {
     throw new Error(
       `Missing required environment variables: ${missingKeys.join(', ')}. ` +
-        'Set them before starting the backend.',
+        'Configúralas antes de iniciar el backend.',
     )
   }
 }

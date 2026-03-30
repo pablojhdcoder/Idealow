@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { PageBackButton } from '@/components/ui/page-back-button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { fetchFeed, type FeedFilter, type FeedResponse, type FeedSort } from '@/lib/api/feed'
 import { ApiError } from '@/lib/api/client'
@@ -17,7 +18,7 @@ import { cn } from '@/lib/utils'
 
 const SECTORS = [
   { value: '', label: 'Todos los sectores' },
-  { value: 'tech', label: 'Tech' },
+  { value: 'tech', label: 'Tecnología' },
   { value: 'health', label: 'Salud' },
   { value: 'finance', label: 'Finanzas' },
   { value: 'education', label: 'Educación' },
@@ -60,7 +61,7 @@ const FEED_TABS = [
   { id: 'all' as const, label: 'Todas', filter: 'all' as FeedFilter, sort: 'new' as FeedSort },
   {
     id: 'strong',
-    label: 'Strong signal',
+    label: 'Señal fuerte',
     filter: 'strong' as FeedFilter,
     sort: 'new' as FeedSort,
   },
@@ -126,11 +127,19 @@ export default function Feed() {
     <div className="min-h-screen bg-background">
       <AppShellHeader />
       <main className={appPageMainClassName('py-8')}>
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+        >
+          <PageBackButton label="Volver al dashboard" to="/dashboard" />
+        </motion.div>
         <motion.section
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
           className={cn(
+            'mt-5',
             'relative overflow-hidden rounded-3xl border border-primary/15',
             'bg-gradient-to-br from-primary/[0.09] via-background to-amber-500/[0.06]',
             'px-5 py-7 shadow-sm sm:px-8 sm:py-9',

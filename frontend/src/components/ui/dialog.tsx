@@ -36,7 +36,7 @@ export function DialogContent({
         {showCloseButton && (
           <DialogPrimitive.Close render={<Button variant="ghost" size="icon" className="absolute right-2 top-2" />}>
             <XIcon />
-            <span className="sr-only">Close</span>
+            <span className="sr-only">Cerrar</span>
           </DialogPrimitive.Close>
         )}
       </DialogPrimitive.Popup>

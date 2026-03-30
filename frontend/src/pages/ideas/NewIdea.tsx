@@ -1,14 +1,16 @@
 import { useEffect, useRef, useState } from 'react'
-import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
-import { ArrowLeft, Loader2, Paperclip, Plus, X } from 'lucide-react'
+import { Globe2, Loader2, Paperclip, PenLine, Plus, Shapes, Sparkles, X } from 'lucide-react'
 import { AttachmentPreview } from '@/components/ideas/AttachmentPreview'
 import { toast } from 'sonner'
 import AppShellHeader from '@/components/layout/AppShellHeader'
 import { Card } from '@/components/ui/card'
 import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { PageBackButton } from '@/components/ui/page-back-button'
 import { Label } from '@/components/ui/label'
 import { ApiError } from '@/lib/api/client'
 import { createIdea } from '@/lib/api/ideas'
@@ -20,7 +22,7 @@ import { appPageMainClassName } from '@/lib/appPageLayout'
 
 const SECTOR_OPTIONS = [
   { value: '', label: 'Sin preferencia' },
-  { value: 'tech', label: 'Tech' },
+  { value: 'tech', label: 'Tecnología' },
   { value: 'health', label: 'Salud' },
   { value: 'finance', label: 'Finanzas' },
   { value: 'education', label: 'Educación' },
@@ -36,10 +38,172 @@ const MAX_FILES = 12
 /** Mismo tope que el backend: alineado con el límite de visión + base64 en Azure (~18 MB). */
 const MAX_FILE_SIZE_MB = 18
 const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024
+const PAGE_EASE = [0.22, 1, 0.36, 1] as const
 
 type AttachedFile = {
   key: string
   file: File
+}
+
+type IdeaVisibilityProps = {
+  keepPrivate: boolean
+  busy: boolean
+  onChange: (checked: boolean) => void
+}
+
+function IdeaVisibilityCard({ keepPrivate, busy, onChange }: IdeaVisibilityProps) {
+  return (
+    <section className="flex h-full min-h-[18.5rem] flex-col rounded-2xl border border-primary/20 bg-primary/[0.06] p-5 sm:p-6">
+      <p className="inline-flex items-center gap-2 text-sm font-medium text-foreground">
+        <Globe2 className="size-4 text-primary/80" aria-hidden />
+        Visibilidad en la comunidad
+      </p>
+      <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+        Por defecto tu idea se publicará en Idealow cuando termine la validación de mercado, para
+        que la comunidad pueda votar y comentar, con el fin de validar la idea en la comunidad de Idealow.
+      </p>
+      <label className="mt-auto flex cursor-pointer items-start gap-3 rounded-xl border border-border/80 bg-background/80 p-3">
+        <input
+          type="checkbox"
+          checked={keepPrivate}
+          onChange={e => onChange(e.target.checked)}
+          disabled={busy}
+          className="border-input text-primary focus-visible:ring-ring mt-0.5 size-4 shrink-0 rounded-sm focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
+        />
+        <span className="text-sm leading-snug text-foreground">
+          <span className="font-medium">No publicar en la comunidad</span>
+          <span className="text-muted-foreground">
+            <br />
+            La idea será solo visible para ti hasta que decidas publicarla desde la ficha.
+          </span>
+        </span>
+      </label>
+    </section>
+  )
+}
+
+type AttachmentsPanelProps = {
+  attachedFiles: AttachedFile[]
+  busy: boolean
+  onAddClick: () => void
+  onRemoveFile: (key: string) => void
+  onSubmit: () => void
+}
+
+function AttachmentsPanel({
+  attachedFiles,
+  busy,
+  onAddClick,
+  onRemoveFile,
+  onSubmit,
+}: AttachmentsPanelProps) {
+  return (
+    <Card className="rounded-3xl border-border/80 bg-card/90 p-5 shadow-sm backdrop-blur-sm sm:p-7">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 className="inline-flex items-center gap-2 font-serif text-xl text-foreground">
+          <Paperclip className="size-4 text-primary/80" aria-hidden />
+          Adjuntos
+        </h2>
+        <Badge variant="outline">
+          {attachedFiles.length}/{MAX_FILES}
+        </Badge>
+      </div>
+
+      {attachedFiles.length > 0 && (
+        <section className="mt-5 grid gap-3">
+          <div
+            className={
+              attachedFiles.length === 1
+                ? 'grid grid-cols-1 justify-items-center'
+                : 'grid grid-cols-2 items-stretch gap-3'
+            }
+          >
+            {attachedFiles.map(({ key, file }) => (
+              <motion.div
+                key={key}
+                layout
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                className={
+                  attachedFiles.length === 1
+                    ? 'flex h-full min-h-0 w-full max-w-[min(100%,50%)]'
+                    : 'flex h-full min-h-0 min-w-0'
+                }
+              >
+                <div className="flex h-full min-h-0 w-full flex-col rounded-2xl border border-border bg-muted/40 p-3 sm:p-4">
+                  <div className="flex min-h-0 flex-1 flex-col gap-3">
+                    <div className="flex min-h-0 flex-1 items-start justify-start">
+                      <AttachmentPreview file={file} compact />
+                    </div>
+                    <div className="flex shrink-0 items-start justify-between gap-1.5">
+                      <div className="min-w-0 flex-1 overflow-hidden">
+                        <p
+                          className="line-clamp-2 break-all text-xs font-medium leading-tight text-foreground sm:text-sm"
+                          title={file.name}
+                        >
+                          {file.name}
+                        </p>
+                        <p className="mt-0.5 truncate text-[10px] text-muted-foreground sm:text-xs">
+                          {formatFileSize(file.size)}
+                        </p>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="size-8 shrink-0 rounded-full"
+                        onClick={() => onRemoveFile(key)}
+                        disabled={busy}
+                        aria-label={`Quitar ${file.name}`}
+                      >
+                        <X className="size-3.5" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      <section className="mt-5 flex flex-wrap gap-3">
+        <Button
+          type="button"
+          variant="outline"
+          className="h-11 rounded-2xl border-border/80"
+          onClick={onAddClick}
+          disabled={busy || attachedFiles.length >= MAX_FILES}
+        >
+          <Paperclip className="size-4" />
+          {attachedFiles.length > 0 ? 'Añadir archivos' : 'Adjuntar archivos'}
+        </Button>
+        <Button
+          type="button"
+          className="h-11 gap-2 rounded-2xl px-5 sm:min-w-[18rem]"
+          onClick={onSubmit}
+          disabled={busy}
+        >
+          {busy && <Loader2 className="size-4 animate-spin" />}
+          {!busy && <Sparkles className="size-4" aria-hidden />}
+          Crear idea
+        </Button>
+      </section>
+
+      {attachedFiles.length === 0 && !busy && (
+        <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
+          No es obligatorio adjuntar archivos, pero suele mejorar la extracción y el refinamiento de
+          la idea.
+        </p>
+      )}
+
+      {busy && (
+        <p className="mt-4 text-sm text-muted-foreground">
+          Subiendo y extrayendo la idea con IA… Esto puede tardar un poco si hay varios archivos.
+        </p>
+      )}
+    </Card>
+  )
 }
 
 function formatFileSize(bytes: number) {
@@ -173,191 +337,125 @@ export default function NewIdea() {
   return (
     <div className="min-h-screen bg-background">
       <AppShellHeader />
-      <main className={appPageMainClassName('py-8')}>
-        <Link
-          to={backTo}
-          className="inline-flex size-9 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-          aria-label="Volver"
+      <main className={appPageMainClassName('py-8 pb-14')}>
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.28, ease: PAGE_EASE }}
         >
-          <ArrowLeft className="size-4" />
-        </Link>
+          <PageBackButton label="Volver" to={backTo} />
+        </motion.div>
 
-        <Card className="mt-4 p-6 sm:p-8">
-          <div className="mb-6 flex items-center gap-3">
-            <div className="flex size-10 items-center justify-center rounded-full bg-primary/10 text-primary">
-              <Plus className="size-5" />
+        <motion.section
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35, ease: PAGE_EASE }}
+          className="relative mt-5 overflow-hidden rounded-3xl border border-primary/15 bg-gradient-to-br from-primary/[0.09] via-background to-amber-500/[0.06] px-5 py-7 shadow-sm sm:px-8 sm:py-9"
+        >
+          <div
+            className="pointer-events-none absolute -right-14 -top-20 size-52 rounded-full bg-primary/10 blur-3xl"
+            aria-hidden
+          />
+          <div className="relative flex flex-wrap items-start gap-4">
+            <div className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-md shadow-primary/25">
+              <Plus className="size-6" strokeWidth={2.2} />
             </div>
-            <div>
-              <h1 className="font-serif text-2xl text-foreground">Capturar idea</h1>
-              <p className="text-sm text-muted-foreground">
-                Puedes combinar texto con varios archivos (audio, imagen, vídeo, PDF, notas) como fuentes.
-                Máximo {MAX_FILE_SIZE_MB} MB por archivo (tope alineado con lo que el proveedor de IA acepta al
-                analizar el archivo).
+            <div className="min-w-0">
+              <h1 className="font-serif text-3xl tracking-tight text-foreground sm:text-4xl">
+                Capturar idea
+              </h1>
+              <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-muted-foreground">
+                Escribe una nota rápida o combina texto con adjuntos para extraer una idea más
+                estructurada con IA.
               </p>
             </div>
           </div>
+        </motion.section>
 
-          <div className="grid gap-5">
-            <div className="grid gap-2">
-              <Label htmlFor="idea-content">Contenido</Label>
-              <Textarea
-                id="idea-content"
-                className="min-h-32 rounded-2xl"
-                placeholder="Escribe tu idea, pega notas o una URL…"
-                value={content}
-                onChange={e => setContent(e.target.value)}
-                disabled={busy}
-                aria-busy={busy}
-              />
-            </div>
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.32, delay: 0.07, ease: PAGE_EASE }}
+        >
+          <div className="mt-6 grid gap-4 lg:grid-cols-[minmax(0,1.45fr)_minmax(0,1fr)]">
+            <Card className="rounded-3xl border-border/80 bg-card/90 p-5 shadow-sm backdrop-blur-sm sm:p-7">
+              <div className="grid gap-5">
+                <section className="grid gap-2">
+                  <Label htmlFor="idea-content" className="inline-flex items-center gap-2">
+                    <PenLine className="size-4 text-primary/80" aria-hidden />
+                    Contenido
+                  </Label>
+                  <Textarea
+                    id="idea-content"
+                    className="min-h-48 rounded-2xl border-border/80 bg-background/80"
+                    placeholder="Escribe tu idea, pega notas o una URL…"
+                    value={content}
+                    onChange={e => setContent(e.target.value)}
+                    disabled={busy}
+                    aria-busy={busy}
+                  />
+                </section>
 
-            <div className="grid gap-2">
-              <Label htmlFor="idea-sector">Sector (opcional)</Label>
-              <select
-                id="idea-sector"
-                value={sector}
-                onChange={e => setSector(e.target.value)}
-                disabled={busy}
-                className="border-input bg-background h-11 w-full rounded-2xl border px-3 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
-              >
-                {SECTOR_OPTIONS.map(opt => (
-                  <option key={opt.value || 'none'} value={opt.value}>
-                    {opt.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="rounded-2xl border border-primary/20 bg-primary/[0.06] p-4 sm:p-5">
-              <p className="text-sm font-medium text-foreground">Visibilidad en la comunidad</p>
-              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-                Por defecto tu idea se publicará en Idealow cuando termine la validación de mercado, para que la
-                comunidad pueda votar y comentar. Te lo recomendamos: así obtienes señal real sobre la idea.
-              </p>
-              <label className="mt-4 flex cursor-pointer items-start gap-3 rounded-xl border border-border/80 bg-background/80 p-3">
-                <input
-                  type="checkbox"
-                  checked={keepPrivate}
-                  onChange={e => {
-                    const v = e.target.checked
-                    setKeepPrivate(v)
-                    writePrivateIdeasByDefault(v)
-                  }}
-                  disabled={busy}
-                  className="border-input text-primary focus-visible:ring-ring mt-0.5 size-4 shrink-0 rounded-sm focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
-                />
-                <span className="text-sm leading-snug text-foreground">
-                  <span className="font-medium">No publicar en la comunidad</span>
-                  <span className="text-muted-foreground">
-                    {' '}
-                    — la idea seguirá siendo solo tuya hasta que decidas publicarla desde la ficha.
-                  </span>
-                </span>
-              </label>
-            </div>
-
-            <input
-              ref={fileInputRef}
-              type="file"
-              className="sr-only"
-              multiple
-              accept="text/plain,text/markdown,application/pdf,.md,.txt,.pdf,audio/*,image/*,video/mp4,.mp4,.m4a,.wav,.ogg,.mp3"
-              onChange={e => {
-                addFiles(e.target.files)
-                e.target.value = ''
-              }}
-            />
-
-            {attachedFiles.length > 0 && (
-              <div className="grid gap-3">
-                <div className="flex items-center justify-between gap-2">
-                  <Label className="text-foreground">Archivos ({attachedFiles.length}/{MAX_FILES})</Label>
-                </div>
-                <div
-                  className={
-                    attachedFiles.length === 1
-                      ? 'grid grid-cols-1 justify-items-center'
-                      : 'grid grid-cols-2 items-stretch gap-3'
-                  }
-                >
-                  {attachedFiles.map(({ key, file }) => (
-                    <motion.div
-                      key={key}
-                      layout
-                      initial={{ opacity: 0, y: 6 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className={
-                        attachedFiles.length === 1
-                          ? 'flex h-full min-h-0 w-full max-w-[min(100%,50%)]'
-                          : 'flex h-full min-h-0 min-w-0'
-                      }
-                    >
-                      <div className="flex h-full min-h-0 w-full flex-col rounded-2xl border border-border bg-muted/40 p-3 sm:p-4">
-                        <div className="flex min-h-0 flex-1 flex-col gap-3">
-                          <div className="flex min-h-0 flex-1 items-start justify-start">
-                            <AttachmentPreview file={file} compact />
-                          </div>
-                          <div className="flex shrink-0 items-start justify-between gap-1.5">
-                            <div className="min-w-0 flex-1 overflow-hidden">
-                              <p
-                                className="line-clamp-2 break-all text-xs font-medium leading-tight text-foreground sm:text-sm"
-                                title={file.name}
-                              >
-                                {file.name}
-                              </p>
-                              <p className="mt-0.5 truncate text-[10px] text-muted-foreground sm:text-xs">
-                                {formatFileSize(file.size)}
-                              </p>
-                            </div>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              className="size-8 shrink-0 rounded-full"
-                              onClick={() => removeFile(key)}
-                              disabled={busy}
-                              aria-label={`Quitar ${file.name}`}
-                            >
-                              <X className="size-3.5" />
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-                    </motion.div>
-                  ))}
-                </div>
+                <section className="grid gap-2">
+                  <Label htmlFor="idea-sector" className="inline-flex items-center gap-2">
+                    <Shapes className="size-4 text-primary/80" aria-hidden />
+                    Sector (opcional)
+                  </Label>
+                  <select
+                    id="idea-sector"
+                    value={sector}
+                    onChange={e => setSector(e.target.value)}
+                    disabled={busy}
+                    className="border-input bg-background h-11 w-full rounded-2xl border px-3 text-sm shadow-xs outline-none transition-[border-color,box-shadow] focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                  >
+                    {SECTOR_OPTIONS.map(opt => (
+                      <option key={opt.value || 'none'} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </select>
+                </section>
               </div>
-            )}
+            </Card>
 
-            <div className="flex flex-wrap gap-3">
-              <Button
-                type="button"
-                variant="outline"
-                className="h-11 rounded-2xl"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={busy || attachedFiles.length >= MAX_FILES}
-              >
-                <Paperclip className="size-4" />
-                {attachedFiles.length > 0 ? 'Añadir archivos' : 'Adjuntar archivos'}
-              </Button>
-              <Button
-                type="button"
-                className="h-11 rounded-2xl"
-                onClick={handleSubmit}
-                disabled={busy}
-              >
-                {busy && <Loader2 className="size-4 animate-spin" />}
-                Continuar
-              </Button>
-            </div>
-
-            {busy && (
-              <p className="text-sm text-muted-foreground">
-                Subiendo y extrayendo la idea con IA… Esto puede tardar un poco si hay varios archivos.
-              </p>
-            )}
+            <Card className="h-full rounded-3xl border-border/80 bg-card/90 p-5 shadow-sm backdrop-blur-sm sm:p-7">
+              <IdeaVisibilityCard
+                keepPrivate={keepPrivate}
+                busy={busy}
+                onChange={v => {
+                  setKeepPrivate(v)
+                  writePrivateIdeasByDefault(v)
+                }}
+              />
+            </Card>
           </div>
-        </Card>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.32, delay: 0.11, ease: PAGE_EASE }}
+          className="mt-4"
+        >
+          <input
+            ref={fileInputRef}
+            type="file"
+            className="sr-only"
+            multiple
+            accept="text/plain,text/markdown,application/pdf,.md,.txt,.pdf,audio/*,image/*,video/mp4,.mp4,.m4a,.wav,.ogg,.mp3"
+            onChange={e => {
+              addFiles(e.target.files)
+              e.target.value = ''
+            }}
+          />
+          <AttachmentsPanel
+            attachedFiles={attachedFiles}
+            busy={busy}
+            onAddClick={() => fileInputRef.current?.click()}
+            onRemoveFile={removeFile}
+            onSubmit={handleSubmit}
+          />
+        </motion.div>
       </main>
     </div>
   )

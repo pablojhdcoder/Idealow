@@ -285,13 +285,13 @@ export async function getIdeaFlashcardForViewer(
   })
 
   if (!idea) {
-    throw new HttpError(404, 'Idea not found', 'IDEAS_NOT_FOUND')
+    throw new HttpError(404, 'Idea no encontrada', 'IDEAS_NOT_FOUND')
   }
 
   const isOwner = viewerUserId != null && idea.userId === viewerUserId
   const communityVisible = idea.isPublished && idea.status === 'VALIDATED'
   if (!isOwner && !communityVisible) {
-    throw new HttpError(404, 'Idea not found', 'IDEAS_NOT_FOUND')
+    throw new HttpError(404, 'Idea no encontrada', 'IDEAS_NOT_FOUND')
   }
 
   const voteMap = await getVoteCountsForIdeaIds([ideaId])
@@ -339,7 +339,7 @@ export async function listSimilarPublishedFlashcardsForAnchor(
     select: { id: true },
   })
   if (!owned) {
-    throw new HttpError(404, 'Idea not found', 'IDEAS_NOT_FOUND')
+    throw new HttpError(404, 'Idea no encontrada', 'IDEAS_NOT_FOUND')
   }
 
   const orderedIds = await similarPublishedIdeaIdsByAnchor(anchorIdeaId, limit)

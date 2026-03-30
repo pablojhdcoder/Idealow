@@ -9,6 +9,8 @@ import { Button, buttonVariants } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { StatsRow } from '@/components/dashboard/StatsRow'
 import { Badge } from '@/components/ui/badge'
+import { PageBackButton } from '@/components/ui/page-back-button'
+import { Tag } from '@/components/ui/tag'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -18,6 +20,8 @@ import { semanticSearchIdeas, fetchSimilarCommunityFeed } from '@/lib/api/semant
 import { ApiError } from '@/lib/api/client'
 import { cn } from '@/lib/utils'
 import { appPageMainClassName } from '@/lib/appPageLayout'
+import { formatSectorLabel, sectorPillStyle } from '@/lib/sectorColors'
+import { inferVerdictFromScore, verdictScoreConfig } from '@/lib/flashcardVerdict'
 
 /** Curva alineada con Feed (movimiento coherente en la app). */
 const PAGE_EASE = [0.22, 1, 0.36, 1] as const
@@ -228,6 +232,27 @@ export default function Ideas() {
     ]
   }, [ideas])
 
+  function formatStatusLabel(status: string): string {
+    if (status === 'DRAFT') return 'Borrador'
+    if (status === 'REFINING') return 'Refinando'
+    if (status === 'VALIDATING') return 'Validando'
+    if (status === 'VALIDATED') return 'Validada'
+    return status
+  }
+
+  function statusPillClass(status: string): string {
+    if (status === 'DRAFT') return 'border-border/70 bg-muted/30 text-muted-foreground'
+    if (status === 'REFINING') return 'border-primary/20 bg-primary/10 text-primary'
+    if (status === 'VALIDATING') return 'border-amber-500/20 bg-amber-500/10 text-amber-700'
+    if (status === 'VALIDATED') return 'border-emerald-500/20 bg-emerald-500/10 text-emerald-700'
+    return 'border-border/70 bg-muted/25 text-muted-foreground'
+  }
+
+  function scorePillStyle(score: number) {
+    const verdict = inferVerdictFromScore(score)
+    return verdictScoreConfig[verdict]
+  }
+
   return (
     <div className="min-h-screen bg-background">
       {refineIdeaId && (
@@ -247,11 +272,19 @@ export default function Ideas() {
       )}
       <AppShellHeader />
       <main className={appPageMainClassName('py-8')}>
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.28, ease: PAGE_EASE }}
+        >
+          <PageBackButton label="Volver al dashboard" to="/dashboard" />
+        </motion.div>
         <motion.section
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.38, ease: PAGE_EASE }}
           className={cn(
+            'mt-5',
             'relative overflow-hidden rounded-3xl border border-primary/15',
             'bg-gradient-to-br from-primary/[0.09] via-background to-amber-500/[0.06]',
             'px-5 py-7 shadow-sm sm:px-8 sm:py-9',
@@ -433,23 +466,23 @@ export default function Ideas() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.35, ease: PAGE_EASE }}
             >
-            <Card className="mt-8 rounded-3xl border-dashed border-border/80 bg-muted/10">
-              <CardContent className="flex flex-col items-center gap-3 px-6 py-14 text-center">
-                <div className="flex size-14 items-center justify-center rounded-2xl bg-muted/60 text-muted-foreground">
-                  <Lightbulb className="size-7 stroke-[1.5]" aria-hidden />
-                </div>
-                <p className="max-w-sm text-sm leading-relaxed text-muted-foreground">
-                  Aún no tienes ideas. Captura la primera y empieza a refinarla.
-                </p>
-                <Link
-                  to="/ideas/new"
-                  state={{ from: '/ideas' }}
-                  className={cn(buttonVariants(), 'rounded-full')}
-                >
-                  Capturar idea
-                </Link>
-              </CardContent>
-            </Card>
+              <Card className="mt-8 rounded-3xl border-dashed border-border/80 bg-muted/10">
+                <CardContent className="flex flex-col items-center gap-3 px-6 py-14 text-center">
+                  <div className="flex size-14 items-center justify-center rounded-2xl bg-muted/60 text-muted-foreground">
+                    <Lightbulb className="size-7 stroke-[1.5]" aria-hidden />
+                  </div>
+                  <p className="max-w-sm text-sm leading-relaxed text-muted-foreground">
+                    Aún no tienes ideas. Captura la primera y empieza a refinarla.
+                  </p>
+                  <Link
+                    to="/ideas/new"
+                    state={{ from: '/ideas' }}
+                    className={cn(buttonVariants(), 'rounded-full')}
+                  >
+                    Capturar idea
+                  </Link>
+                </CardContent>
+              </Card>
             </motion.div>
           )}
 
@@ -459,17 +492,17 @@ export default function Ideas() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.35, ease: PAGE_EASE }}
           >
-          <Card className="mt-8 rounded-3xl border-dashed border-border/80 bg-muted/10">
-            <CardContent className="flex flex-col items-center gap-3 px-6 py-12 text-center">
-              <div className="flex size-14 items-center justify-center rounded-2xl bg-muted/60 text-muted-foreground">
-                <Search className="size-7 stroke-[1.5]" aria-hidden />
-              </div>
-              <p className="max-w-sm text-sm leading-relaxed text-muted-foreground">
-                Ninguna idea indexada coincide con esa búsqueda. Prueba otras palabras o espera a que
-                se generen embeddings.
-              </p>
-            </CardContent>
-          </Card>
+            <Card className="mt-8 rounded-3xl border-dashed border-border/80 bg-muted/10">
+              <CardContent className="flex flex-col items-center gap-3 px-6 py-12 text-center">
+                <div className="flex size-14 items-center justify-center rounded-2xl bg-muted/60 text-muted-foreground">
+                  <Search className="size-7 stroke-[1.5]" aria-hidden />
+                </div>
+                <p className="max-w-sm text-sm leading-relaxed text-muted-foreground">
+                  Ninguna idea indexada coincide con esa búsqueda. Prueba otras palabras o espera a
+                  que se generen embeddings.
+                </p>
+              </CardContent>
+            </Card>
           </motion.div>
         )}
 
@@ -517,17 +550,31 @@ export default function Ideas() {
                           ) : null}
                           <div className="mt-2 flex flex-wrap gap-2">
                             {idea.sector ? (
-                              <Badge variant="secondary" className="rounded-full capitalize">
-                                {idea.sector}
-                              </Badge>
+                              <Tag
+                                style={sectorPillStyle(idea.sector.toLowerCase())}
+                                title={formatSectorLabel(idea.sector)}
+                              >
+                                {formatSectorLabel(idea.sector)}
+                              </Tag>
                             ) : null}
-                            <Badge variant="outline" className="rounded-full">
-                              {idea.status}
-                            </Badge>
+                            <Tag
+                              className={cn(
+                                statusPillClass(idea.status),
+                              )}
+                              title={formatStatusLabel(idea.status)}
+                            >
+                              {formatStatusLabel(idea.status)}
+                            </Tag>
                             {idea.validationScore != null && idea.status === 'VALIDATED' ? (
-                              <Badge className="rounded-full bg-accent/15 text-accent-foreground">
+                              <Tag
+                                style={{
+                                  backgroundColor: scorePillStyle(idea.validationScore).bg,
+                                  color: scorePillStyle(idea.validationScore).text,
+                                }}
+                                title={scorePillStyle(idea.validationScore).label}
+                              >
                                 Score {idea.validationScore}
-                              </Badge>
+                              </Tag>
                             ) : null}
                           </div>
                           <p className="mt-2 text-xs text-muted-foreground">
@@ -567,7 +614,7 @@ export default function Ideas() {
                           className="h-9 gap-1.5 rounded-full px-3 text-xs text-muted-foreground transition-colors hover:bg-background/80 hover:text-foreground"
                           onClick={() => setSimilarFor(s => (s === idea.id ? null : idea.id))}
                         >
-                          <span>{similarFor === idea.id ? 'Ocultar relacionadas' : 'Ideas relacionadas'}</span>
+                          <span>{similarFor === idea.id ? 'Ocultar relacionadas' : 'Ideas relacionadas en Idealow'}</span>
                           <ChevronDown
                             className={cn(
                               'size-3.5 shrink-0 opacity-70 transition-transform duration-200 ease-out',

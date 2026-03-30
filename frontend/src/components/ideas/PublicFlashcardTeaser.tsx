@@ -4,6 +4,7 @@ import { inferVerdictFromScore, verdictScoreConfig } from '@/lib/flashcardVerdic
 import { sectorPillStyle } from '@/lib/sectorColors'
 import { cn } from '@/lib/utils'
 import type { IdeaFlashcard } from '@/types/flashcard'
+import { Tag } from '@/components/ui/tag'
 
 type Props = {
   flashcard: IdeaFlashcard
@@ -47,18 +48,20 @@ export function PublicFlashcardTeaser({ flashcard, onReveal, className }: Props)
       >
         <div className="pointer-events-none absolute inset-0 rounded-3xl bg-gradient-to-br from-primary/[0.07] to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
         <div className="relative flex items-start justify-between gap-3">
-          <span
-            className="inline-flex max-w-[55%] truncate rounded-full px-2.5 py-0.5 text-[10px] font-semibold capitalize"
+          <Tag
+            size="xs"
+            className="max-w-[55%] truncate capitalize"
             style={pill}
           >
             {sector}
-          </span>
-          <span
-            className="shrink-0 rounded-full px-2.5 py-0.5 text-[10px] font-semibold"
+          </Tag>
+          <Tag
+            size="xs"
+            className="shrink-0"
             style={{ backgroundColor: cfg.bg, color: cfg.text }}
           >
             {flashcard.validationScore}
-          </span>
+          </Tag>
         </div>
         <h2 className="relative mt-4 font-serif text-2xl leading-tight text-foreground">{flashcard.refinedTitle}</h2>
         <p className="relative mt-2 line-clamp-3 text-sm text-muted-foreground">

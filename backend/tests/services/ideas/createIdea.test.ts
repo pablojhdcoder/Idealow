@@ -142,7 +142,7 @@ describe('createIdeaFromInput', () => {
 
     // Assert
     await expect(action).rejects.toBeInstanceOf(HttpError)
-    await expect(action).rejects.toMatchObject({ statusCode: 404, message: 'File not found' })
+    await expect(action).rejects.toMatchObject({ statusCode: 404, message: 'Archivo no encontrado' })
   })
 
   it('mapea errores de media no soportada a 422', async () => {
@@ -166,7 +166,7 @@ describe('createIdeaFromInput', () => {
     await expect(action).rejects.toBeInstanceOf(HttpError)
     await expect(action).rejects.toMatchObject({
       statusCode: 422,
-      message: 'PDF extraction is not implemented yet',
+      message: 'La extracción de PDF todavía no está implementada',
     })
   })
 
@@ -267,6 +267,9 @@ describe('createIdeaFromInput', () => {
 
     // Assert
     await expect(action).rejects.toBeInstanceOf(HttpError)
-    await expect(action).rejects.toMatchObject({ statusCode: 422, message: 'No content provided' })
+    await expect(action).rejects.toMatchObject({
+      statusCode: 422,
+      message: 'No se proporcionó contenido',
+    })
   })
 })

@@ -170,7 +170,7 @@ export function ValidationSocialBlock({ s }: { s: SourceStatus }) {
                     key={`S-${v.videoId}`}
                     href={`https://www.youtube.com/watch?v=${encodeURIComponent(v.videoId)}`}
                     title={v.title}
-                    subtitle={v.channelTitle ? `${v.channelTitle} · Short` : 'Short'}
+                    subtitle={v.channelTitle ? `${v.channelTitle} · Cortos` : 'Cortos'}
                     imageUrl={`https://i.ytimg.com/vi/${encodeURIComponent(v.videoId)}/hqdefault.jpg`}
                   />
                 ))}

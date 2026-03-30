@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, Loader2 } from 'lucide-react'
+import { Loader2 } from 'lucide-react'
 import AppShellHeader from '@/components/layout/AppShellHeader'
 import { Button } from '@/components/ui/button'
+import { PageBackButton } from '@/components/ui/page-back-button'
 import {
   ValidationGeneratingCard,
   ValidationGeneratingLegacyHint,
@@ -94,15 +95,7 @@ export default function IdeaValidate() {
     <div className="min-h-screen bg-[#FAFAF8] dark:bg-background">
       <AppShellHeader />
       <main className={appPageMainClassName('pb-16 pt-6 sm:pt-8')}>
-        <Button
-          type="button"
-          variant="outline"
-          className="mb-8 gap-2 rounded-full"
-          onClick={backToFicha}
-        >
-          <ArrowLeft className="size-4" />
-          Volver a la ficha
-        </Button>
+        <PageBackButton label="Volver a la ficha" className="mb-8" onClick={backToFicha} />
 
         {accessQ.isLoading && (
           <div className="flex justify-center py-24">

@@ -4,26 +4,26 @@ import { getAzureOpenAIClient } from '../../lib/azureOpenAI'
 import { chatCompletionsCreateWithSamplingFallback } from './chatCompletionSamplingFallback'
 import { completionContentToPlainText } from './openaiMessageText'
 
-const SYSTEM_PROMPT = `You are an idea extraction specialist. Take raw unstructured input
-(notes, transcripts, articles, voice memos) and extract the core idea.
+const SYSTEM_PROMPT = `Eres un especialista en extracción de ideas. Toma un input crudo y no estructurado
+(notas, transcripciones, artículos, notas de voz) y extrae la idea central.
 
-Return ONLY a JSON object with this exact structure, no markdown, no explanation:
+Devuelve SOLO un objeto JSON con esta estructura exacta, sin markdown y sin explicación:
 {
-  "title": "5-8 word title that captures the essence",
-  "problem": "The specific problem this solves (1-2 sentences)",
-  "solution": "The proposed solution (1-2 sentences)",
-  "target_audience": "Who would use this (specific, not generic)",
-  "sector": "One of: tech, health, finance, education, travel, food, sports, entertainment, productivity, other",
-  "elevator_pitch": "One sentence. What it is, for whom, why it matters.",
+  "title": "Título de 5-8 palabras que capture la esencia",
+  "problem": "El problema específico que resuelve (1-2 frases)",
+  "solution": "La solución propuesta (1-2 frases)",
+  "target_audience": "Quién lo usaría (específico, no genérico)",
+  "sector": "Uno de: tech, health, finance, education, travel, food, sports, entertainment, productivity, other",
+  "elevator_pitch": "Una frase. Qué es, para quién y por qué importa.",
   "confidence": 0.0,
   "search_keywords": ["keyword1", "keyword2"]
 }
 
-Rules:
-- NEVER invent details not present in the input
-- Be specific, not generic
-- If input is too vague, set confidence below 0.4
-- search_keywords: 5-8 terms useful for market research`
+Reglas:
+- NUNCA inventes detalles que no estén presentes en el input
+- Sé específico, no genérico
+- Si el input es demasiado vago, pon confidence por debajo de 0.4
+- search_keywords: 5-8 términos útiles para investigación de mercado`
 
 type ExtractedIdea = {
   title: string
@@ -63,7 +63,7 @@ export async function extractIdea(rawText: string, hintSector?: string): Promise
       { role: 'system', content: SYSTEM_PROMPT },
       {
         role: 'user',
-        content: `Extract the idea from this input:\n\n${rawText}${hintSector ? `\n\nHint: user is interested in the ${hintSector} sector` : ''}`,
+        content: `Extrae la idea a partir de este input:\n\n${rawText}${hintSector ? `\n\nPista: al usuario le interesa el sector ${hintSector}` : ''}`,
       },
     ],
     temperature: 0.2,
@@ -76,7 +76,7 @@ export async function extractIdea(rawText: string, hintSector?: string): Promise
   try {
     parsed = JSON.parse(cleaned)
   } catch {
-    throw new Error('Extractor returned non-JSON response')
+    throw new Error('El extractor devolvió una respuesta que no es JSON')
   }
 
   return extractedIdeaSchema.parse(parsed)

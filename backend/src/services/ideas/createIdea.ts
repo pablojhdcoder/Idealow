@@ -43,12 +43,12 @@ export async function createIdeaFromInput(input: CreateIdeaInput): Promise<Creat
   for (const id of mergedIds) {
     const file = await prisma.file.findFirst({ where: { id, userId } })
     if (!file) {
-      throw new HttpError(404, 'File not found', 'IDEAS_FILE_NOT_FOUND')
+      throw new HttpError(404, 'Archivo no encontrado', 'IDEAS_FILE_NOT_FOUND')
     }
     if (file.ideaId != null) {
       throw new HttpError(
         409,
-        'File is already attached to an idea',
+        'El archivo ya está adjunto a una idea',
         'IDEAS_FILE_ALREADY_ATTACHED',
       )
     }
@@ -77,12 +77,16 @@ export async function createIdeaFromInput(input: CreateIdeaInput): Promise<Creat
       if (e instanceof Error && e.message === WHISPER_DEPLOYMENT_MISSING) {
         throw new HttpError(
           503,
-          'Audio transcription is not configured (set AZURE_OPENAI_DEPLOYMENT_WHISPER)',
+          'La transcripción de audio no está configurada (configura AZURE_OPENAI_DEPLOYMENT_WHISPER)',
           'IDEAS_WHISPER_NOT_CONFIGURED',
         )
       }
       if (e instanceof APIError) {
-        throw new HttpError(502, `Microsoft Foundry / Azure OpenAI error: ${e.message}`, 'IDEAS_AI_PROVIDER_ERROR')
+        throw new HttpError(
+          502,
+          `Error de Microsoft Foundry / Azure OpenAI: ${e.message}`,
+          'IDEAS_AI_PROVIDER_ERROR',
+        )
       }
       throw e
     }
@@ -95,7 +99,7 @@ export async function createIdeaFromInput(input: CreateIdeaInput): Promise<Creat
       : rawTextJoined
 
   if (!rawText.trim()) {
-    throw new HttpError(422, 'No content provided', 'IDEAS_NO_CONTENT')
+    throw new HttpError(422, 'No se proporcionó contenido', 'IDEAS_NO_CONTENT')
   }
 
   let extracted: Awaited<ReturnType<typeof extractIdea>>
@@ -105,7 +109,7 @@ export async function createIdeaFromInput(input: CreateIdeaInput): Promise<Creat
     if (e instanceof ZodError) {
       throw new HttpError(
         502,
-        'Idea extraction failed: invalid AI response',
+        'La extracción de la idea falló: respuesta de IA no válida',
         'IDEAS_AI_INVALID_RESPONSE',
         config.nodeEnv === 'development' ? e.flatten() : undefined,
       )
@@ -113,12 +117,16 @@ export async function createIdeaFromInput(input: CreateIdeaInput): Promise<Creat
     if (e instanceof Error && e.message === 'Extractor returned non-JSON response') {
       throw new HttpError(
         502,
-        'Idea extraction failed: model did not return JSON',
+        'La extracción de la idea falló: el modelo no devolvió JSON',
         'IDEAS_AI_NON_JSON_RESPONSE',
       )
     }
     if (e instanceof APIError) {
-      throw new HttpError(502, `Microsoft Foundry / Azure OpenAI error: ${e.message}`, 'IDEAS_AI_PROVIDER_ERROR')
+      throw new HttpError(
+        502,
+        `Error de Microsoft Foundry / Azure OpenAI: ${e.message}`,
+        'IDEAS_AI_PROVIDER_ERROR',
+      )
     }
     throw e
   }

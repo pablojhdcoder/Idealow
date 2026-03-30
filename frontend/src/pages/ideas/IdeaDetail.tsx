@@ -1,8 +1,9 @@
 import { useQuery } from '@tanstack/react-query'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, Loader2 } from 'lucide-react'
+import { Loader2 } from 'lucide-react'
 import AppShellHeader from '@/components/layout/AppShellHeader'
 import { Button } from '@/components/ui/button'
+import { PageBackButton } from '@/components/ui/page-back-button'
 import { IdeaExternalSharePanel } from '@/components/ideas/IdeaExternalSharePanel'
 import {
   IdeaFlashcardDetailView,
@@ -42,20 +43,12 @@ export default function IdeaDetail() {
       <AppShellHeader />
       <main className={appPageMainClassName('pb-16 pt-6 sm:pt-8')}>
         <div className="mb-8 flex flex-wrap items-center gap-3">
-          <Button
-            type="button"
-            variant="outline"
-            className="gap-2 rounded-full"
-            onClick={() => navigate(returnTo)}
-          >
-            <ArrowLeft className="size-4" />
-            {backLabel}
-          </Button>
+          <PageBackButton label={backLabel} onClick={() => navigate(returnTo)} />
           {(q.data?.flashcard.status === 'REFINING' || q.data?.flashcard.status === 'VALIDATED') && (
             <Button
               type="button"
               variant="outline"
-              className="rounded-full border-primary/40 bg-primary/5"
+              className="h-10 rounded-full border-primary/40 bg-primary/5 transition-colors hover:border-primary/40 hover:bg-primary/5 hover:text-primary"
               onClick={() => navigate(`/ideas/${id}/validar`, { state: location.state })}
             >
               {q.data.flashcard.status === 'VALIDATED' ? 'Ver validación' : 'Validar mercado'}
@@ -87,12 +80,14 @@ export default function IdeaDetail() {
               flashcard={q.data.flashcard}
               isOwner={q.data.isOwner}
               attachments={q.data.attachments}
-            />
-            <IdeaExternalSharePanel
-              ideaId={id}
-              refinedTitle={q.data.flashcard.refinedTitle}
-              status={q.data.flashcard.status}
-              isPublished={q.data.flashcard.isPublished}
+              sharePanel={
+                <IdeaExternalSharePanel
+                  ideaId={id}
+                  refinedTitle={q.data.flashcard.refinedTitle}
+                  status={q.data.flashcard.status}
+                  isPublished={q.data.flashcard.isPublished}
+                />
+              }
             />
           </div>
         )}

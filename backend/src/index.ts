@@ -85,7 +85,7 @@ app.listen(config.port, () => {
     }
     if (config.trustProxy === false) {
       logger.warn(
-        'TRUST_PROXY is disabled; behind a reverse proxy set TRUST_PROXY=1 (or a hop count) for correct IP-based rate limits',
+        'TRUST_PROXY está desactivado; detrás de un reverse proxy configura TRUST_PROXY=1 (o un número de saltos) para que el rate limit por IP sea correcto',
       )
     }
   }

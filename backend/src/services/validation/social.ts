@@ -143,7 +143,7 @@ export async function validateSocial(idea: ValidationIdeaInput): Promise<SocialV
     messages: [
       {
         role: 'user',
-        content: `You assess overall social / creator market signal (0-100) for a product idea.
+        content: `Evalúas la señal global de mercado en redes / creadores (0-100) para una idea de producto.
 
 ## Datos ya obtenidos de YouTube (solo usa esto para el bloque "youtube" más abajo)
 - Vídeos (búsqueda general): ${ytLong.count}. Títulos de muestra: ${JSON.stringify(ytLong.titles)}
@@ -171,16 +171,16 @@ Idea: ${idea.elevator_pitch}
 Problem: ${idea.problem_statement}
 Keywords: ${idea.search_keywords.join(', ')}
 
-Return ONLY JSON:
+Devuelve SOLO JSON:
 {
   "score": 0-100,
-  "summary": "3-4 sentences in Spanish, holistic market read",
+  "summary": "3-4 frases en español, lectura global del mercado",
   "youtube_long_count": ${ytLong.count},
   "youtube_shorts_count": ${ytShort.count},
   "ai_social_search": {
     "youtube": {
       "signal": 0-100,
-      "synthetic_findings": "Spanish only: YouTube sample titles themes; no other networks; no API words",
+      "synthetic_findings": "Solo español: temas de títulos de muestra de YouTube; sin otras redes; sin palabras tipo API",
       "evidence_queries": [
         { "label": "…", "query": "…" },
         { "label": "…", "query": "…" }
@@ -188,7 +188,7 @@ Return ONLY JSON:
     },
     "x": {
       "signal": 0-100,
-      "synthetic_findings": "Spanish, 2-4 sentences",
+      "synthetic_findings": "Español, 2-4 frases",
       "evidence_queries": [
         { "label": "…", "query": "…" },
         { "label": "…", "query": "…" }

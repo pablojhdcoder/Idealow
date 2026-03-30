@@ -91,7 +91,7 @@ export default function Onboarding() {
 
       <div className={appPageMainClassName('flex-1 py-10')}>
         <p className="mb-2 text-xs font-medium tracking-widest text-primary uppercase">
-          Step {step + 1} of 3
+          Paso {step + 1} de 3
         </p>
         <AnimatePresence mode="wait">
           <motion.div
@@ -108,7 +108,7 @@ export default function Onboarding() {
             </h1>
             <p className="mb-6 mt-1.5 text-sm text-muted-foreground">
               {step === 0 && 'Elige hasta 5 sectores'}
-              {step === 1 && 'Tu nivel como builder'}
+              {step === 1 && 'Tu nivel como constructor'}
               {step === 2 && 'Tu objetivo principal'}
             </p>
 
@@ -128,7 +128,7 @@ export default function Onboarding() {
               className="h-10 rounded-full px-4 text-muted-foreground hover:text-foreground"
             >
               <ChevronLeft className="size-4" />
-              Back
+              Atrás
             </Button>
           ) : (
             <span />

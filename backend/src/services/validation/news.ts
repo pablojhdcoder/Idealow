@@ -163,7 +163,7 @@ export async function validateNews(idea: ValidationIdeaInput): Promise<NewsValid
     messages: [
       {
         role: 'user',
-        content: `You analyze RECENT NEWS relevance for this idea (0-100). Headlines below are verbatim from Google News RSS (public); there may be irrelevant items.
+        content: `Analizas la relevancia de NOTICIAS RECIENTES para esta idea (0-100). Los titulares de abajo son literales del RSS público de Google News; puede haber elementos irrelevantes.
 
 Headlines (${headlines.length}):
 ${JSON.stringify(headlines.slice(0, 18))}
@@ -171,11 +171,11 @@ ${JSON.stringify(headlines.slice(0, 18))}
 Idea: ${idea.elevator_pitch}
 Problem: ${idea.problem_statement}
 
-Rules:
-- "top_headlines": pick at most 4 headlines that are MOST relevant to this specific problem/idea. Each string must be copied exactly from the list above (or differ only by trivial whitespace).
-- If none are relevant, return an empty array and a low score with summary explaining mismatch.
+Reglas:
+- "top_headlines": elige como máximo 4 titulares que sean los MÁS relevantes para este problema/idea. Cada string debe copiarse exactamente de la lista anterior (o diferir solo en espacios triviales).
+- Si ninguno es relevante, devuelve un array vacío y una puntuación baja con un resumen explicando la falta de encaje.
 
-Return ONLY JSON:
+Devuelve SOLO JSON:
 {
   "score": 0-100,
   "summary": "2 sentences in Spanish: news cycle fit, timeliness, caveats",

@@ -25,7 +25,7 @@ export async function parseJsonResponse<T>(res: Response): Promise<T> {
 
   if (!res.ok) {
     const err = body as ErrorBody
-    const message = err.error?.trim() || res.statusText || 'Request failed'
+    const message = err.error?.trim() || 'Error en la solicitud'
     throw new ApiError(res.status, message, err.code, err.details)
   }
 

@@ -36,7 +36,7 @@ const profileSchema = z
     email: z.string().trim().email().optional(),
   })
   .refine(data => !(data.avatarFileId !== undefined && data.avatarUrl !== undefined), {
-    message: 'Cannot send both avatarFileId and avatarUrl',
+    message: 'No puedes enviar ambos: avatarFileId y avatarUrl',
   })
   .refine(
     data =>
@@ -48,7 +48,7 @@ const profileSchema = z
       data.username !== undefined ||
       data.email !== undefined,
     {
-      message: 'At least one profile field must be provided',
+      message: 'Debes proporcionar al menos un campo de perfil',
     },
   )
 

@@ -10,14 +10,14 @@ export const requireAuth = (req: Request, res: Response, next: NextFunction) => 
   const token = req.cookies?.token || bearer
 
   if (!token) {
-    return sendError(res, 401, 'Unauthorized', 'AUTH_UNAUTHORIZED')
+    return sendError(res, 401, 'No autenticado', 'AUTH_UNAUTHORIZED')
   }
 
   try {
     request.user = verifyToken(token)
     next()
   } catch {
-    return sendError(res, 401, 'Invalid token', 'AUTH_INVALID_TOKEN')
+    return sendError(res, 401, 'Token inválido', 'AUTH_INVALID_TOKEN')
   }
 }
 

@@ -1,7 +1,9 @@
 docs-pack-capture-new-idea/
-manual-test-guide/R
+manual-test-guide/
 
 # Si se añade .env en la raíz del monorepo
 .env
 .env.*
 !.env.example
+
+.cursor/

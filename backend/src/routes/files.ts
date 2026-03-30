@@ -75,20 +75,20 @@ const uploadSingle = (req: Request, res: Response, next: NextFunction) => {
         return sendError(
           res,
           413,
-          `File too large (max ${config.maxUploadMb}MB)`,
+          `Archivo demasiado grande (máx. ${config.maxUploadMb}MB)`,
           'FILES_TOO_LARGE',
         )
       }
-      return sendError(res, 422, err.message, 'FILES_UPLOAD_INVALID')
+      return sendError(res, 422, 'Error al subir el archivo', 'FILES_UPLOAD_INVALID')
     }
     if (err instanceof Error) {
       if (err.message === 'Unsupported file type') {
-        return sendError(res, 422, err.message, 'FILES_UNSUPPORTED_TYPE')
+        return sendError(res, 422, 'Tipo de archivo no compatible', 'FILES_UNSUPPORTED_TYPE')
       }
-      return sendError(res, 422, err.message, 'FILES_UPLOAD_INVALID')
+      return sendError(res, 422, 'Error al subir el archivo', 'FILES_UPLOAD_INVALID')
     }
     if (err) {
-      return sendError(res, 500, 'Upload failed', 'FILES_UPLOAD_FAILED')
+      return sendError(res, 500, 'Error al subir el archivo', 'FILES_UPLOAD_FAILED')
     }
     next()
   })
@@ -128,7 +128,7 @@ router.post(
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Error al subir el archivo'
       if (message === 'Unsupported file type') {
-        return sendError(res, 422, message, 'FILES_UNSUPPORTED_TYPE')
+      return sendError(res, 422, 'Tipo de archivo no compatible', 'FILES_UNSUPPORTED_TYPE')
       }
       throw new HttpError(500, 'Error al subir el archivo', 'FILES_UPLOAD_FAILED')
     }
@@ -142,7 +142,7 @@ router.post(
   asyncHandler(async (req, res) => {
     const request = req as RequestWithUser
     if (!request.user) {
-      return sendError(res, 401, 'Unauthorized', 'AUTH_UNAUTHORIZED')
+      return sendError(res, 401, 'No autenticado', 'AUTH_UNAUTHORIZED')
     }
     const { fileIds } = req.body as { fileIds: string[] }
     const result = await cleanupOrphanedUploads({

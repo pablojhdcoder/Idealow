@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useInfiniteQuery } from '@tanstack/react-query'
 import { Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Tag } from '@/components/ui/tag'
 import { fetchIdeaFeedbackComments } from '@/lib/api/ideas'
 import { getUserAvatarUrl } from '@/lib/avatar'
 import type { FeedbackComment } from '@/types/flashcard'
@@ -51,6 +52,20 @@ type Props = {
   enabled: boolean
 }
 
+function voteBadgeClass(vote: string): string {
+  if (vote === 'USEFUL') return 'bg-emerald-500/12 text-emerald-700'
+  if (vote === 'INTERESTING') return 'bg-amber-500/12 text-amber-800'
+  if (vote === 'NOT_USEFUL') return 'bg-red-500/12 text-red-700'
+  return 'bg-primary/10 text-primary'
+}
+
+function formatVoteLabel(vote: string): string {
+  if (vote === 'USEFUL') return 'Útil'
+  if (vote === 'INTERESTING') return 'Interesante'
+  if (vote === 'NOT_USEFUL') return 'Poco útil'
+  return vote
+}
+
 export function CommentList({ ideaId, enabled }: Props) {
   const q = useInfiniteQuery({
     queryKey: ['idea-feedback', ideaId] as const,
@@ -96,11 +111,15 @@ export function CommentList({ ideaId, enabled }: Props) {
           <li key={c.id} className="flex gap-3 py-3 first:pt-0">
             <CommentAvatar comment={c} />
             <div className="min-w-0 flex-1">
-              <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-                <span className="text-sm font-medium text-foreground">{c.user.username}</span>
-                <span className="text-[10px] text-muted-foreground">{formatDate(c.createdAt)}</span>
-                <span className="rounded-full bg-primary/10 px-1.5 py-px text-[10px] font-medium text-primary">
-                  {c.vote}
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex min-w-0 items-center gap-1.5">
+                  <span className="truncate text-sm font-medium text-foreground">{c.user.username}</span>
+                  <Tag size="xs" className={voteBadgeClass(c.vote)}>
+                  {formatVoteLabel(c.vote)}
+                  </Tag>
+                </div>
+                <span className="shrink-0 text-[10px] text-muted-foreground">
+                  {formatDate(c.createdAt)}
                 </span>
               </div>
               {c.comment ? (

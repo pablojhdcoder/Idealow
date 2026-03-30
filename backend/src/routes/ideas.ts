@@ -60,11 +60,11 @@ router.get(
   requireAuth,
   asyncHandler(async (req, res) => {
     if (!req.user) {
-      return sendError(res, 401, 'Unauthorized', 'AUTH_UNAUTHORIZED')
+      return sendError(res, 401, 'No autenticado', 'AUTH_UNAUTHORIZED')
     }
     const parsed = listIdeasQuerySchema.safeParse(req.query)
     if (!parsed.success) {
-      return sendError(res, 422, 'Validation failed', 'VALIDATION_ERROR', parsed.error.flatten())
+      return sendError(res, 422, 'Validación fallida', 'VALIDATION_ERROR', parsed.error.flatten())
     }
     const result = await listIdeasForUser(req.user.userId, parsed.data)
     return res.json(result)
@@ -78,12 +78,12 @@ router.get(
   validateParams(ideaIdParamsSchema),
   asyncHandler(async (req, res) => {
     if (!req.user) {
-      return sendError(res, 401, 'Unauthorized', 'AUTH_UNAUTHORIZED')
+      return sendError(res, 401, 'No autenticado', 'AUTH_UNAUTHORIZED')
     }
     const { id } = req.params as z.infer<typeof ideaIdParamsSchema>
     const parsedQ = similarQuerySchema.safeParse(req.query)
     if (!parsedQ.success) {
-      return sendError(res, 422, 'Validation failed', 'VALIDATION_ERROR', parsedQ.error.flatten())
+      return sendError(res, 422, 'Validación fallida', 'VALIDATION_ERROR', parsedQ.error.flatten())
     }
     const limit = parsedQ.data.limit ?? 8
     const idea = await prisma.idea.findFirst({
@@ -91,13 +91,13 @@ router.get(
       select: { id: true },
     })
     if (!idea) {
-      return sendError(res, 404, 'Idea not found', 'IDEAS_NOT_FOUND')
+      return sendError(res, 404, 'Idea no encontrada', 'IDEAS_NOT_FOUND')
     }
     if (!hasEmbeddingsConfig()) {
       return sendError(
         res,
         503,
-        'Similar ideas is not configured (set AZURE_OPENAI_DEPLOYMENT_EMBEDDINGS or EMBEDDING_MODEL).',
+        'Las ideas similares no están configuradas (configura AZURE_OPENAI_DEPLOYMENT_EMBEDDINGS o EMBEDDING_MODEL).',
         'SEMANTIC_NOT_CONFIGURED',
       )
     }
@@ -114,19 +114,19 @@ router.get(
   validateParams(ideaIdParamsSchema),
   asyncHandler(async (req, res) => {
     if (!req.user) {
-      return sendError(res, 401, 'Unauthorized', 'AUTH_UNAUTHORIZED')
+      return sendError(res, 401, 'No autenticado', 'AUTH_UNAUTHORIZED')
     }
     const { id } = req.params as z.infer<typeof ideaIdParamsSchema>
     const parsedQ = similarQuerySchema.safeParse(req.query)
     if (!parsedQ.success) {
-      return sendError(res, 422, 'Validation failed', 'VALIDATION_ERROR', parsedQ.error.flatten())
+      return sendError(res, 422, 'Validación fallida', 'VALIDATION_ERROR', parsedQ.error.flatten())
     }
     const limit = parsedQ.data.limit ?? 8
     if (!hasEmbeddingsConfig()) {
       return sendError(
         res,
         503,
-        'Similar ideas is not configured (set AZURE_OPENAI_DEPLOYMENT_EMBEDDINGS or EMBEDDING_MODEL).',
+        'Las ideas similares no están configuradas (configura AZURE_OPENAI_DEPLOYMENT_EMBEDDINGS o EMBEDDING_MODEL).',
         'SEMANTIC_NOT_CONFIGURED',
       )
     }
@@ -147,7 +147,7 @@ router.get(
     const { id } = req.params as z.infer<typeof ideaIdParamsSchema>
     const parsed = ideaFeedbackListQuerySchema.safeParse(req.query)
     if (!parsed.success) {
-      return sendError(res, 422, 'Validation failed', 'VALIDATION_ERROR', parsed.error.flatten())
+      return sendError(res, 422, 'Validación fallida', 'VALIDATION_ERROR', parsed.error.flatten())
     }
     const limit = parsed.data.limit ?? 20
     const { items, nextCursor } = await listIdeaFeedbackComments(id, {
@@ -175,7 +175,7 @@ router.post(
   validateBody(ideaFeedbackBodySchema),
   asyncHandler(async (req, res) => {
     if (!req.user) {
-      return sendError(res, 401, 'Unauthorized', 'AUTH_UNAUTHORIZED')
+      return sendError(res, 401, 'No autenticado', 'AUTH_UNAUTHORIZED')
     }
     const { id } = req.params as z.infer<typeof ideaIdParamsSchema>
     const body = req.body as z.infer<typeof ideaFeedbackBodySchema>
@@ -197,7 +197,7 @@ router.patch(
   validateBody(patchIdeaBodySchema),
   asyncHandler(async (req, res) => {
     if (!req.user) {
-      return sendError(res, 401, 'Unauthorized', 'AUTH_UNAUTHORIZED')
+      return sendError(res, 401, 'No autenticado', 'AUTH_UNAUTHORIZED')
     }
     const { id } = req.params as z.infer<typeof ideaIdParamsSchema>
     const { isPublished } = req.body as z.infer<typeof patchIdeaBodySchema>
@@ -242,7 +242,7 @@ router.get(
 
 const createIdeaHandler = asyncHandler(async (req, res) => {
   if (!req.user) {
-    return sendError(res, 401, 'Unauthorized', 'AUTH_UNAUTHORIZED')
+    return sendError(res, 401, 'No autenticado', 'AUTH_UNAUTHORIZED')
   }
   const userId = req.user.userId
   const { content, fileId, fileIds, sector, isPublished } = req.body as CreateIdeaBody
@@ -274,7 +274,7 @@ const createIdeaHandler = asyncHandler(async (req, res) => {
                 fileIds: merged,
                 cleanup,
               },
-              'Partial cleanup after failed idea creation',
+              'Limpieza parcial tras fallar la creación de la idea',
             )
           }
         } catch (cleanupError) {
@@ -284,7 +284,7 @@ const createIdeaHandler = asyncHandler(async (req, res) => {
               fileIds: merged,
               cleanupError,
             },
-            'Cleanup failed after idea creation error',
+            'Falló la limpieza tras un error al crear la idea',
           )
         }
       }
@@ -302,7 +302,7 @@ router.post(
   validateParams(ideaIdParamsSchema),
   asyncHandler(async (req, res) => {
     if (!req.user) {
-      return sendError(res, 401, 'Unauthorized', 'AUTH_UNAUTHORIZED')
+      return sendError(res, 401, 'No autenticado', 'AUTH_UNAUTHORIZED')
     }
     const { id } = req.params as z.infer<typeof ideaIdParamsSchema>
     const questions = await loadRefinementQuestions(req.user.userId, id)
@@ -318,7 +318,7 @@ router.post(
   validateBody(refineAnswersBodySchema),
   asyncHandler(async (req, res) => {
     if (!req.user) {
-      return sendError(res, 401, 'Unauthorized', 'AUTH_UNAUTHORIZED')
+      return sendError(res, 401, 'No autenticado', 'AUTH_UNAUTHORIZED')
     }
     const { id } = req.params as z.infer<typeof ideaIdParamsSchema>
     const { answers } = req.body as z.infer<typeof refineAnswersBodySchema>

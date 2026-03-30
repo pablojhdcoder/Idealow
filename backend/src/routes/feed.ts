@@ -13,7 +13,7 @@ router.get(
   asyncHandler(async (req, res) => {
     const parsed = feedQuerySchema.safeParse(req.query)
     if (!parsed.success) {
-      return sendError(res, 422, 'Validation failed', 'VALIDATION_ERROR', parsed.error.flatten())
+      return sendError(res, 422, 'Validación fallida', 'VALIDATION_ERROR', parsed.error.flatten())
     }
     const q = parsed.data
     const limit = q.limit ?? 20

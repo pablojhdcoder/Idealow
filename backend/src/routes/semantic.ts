@@ -20,17 +20,17 @@ router.get(
   semanticExploreRateLimit,
   asyncHandler(async (req, res) => {
     if (!req.user) {
-      return sendError(res, 401, 'Unauthorized', 'AUTH_UNAUTHORIZED')
+      return sendError(res, 401, 'No autenticado', 'AUTH_UNAUTHORIZED')
     }
     const parsed = searchQuerySchema.safeParse(req.query)
     if (!parsed.success) {
-      return sendError(res, 422, 'Validation failed', 'VALIDATION_ERROR', parsed.error.flatten())
+      return sendError(res, 422, 'Validación fallida', 'VALIDATION_ERROR', parsed.error.flatten())
     }
     if (!hasEmbeddingsConfig()) {
       return sendError(
         res,
         503,
-        'Semantic search is not configured (set AZURE_OPENAI_DEPLOYMENT_EMBEDDINGS or EMBEDDING_MODEL).',
+        'La búsqueda semántica no está configurada (configura AZURE_OPENAI_DEPLOYMENT_EMBEDDINGS o EMBEDDING_MODEL).',
         'SEMANTIC_NOT_CONFIGURED',
       )
     }

@@ -42,7 +42,7 @@ export function SheetContent({
         {showCloseButton && (
           <SheetPrimitive.Close render={<Button variant="ghost" size="icon" className="absolute right-2 top-2" />}>
             <XIcon />
-            <span className="sr-only">Close</span>
+            <span className="sr-only">Cerrar</span>
           </SheetPrimitive.Close>
         )}
       </SheetPrimitive.Popup>

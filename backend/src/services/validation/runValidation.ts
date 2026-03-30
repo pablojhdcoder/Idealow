@@ -42,16 +42,16 @@ function emit(ideaId: string, data: object) {
 
 function sourceFailurePublicMessage(err: unknown): string {
   if (config.nodeEnv === 'production') {
-    return 'Source validation failed'
+    return 'Falló la validación de la fuente'
   }
-  return err instanceof Error ? err.message : 'Unknown error'
+  return err instanceof Error ? err.message : 'Error desconocido'
 }
 
 function executionFailurePublicMessage(err: unknown): string {
   if (config.nodeEnv === 'production') {
-    return 'Validation failed'
+    return 'Falló la validación'
   }
-  return err instanceof Error ? err.message : 'Validation failed'
+  return err instanceof Error ? err.message : 'Falló la validación'
 }
 
 export async function runValidation(ideaId: string, userId: string): Promise<void> {
@@ -60,7 +60,7 @@ export async function runValidation(ideaId: string, userId: string): Promise<voi
     emit(ideaId, {
       type: 'error',
       code: 'VALIDATION_ALREADY_RUNNING',
-      message: 'Validation is already running for this idea.',
+      message: 'La validación ya se está ejecutando para esta idea.',
     })
     return
   }
@@ -77,7 +77,7 @@ async function executeValidation(ideaId: string, userId: string): Promise<void> 
     where: { id: ideaId, userId },
   })
   if (!idea) {
-    emit(ideaId, { type: 'error', code: 'VALIDATION_IDEA_NOT_FOUND', message: 'Idea not found' })
+    emit(ideaId, { type: 'error', code: 'VALIDATION_IDEA_NOT_FOUND', message: 'Idea no encontrada' })
     return
   }
 
@@ -91,7 +91,7 @@ async function executeValidation(ideaId: string, userId: string): Promise<void> 
     emit(ideaId, {
       type: 'error',
       code: 'VALIDATION_BAD_STATUS',
-      message: 'Refine the idea before running validation.',
+      message: 'Refina la idea antes de ejecutar la validación.',
     })
     return
   }
@@ -101,7 +101,7 @@ async function executeValidation(ideaId: string, userId: string): Promise<void> 
     emit(ideaId, {
       type: 'error',
       code: 'VALIDATION_NO_REFINED_CONTENT',
-      message: 'Missing refined content to validate.',
+      message: 'Falta el contenido refinado para validar.',
     })
     return
   }
@@ -113,7 +113,7 @@ async function executeValidation(ideaId: string, userId: string): Promise<void> 
       type: 'error',
       code: 'VALIDATION_BUSY',
       message:
-        'Another validation is in progress or the slot is locked. Try again in a few minutes.',
+        'Hay otra validación en progreso o el espacio está bloqueado. Vuelve a intentarlo en unos minutos.',
     })
     return
   }

@@ -41,12 +41,12 @@ export async function validateCompetitors(
     messages: [
       {
         role: 'user',
-        content: `Find competitors for this idea and analyze the market gap.
+        content: `Encuentra competidores para esta idea y analiza la brecha de mercado.
 Title: ${idea.elevator_pitch}
 Problem: ${idea.problem_statement}
 Keywords: ${idea.search_keywords.join(', ')}
 
-Return ONLY this JSON:
+Devuelve SOLO este JSON:
 {
   "score": 0-100,
   "competitors": [
@@ -54,17 +54,17 @@ Return ONLY this JSON:
       "name": "...",
       "url": "...",
       "description": "...",
-      "strength": "what they do well",
-      "weakness": "their main gap from user reviews",
+      "strength": "qué hacen bien",
+      "weakness": "su principal carencia según usuarios",
       "approximate_users": "..."
     }
   ],
   "gap_analysis": {
-    "gap": "The clearest unmet need",
-    "positioning": "How this idea should position itself",
-    "advantage": "Key differentiator"
+    "gap": "La necesidad más clara no satisfecha",
+    "positioning": "Cómo debería posicionarse esta idea",
+    "advantage": "Diferenciador clave"
   },
-  "summary": "2 sentence market overview"
+  "summary": "Resumen de mercado en 2 frases (español)"
 }`,
       },
     ],
@@ -78,7 +78,7 @@ Return ONLY this JSON:
     return {
       score: 50,
       competitors: [],
-      summary: 'Competitor analysis could not be parsed; neutral score applied.',
+      summary: 'No se pudo interpretar el análisis de competidores; se aplicó una puntuación neutral.',
     }
   }
   return parsed.data

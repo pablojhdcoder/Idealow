@@ -14,14 +14,14 @@ function buildAppForError(err: unknown) {
 describe('errorHandler envelope', () => {
   it('serializa HttpError con code y details', async () => {
     const app = buildAppForError(
-      new HttpError(422, 'Validation failed', 'VALIDATION_ERROR', { fieldErrors: { email: ['required'] } }),
+      new HttpError(422, 'Validación fallida', 'VALIDATION_ERROR', { fieldErrors: { email: ['required'] } }),
     )
 
     const response = await request(app).get('/boom')
 
     expect(response.status).toBe(422)
     expect(response.body).toEqual({
-      error: 'Validation failed',
+      error: 'Validación fallida',
       code: 'VALIDATION_ERROR',
       details: { fieldErrors: { email: ['required'] } },
     })

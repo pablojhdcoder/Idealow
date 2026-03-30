@@ -29,16 +29,16 @@ export async function validateTrends(idea: ValidationIdeaInput): Promise<TrendsV
     messages: [
       {
         role: 'user',
-        content: `You estimate relative search / cultural interest momentum (NOT financial advice) for these product keywords over the next 12 months.
+        content: `Estimas el momentum relativo de interés (búsquedas / conversación cultural) para estas keywords de producto durante los próximos 12 meses (NO es asesoramiento financiero).
 
 Idea: ${idea.elevator_pitch}
 Problem: ${idea.problem_statement}
 Keywords: ${kw}
 
-Return ONLY JSON:
+Devuelve SOLO JSON:
 {
-  "score": 0-100 (higher = more people likely searching / discussing this problem space),
-  "summary": "2 sentences explaining the estimate",
+  "score": 0-100 (más alto = más probable que la gente busque / hable de este espacio de problema),
+  "summary": "2 frases en español explicando la estimación",
   "related_topics": ["topic1", "topic2", "topic3"]
 }`,
       },
@@ -51,7 +51,7 @@ Return ONLY JSON:
   if (!parsed.success) {
     return {
       score: 40,
-      summary: 'Trend signal unavailable (invalid model JSON). Neutral default applied.',
+      summary: 'Señal de tendencia no disponible (JSON del modelo inválido). Se aplicó un valor neutral.',
       related_topics: [],
       explore_links: [],
     }

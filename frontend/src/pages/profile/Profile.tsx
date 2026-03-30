@@ -9,11 +9,13 @@ import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { PageBackButton } from '@/components/ui/page-back-button'
 import { Switch } from '@/components/ui/switch'
 import { Separator } from '@/components/ui/separator'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Tag } from '@/components/ui/tag'
 import { getUserAvatarUrl } from '@/lib/avatar'
 import { uploadFile } from '@/lib/api/files'
 import { ApiError } from '@/lib/api/client'
@@ -24,9 +26,9 @@ import { sectorPillStyle } from '@/lib/sectorColors'
 import { cn } from '@/lib/utils'
 
 const GOAL_LABELS: Record<string, string> = {
-  HACKATHON: 'Hackathon',
+  HACKATHON: 'Hackatón',
   SIDE_PROJECT: 'Proyecto paralelo',
-  STARTUP: 'Startup',
+  STARTUP: 'Empresa emergente',
   LEARNING: 'Aprendizaje',
 }
 
@@ -73,7 +75,6 @@ export default function Profile() {
   const [resettingAvatar, setResettingAvatar] = useState(false)
   const avatarBusy = savingAvatar || resettingAvatar
   const avatarFileInputRef = useRef<HTMLInputElement>(null)
-  const [notifyEmail, setNotifyEmail] = useState(true)
   const [privateByDefault, setPrivateByDefault] = useState(readPrivateIdeasByDefault)
   const [openResetDialog, setOpenResetDialog] = useState(false)
 
@@ -262,6 +263,9 @@ export default function Profile() {
     <div className="min-h-screen bg-background">
       <AppShellHeader />
       <main className={appPageMainClassName('py-8 pb-16')}>
+        <motion.div {...fadeUp} transition={{ duration: 0.28 }} className="mb-5">
+          <PageBackButton label="Volver al dashboard" to="/dashboard" />
+        </motion.div>
         <motion.div {...fadeUp} transition={{ duration: 0.4 }} className="mb-8">
           <p className="text-xs font-medium uppercase tracking-widest text-primary/80">Cuenta</p>
           <h1 className="mt-1 font-serif text-3xl text-foreground sm:text-4xl">Tu perfil</h1>
@@ -300,7 +304,7 @@ export default function Profile() {
                         <div className="mt-4 flex flex-wrap justify-center gap-2 sm:justify-start">
                           <Badge
                             variant="secondary"
-                            className="rounded-full border-0 bg-background/80 px-3 py-0.5 text-xs font-medium text-foreground shadow-sm backdrop-blur-sm"
+                            className="rounded-full bg-background/80 px-3 py-0.5 text-xs font-medium text-foreground shadow-sm backdrop-blur-sm"
                           >
                             {goalLabel(user.goal)}
                           </Badge>
@@ -587,13 +591,14 @@ export default function Profile() {
                       <div className="mt-4 flex flex-wrap gap-2">
                         {user.sectors.length > 0 ? (
                           user.sectors.map(sector => (
-                            <span
+                            <Tag
                               key={sector}
-                              className="inline-flex items-center rounded-full px-3 py-1 text-xs font-medium capitalize"
+                              size="md"
+                              className="capitalize font-medium"
                               style={sectorPillStyle(sector)}
                             >
                               {sector}
-                            </span>
+                            </Tag>
                           ))
                         ) : (
                           <span className="text-sm text-muted-foreground">Aún no elegiste sectores.</span>
@@ -626,28 +631,14 @@ export default function Profile() {
                       </TooltipTrigger>
                       <TooltipContent side="bottom" className="max-w-xs rounded-xl text-xs leading-relaxed">
                         Las ideas nuevas están pensadas para la comunidad tras validar. «Modo privado» solo afecta al
-                        interruptor por defecto al crear una idea (se guarda en este dispositivo).
+                        interruptor por defecto al crear una idea.
                       </TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
                 </div>
-                <p className="mt-1 text-xs text-muted-foreground">Ajustes locales y de notificaciones.</p>
+                <p className="mt-1 text-xs text-muted-foreground">Ajustes locales de privacidad.</p>
 
                 <div className="mt-6 space-y-3">
-                  <div className="flex items-start justify-between gap-4 rounded-2xl border border-border/70 bg-muted/10 p-4">
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium text-foreground">Notificaciones por correo</p>
-                      <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                        Alertas de validación y novedades (próximamente en tu bandeja).
-                      </p>
-                    </div>
-                    <Switch
-                      checked={notifyEmail}
-                      onCheckedChange={setNotifyEmail}
-                      className="shrink-0 data-[state=checked]:bg-primary"
-                    />
-                  </div>
-
                   <div className="flex items-start justify-between gap-4 rounded-2xl border border-border/70 bg-muted/10 p-4">
                     <div className="min-w-0">
                       <p className="text-sm font-medium text-foreground">Privado por defecto al crear</p>
@@ -681,8 +672,8 @@ export default function Profile() {
                     <DialogHeader>
                       <DialogTitle className="font-serif text-xl">Restablecer preferencias</DialogTitle>
                       <DialogDescription className="text-sm leading-relaxed">
-                        Volverás a las opciones recomendadas: notificaciones activadas y publicación comunitaria sugerida
-                        al crear ideas.
+                        Volverás a la opción recomendada: publicación comunitaria sugerida al crear
+                        ideas.
                       </DialogDescription>
                     </DialogHeader>
                     <DialogFooter className="gap-2 sm:gap-0">
@@ -696,7 +687,6 @@ export default function Profile() {
                       <Button
                         className="rounded-full"
                         onClick={() => {
-                          setNotifyEmail(true)
                           setPrivateByDefault(false)
                           writePrivateIdeasByDefault(false)
                           setOpenResetDialog(false)

@@ -44,7 +44,7 @@ export async function loadRefinementQuestions(
     where: { id: ideaId, userId },
   })
   if (!idea) {
-    throw new HttpError(404, 'Idea not found', 'IDEAS_NOT_FOUND')
+    throw new HttpError(404, 'Idea no encontrada', 'IDEAS_NOT_FOUND')
   }
 
   const { problem, solution, target_audience } = extractionFromRefinedContent(
@@ -71,7 +71,7 @@ export async function submitRefinement(
     include: { user: true },
   })
   if (!idea) {
-    throw new HttpError(404, 'Idea not found', 'IDEAS_NOT_FOUND')
+    throw new HttpError(404, 'Idea no encontrada', 'IDEAS_NOT_FOUND')
   }
 
   const prevContent =

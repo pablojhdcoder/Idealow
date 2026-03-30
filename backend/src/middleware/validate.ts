@@ -10,7 +10,7 @@ export const validateBody =
       return sendError(
         res,
         422,
-        'Validation failed',
+        'Validación fallida',
         'VALIDATION_ERROR',
         result.error.flatten(),
       )
@@ -28,7 +28,7 @@ export const validateParams =
       return sendError(
         res,
         422,
-        'Validation failed',
+        'Validación fallida',
         'VALIDATION_ERROR',
         result.error.flatten(),
       )

@@ -80,7 +80,7 @@ export default function Register() {
                   required
                   autoComplete="email"
                   className="pl-10 pr-4"
-                  placeholder="you@example.com"
+                  placeholder="tu@ejemplo.com"
                 />
               </div>
             </div>
@@ -95,7 +95,7 @@ export default function Register() {
                 minLength={3}
                 maxLength={30}
                 autoComplete="username"
-                placeholder="yourname"
+                placeholder="tu nombre"
               />
             </div>
 

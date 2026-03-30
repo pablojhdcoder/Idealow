@@ -6,53 +6,53 @@ import { getAzureOpenAIClient } from '../../lib/azureOpenAI'
 import { chatCompletionsCreateWithSamplingFallback } from './chatCompletionSamplingFallback'
 import { completionContentToPlainText } from './openaiMessageText'
 
-const QUESTIONS_PROMPT = `You are a product strategist helping refine an idea before market validation.
+const QUESTIONS_PROMPT = `Eres un estratega de producto que ayuda a refinar una idea antes de la validación de mercado.
 
-Generate exactly 5 refinement questions. Each must:
-- Be concrete and specific to THIS idea (never generic)
-- Have 3-4 meaningfully different answer options
-- Always include a "Something else" option with id "custom"
-- Be answerable in under 10 seconds
+Genera exactamente 5 preguntas de refinamiento. Cada una debe:
+- Ser concreta y específica para ESTA idea (nunca genérica)
+- Tener 3-4 opciones de respuesta claramente diferentes
+- Incluir siempre una opción "Otra" con id "custom"
+- Poder responderse en menos de 10 segundos
 
-Return ONLY this JSON, no markdown:
+Devuelve SOLO este JSON, sin markdown:
 {
   "questions": [
     {
       "id": "q1",
-      "question": "Question text here",
-      "context": "One sentence: why this matters for validation",
+      "question": "Texto de la pregunta aquí",
+      "context": "Una frase: por qué esto importa para la validación",
       "options": [
-        { "id": "a", "label": "Short label", "detail": "Optional brief explanation" },
+        { "id": "a", "label": "Etiqueta corta", "detail": "Breve explicación opcional" },
         { "id": "b", "label": "...", "detail": "..." },
         { "id": "c", "label": "...", "detail": "..." },
-        { "id": "custom", "label": "Something else", "detail": null }
+        { "id": "custom", "label": "Otra", "detail": null }
       ]
     }
   ]
 }
 
-Topics must cover in this order:
-1. Who specifically PAYS for this (not just uses it)
-2. The main competing solution they currently use
-3. The ONE feature without which this product doesn't exist
-4. The most realistic first distribution channel
-5. Timeline to first paying customer`
+Los temas deben cubrirse en este orden:
+1. Quién PAGA específicamente por esto (no solo quién lo usa)
+2. La principal alternativa/solución competidora que usan ahora
+3. La ÚNICA funcionalidad sin la cual este producto no existe
+4. El primer canal de distribución más realista
+5. Tiempo estimado hasta el primer cliente de pago`
 
-const SYNTHESIS_PROMPT = `You are a product strategist. Combine the original idea with the user's 
-refinement answers to produce a sharper, more concrete version.
+const SYNTHESIS_PROMPT = `Eres un estratega de producto. Combina la idea original con las respuestas de refinamiento del usuario
+para producir una versión más nítida, concreta y accionable.
 
-Return ONLY this JSON, no markdown:
+Devuelve SOLO este JSON, sin markdown:
 {
-  "refined_title": "Sharper title based on answers",
-  "elevator_pitch": "One sentence. What it is, for whom, why now.",
-  "problem_statement": "2-3 sentences. Specific, painful, measurable.",
-  "solution": "2-3 sentences. Concrete, differentiated.",
-  "target_customer": "Hyper-specific description of who this is for",
-  "monetization": "How it makes money. Be specific.",
-  "mvp_feature": "The single feature that defines the MVP",
-  "distribution": "First channel to get first 100 users",
-  "why_now": "Why is this the right moment to build this?",
-  "biggest_risk": "The one thing most likely to kill this idea",
+  "refined_title": "Título más claro basado en las respuestas",
+  "elevator_pitch": "Una frase. Qué es, para quién y por qué ahora.",
+  "problem_statement": "2-3 frases. Específico, doloroso y medible.",
+  "solution": "2-3 frases. Concreto y diferencial.",
+  "target_customer": "Descripción muy específica de quién es el cliente",
+  "monetization": "Cómo gana dinero. Sé específico.",
+  "mvp_feature": "La funcionalidad única que define el MVP",
+  "distribution": "Primer canal para conseguir los primeros 100 usuarios",
+  "why_now": "Por qué este es el momento adecuado para construirlo",
+  "biggest_risk": "Lo único con más probabilidades de matar la idea",
   "search_keywords": ["keyword1", "keyword2", "keyword3", "keyword4", "keyword5"]
 }`
 
@@ -106,7 +106,7 @@ function parseJsonOrThrow(raw: string, code: string): unknown {
   try {
     return JSON.parse(cleaned)
   } catch {
-    throw new HttpError(502, 'Refinement AI returned non-JSON', code)
+    throw new HttpError(502, 'La IA de refinamiento devolvió una respuesta que no es JSON', code)
   }
 }
 
@@ -126,11 +126,11 @@ export async function generateQuestions(idea: {
         { role: 'system', content: QUESTIONS_PROMPT },
         {
           role: 'user',
-          content: `Idea to refine:
-Title: ${idea.title}
-Problem: ${idea.problem}
-Solution: ${idea.solution}
-Target audience: ${idea.target_audience}
+          content: `Idea a refinar:
+Título: ${idea.title}
+Problema: ${idea.problem}
+Solución: ${idea.solution}
+Cliente objetivo: ${idea.target_audience}
 Sector: ${idea.sector}`,
         },
       ],
@@ -138,7 +138,11 @@ Sector: ${idea.sector}`,
     })
   } catch (e) {
     if (e instanceof APIError) {
-      throw new HttpError(502, `Microsoft Foundry / Azure OpenAI error: ${e.message}`, 'REFINE_AI_PROVIDER_ERROR')
+      throw new HttpError(
+        502,
+        `Error de Microsoft Foundry / Azure OpenAI: ${e.message}`,
+        'REFINE_AI_PROVIDER_ERROR',
+      )
     }
     throw e
   }
@@ -149,7 +153,7 @@ Sector: ${idea.sector}`,
   if (!result.success) {
     throw new HttpError(
       502,
-      'Refinement questions: invalid AI response',
+      'Las preguntas de refinamiento: respuesta de IA no válida',
       'REFINE_QUESTIONS_INVALID',
       config.nodeEnv === 'development' ? result.error.flatten() : undefined,
     )
@@ -159,7 +163,7 @@ Sector: ${idea.sector}`,
     if (!hasCustom) {
       throw new HttpError(
         502,
-        'Refinement questions: missing custom option',
+        'Las preguntas de refinamiento: falta la opción personalizada',
         'REFINE_QUESTIONS_INVALID',
       )
     }
@@ -181,16 +185,20 @@ export async function synthesizeAnswers(
         { role: 'system', content: SYNTHESIS_PROMPT },
         {
           role: 'user',
-          content: `Original idea: ${JSON.stringify(originalIdea)}
-User answers: ${JSON.stringify(answers)}
-User profile: sectors=${userProfile.sectors.join(', ')}, goal=${userProfile.goal}`,
+          content: `Idea original: ${JSON.stringify(originalIdea)}
+Respuestas del usuario: ${JSON.stringify(answers)}
+Perfil del usuario: sectores=${userProfile.sectors.join(', ')}, objetivo=${userProfile.goal}`,
         },
       ],
       temperature: 0.2,
     })
   } catch (e) {
     if (e instanceof APIError) {
-      throw new HttpError(502, `Microsoft Foundry / Azure OpenAI error: ${e.message}`, 'REFINE_AI_PROVIDER_ERROR')
+      throw new HttpError(
+        502,
+        `Error de Microsoft Foundry / Azure OpenAI: ${e.message}`,
+        'REFINE_AI_PROVIDER_ERROR',
+      )
     }
     throw e
   }
@@ -201,7 +209,7 @@ User profile: sectors=${userProfile.sectors.join(', ')}, goal=${userProfile.goal
   if (!result.success) {
     throw new HttpError(
       502,
-      'Refinement synthesis: invalid AI response',
+      'La síntesis de refinamiento: respuesta de IA no válida',
       'REFINE_SYNTHESIS_INVALID',
       config.nodeEnv === 'development' ? result.error.flatten() : undefined,
     )

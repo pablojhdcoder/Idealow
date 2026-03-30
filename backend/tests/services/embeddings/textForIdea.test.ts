@@ -9,7 +9,7 @@ describe('buildEmbeddingTextForSearchQuery', () => {
     const text = buildEmbeddingTextForSearchQuery('  fintech pagos  ')
     expect(text).toContain('title: fintech pagos')
     expect(text).toContain('description: fintech pagos')
-    expect(text).toContain('Document type: startup idea for semantic retrieval.')
+    expect(text).toContain('Tipo de documento: idea de startup para recuperación semántica.')
   })
 })
 

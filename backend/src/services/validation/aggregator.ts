@@ -63,8 +63,8 @@ function getVerdict(score: number): string {
 }
 
 function getRecommendation(score: number): string {
-  if (score >= 75) return 'Strong market signals. Build the MVP now.'
-  if (score >= 55) return 'Moderate signals. Validate further before building.'
-  if (score >= 35) return 'Weak signals. Refine the problem or pivot the solution.'
-  return 'No clear market signal. Reconsider the problem space.'
+  if (score >= 75) return 'Señales de mercado fuertes. Construye el MVP ahora.'
+  if (score >= 55) return 'Señales moderadas. Valida más antes de construir.'
+  if (score >= 35) return 'Señales débiles. Refina el problema o pivota la solución.'
+  return 'No hay una señal clara de mercado. Replantea el espacio del problema.'
 }

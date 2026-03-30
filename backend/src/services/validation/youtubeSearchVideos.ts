@@ -163,7 +163,7 @@ function buildSearchQueries(idea: ValidationIdeaInput): string[] {
     add(compact(`${kwLine.split(/\s+/).slice(0, 3).join(' ')} ${pitch.slice(0, 68)}`, 120))
   }
   if (out.length === 0) {
-    add(problem || pitch || 'startup product')
+    add(problem || pitch || 'producto startup')
   }
   return out.slice(0, 5)
 }
@@ -239,7 +239,7 @@ async function searchYoutubeOnce(
     const apiMsg = ax.response?.data?.error?.message
     logger.warn(
       { err: apiMsg ?? ax.message, q: q.slice(0, 80), status: ax.response?.status },
-      'YouTube search request failed',
+      'Falló la solicitud de búsqueda en YouTube',
     )
     return []
   }

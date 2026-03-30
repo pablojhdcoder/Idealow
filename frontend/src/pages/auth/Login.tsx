@@ -92,7 +92,7 @@ export default function Login() {
                   required
                   autoComplete="email"
                   className="pl-10 pr-4"
-                  placeholder="you@example.com"
+                  placeholder="tu@ejemplo.com"
                 />
               </div>
             </div>

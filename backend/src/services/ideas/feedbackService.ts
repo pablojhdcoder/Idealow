@@ -14,7 +14,7 @@ export async function submitIdeaFeedback(params: {
   const { ideaId, userId, vote, comment } = params
   const trimmed = comment?.trim() ?? ''
   if (trimmed.length > MAX_COMMENT) {
-    throw new HttpError(422, `Comment must be at most ${MAX_COMMENT} characters`, 'FEEDBACK_COMMENT_TOO_LONG')
+    throw new HttpError(422, `El comentario debe tener como máximo ${MAX_COMMENT} caracteres`, 'FEEDBACK_COMMENT_TOO_LONG')
   }
 
   const idea = await prisma.idea.findUnique({
@@ -23,11 +23,11 @@ export async function submitIdeaFeedback(params: {
   })
 
   if (!idea || !idea.isPublished || idea.status !== 'VALIDATED') {
-    throw new HttpError(404, 'Published idea not found', 'FEEDBACK_IDEA_NOT_FOUND')
+    throw new HttpError(404, 'Idea publicada no encontrada', 'FEEDBACK_IDEA_NOT_FOUND')
   }
 
   if (idea.userId === userId) {
-    throw new HttpError(400, 'You cannot vote on your own idea', 'FEEDBACK_OWN_IDEA')
+    throw new HttpError(400, 'No puedes votar en tu propia idea', 'FEEDBACK_OWN_IDEA')
   }
 
   await prisma.ideaFeedback.upsert({
@@ -65,7 +65,7 @@ export async function listIdeaFeedbackComments(
   })
 
   if (!idea || !idea.isPublished || idea.status !== 'VALIDATED') {
-    throw new HttpError(404, 'Published idea not found', 'FEEDBACK_IDEA_NOT_FOUND')
+    throw new HttpError(404, 'Idea publicada no encontrada', 'FEEDBACK_IDEA_NOT_FOUND')
   }
 
   const take = options.limit + 1

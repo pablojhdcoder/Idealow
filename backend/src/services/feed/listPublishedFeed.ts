@@ -1,10 +1,13 @@
-import type { Prisma } from '@prisma/client'
+import { Prisma, type Prisma as PrismaType } from '@prisma/client'
 import { prisma } from '../../lib/prisma'
+import { config, hasEmbeddingsConfig } from '../../config'
 import {
   getVoteCountsForIdeaIds,
   mapIdeaRowToFlashcard,
   type IdeaFlashcardPayload,
 } from '../ideas/ideaFlashcard'
+import { generateEmbedding } from '../embeddings/generateEmbedding'
+import { buildEmbeddingTextForSearchQuery } from '../embeddings/textForIdea'
 
 export type FeedSort = 'new' | 'score' | 'votes'
 export type FeedFilter = 'all' | 'strong'
@@ -48,7 +51,7 @@ const selectUser = {
   user: { select: { id: true, username: true, avatarUrl: true } },
 } as const
 
-type IdeaRow = Prisma.IdeaGetPayload<{ include: typeof selectUser }>
+type IdeaRow = PrismaType.IdeaGetPayload<{ include: typeof selectUser }>
 
 function toPayloadRows(ideas: IdeaRow[], voteMap: Map<string, import('../ideas/ideaFlashcard').CommunityVotes>) {
   return ideas.map(idea =>
@@ -74,13 +77,102 @@ function toPayloadRows(ideas: IdeaRow[], voteMap: Map<string, import('../ideas/i
   )
 }
 
+function vectorParam(vec: number[]): string {
+  return JSON.stringify(vec)
+}
+
+async function semanticSearchPublishedFeed(params: {
+  term: string
+  limit: number
+  sector?: string
+  filter: FeedFilter
+}): Promise<IdeaFlashcardPayload[]> {
+  const { term, limit, sector, filter } = params
+  const t = term.trim()
+  if (!t || limit <= 0) return []
+
+  const baseWhere: PrismaType.IdeaWhereInput = {
+    isPublished: true,
+    status: 'VALIDATED',
+    ...(sector ? { sector } : {}),
+    ...(filter === 'strong' ? strongWhere() : {}),
+  }
+
+  // 1) Keywords primero (idéntico patrón a "Mis ideas").
+  const textRows = await prisma.idea.findMany({
+    where: { ...baseWhere, ...textSearchWhere(t) },
+    orderBy: [{ publishedAt: 'desc' }, { id: 'desc' }],
+    take: limit,
+    include: selectUser,
+  })
+  const textIds = textRows.map(r => r.id)
+  const remaining = limit - textRows.length
+
+  // Si embeddings no están configurados, nos quedamos con keywords.
+  if (remaining <= 0 || !hasEmbeddingsConfig()) {
+    const voteMap = await getVoteCountsForIdeaIds(textIds)
+    return toPayloadRows(textRows, voteMap)
+  }
+
+  // 2) Relleno por embeddings (pgvector <=>), filtrando al mismo scope que el feed.
+  const vector = await generateEmbedding(buildEmbeddingTextForSearchQuery(t))
+  const v = vectorParam(vector)
+  const maxD = config.semanticMaxCosineDistance
+
+  const sectorClause = sector ? Prisma.sql`AND i.sector = ${sector}` : Prisma.empty
+  const strongClause = filter === 'strong' ? Prisma.sql`AND i."validationScore" >= 75` : Prisma.empty
+  const excludeClause =
+    textIds.length > 0 ? Prisma.sql`AND i.id NOT IN (${Prisma.join(textIds)})` : Prisma.empty
+
+  const vectorIdsRows = await prisma.$queryRaw<{ id: string }[]>`
+    SELECT i.id
+    FROM "Idea" i
+    WHERE i."isPublished" = true
+      AND i.status = 'VALIDATED'
+      AND i.embedding IS NOT NULL
+      AND (i.embedding <=> ${v}::vector) < ${maxD}
+      ${sectorClause}
+      ${strongClause}
+      ${excludeClause}
+    ORDER BY i.embedding <=> ${v}::vector
+    LIMIT ${remaining}
+  `
+  const vectorIds = vectorIdsRows.map(r => r.id)
+
+  const allIds = [...textIds, ...vectorIds]
+  if (allIds.length === 0) return []
+
+  const ideas = await prisma.idea.findMany({
+    where: { id: { in: allIds } },
+    include: selectUser,
+  })
+  const byId = new Map(ideas.map(i => [i.id, i]))
+  const ordered = allIds.map(id => byId.get(id)).filter((x): x is NonNullable<typeof x> => x != null)
+
+  const voteMap = await getVoteCountsForIdeaIds(allIds)
+  return toPayloadRows(ordered, voteMap)
+}
+
 export async function listPublishedFeed(params: ListFeedParams): Promise<ListFeedResult> {
+  const term = (params.q ?? '').trim()
+  // Cuando hay búsqueda, unificamos el comportamiento con "Mis ideas":
+  // keywords primero + embeddings para rellenar. Para no romper el cursor/paginación del feed,
+  // este modo devuelve una sola página (sin nextCursor/nextPage).
+  if (term.length > 0) {
+    const items = await semanticSearchPublishedFeed({
+      term,
+      limit: params.limit,
+      sector: params.sector,
+      filter: params.filter,
+    })
+    return { items, nextCursor: null, nextPage: null }
+  }
+
   const baseWhere: Prisma.IdeaWhereInput = {
     isPublished: true,
     status: 'VALIDATED',
     ...(params.sector ? { sector: params.sector } : {}),
     ...(params.filter === 'strong' ? strongWhere() : {}),
-    ...textSearchWhere(params.q ?? ''),
   }
 
   const limit = params.limit

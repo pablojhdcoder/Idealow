@@ -38,6 +38,10 @@ export function validationVerdictBadgeClass(verdict: string | null | undefined):
 }
 
 export function formatValidationVerdictLabel(verdict: string): string {
+  if (verdict === 'STRONG_SIGNAL') return 'Señal fuerte'
+  if (verdict === 'MODERATE_SIGNAL') return 'Señal moderada'
+  if (verdict === 'WEAK_SIGNAL') return 'Señal débil'
+  if (verdict === 'NO_SIGNAL') return 'Sin señal'
   return verdict.replaceAll('_', ' ')
 }
 

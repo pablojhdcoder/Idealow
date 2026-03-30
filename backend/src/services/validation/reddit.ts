@@ -136,20 +136,20 @@ export async function validateReddit(idea: ValidationIdeaInput): Promise<RedditV
     messages: [
       {
         role: 'user',
-        content: `You write search queries for Reddit's public search (reddit.com/search). Each query must help find REAL threads where people vent, struggle, ask for help, or compare tools about THIS SPECIFIC problem space — not generic entrepreneurship or "startup ideas".
+        content: `Escribes consultas de búsqueda para el buscador público de Reddit (reddit.com/search). Cada consulta debe ayudar a encontrar hilos REALES donde la gente se queja, tiene dificultades, pide ayuda o compara herramientas sobre ESTE espacio de problema en concreto — no sobre emprendimiento genérico ni "ideas de startup".
 
-STRICT RULES:
-- Every query MUST be clearly tied to the problem or keywords below (use their vocabulary: product type, audience, workflow, pain).
-- Prefer 6–12 words: concrete nouns + pain (e.g. "frustrated with", "alternatives to", "how do you", "hate when", "is there a better").
-- Do NOT output vague or off-topic queries (e.g. "motivation for founders", "how to validate a business", "side project ideas") unless they directly match the stated problem.
-- Do NOT repeat the same query with tiny edits; 5 DISTINCT queries.
-- Language: match the idea (Spanish or English) as appropriate.
+REGLAS ESTRICTAS:
+- Cada consulta DEBE estar claramente ligada al problema o keywords de abajo (usa su vocabulario: tipo de producto, audiencia, flujo, dolor).
+- Prefiere 6–12 palabras: sustantivos concretos + dolor (p. ej. "frustrado con", "alternativas a", "cómo haces", "odio cuando", "hay algo mejor").
+- NO devuelvas consultas vagas o fuera de tema (p. ej. "motivación para founders", "cómo validar un negocio", "ideas de side projects") salvo que encajen directamente con el problema descrito.
+- NO repitas la misma consulta con cambios mínimos; 5 consultas DISTINTAS.
+- Idioma: usa el idioma de la idea (español o inglés) cuando aplique.
 
 Idea (elevator): ${idea.elevator_pitch}
 Problem statement: ${idea.problem_statement}
 Keywords (must appear in or clearly inform each query): ${kwLine}
 
-Return ONLY a JSON array of 5 strings: ["query1", "query2", "query3", "query4", "query5"]`,
+Devuelve SOLO un array JSON de 5 strings: ["query1", "query2", "query3", "query4", "query5"]`,
       },
     ],
     temperature: 0.15,
@@ -227,7 +227,7 @@ Return ONLY a JSON array of 5 strings: ["query1", "query2", "query3", "query4", 
     messages: [
       {
         role: 'user',
-        content: `Analyze ONLY these Reddit posts for THIS idea. Treat clearly off-topic threads as noise and lower the score.
+        content: `Analiza SOLO estos posts de Reddit para ESTA idea. Trata los hilos claramente fuera de tema como ruido y baja la puntuación.
 
 Idea: ${idea.elevator_pitch}
 Problem: ${idea.problem_statement}
@@ -235,13 +235,13 @@ Keywords: ${idea.search_keywords.join(', ')}
 
 Posts (title, text snippet, subreddit, score): ${JSON.stringify(analysisPool)}
 
-Rules:
-- "top_complaints": at most 3 short bullets, each tied to the problem space.
-- "failed_solutions": at most 2 items (tools/approaches people dislike).
-- "subreddits": at most 4 entries, subreddit name only (no "r/" prefix). Each MUST be one of the subreddits present in the posts list above.
-- "best_quote": must use text from a post in the list and its URL if available.
+Reglas:
+- "top_complaints": como máximo 3 bullets cortos, cada uno ligado al espacio del problema.
+- "failed_solutions": como máximo 2 items (herramientas/enfoques que la gente no recomienda).
+- "subreddits": como máximo 4 entradas, solo el nombre del subreddit (sin prefijo "r/"). Cada uno DEBE ser uno de los subreddits presentes en la lista de posts de arriba.
+- "best_quote": debe usar texto de un post de la lista y su URL si está disponible.
 
-Return ONLY this JSON:
+Devuelve SOLO este JSON:
 {
   "score": 0-100,
   "post_count": ${analysisPool.length},
@@ -249,7 +249,7 @@ Return ONLY this JSON:
   "failed_solutions": ["…"],
   "best_quote": { "text": "…", "upvotes": 0, "url": "…" },
   "subreddits": ["subreddit1", "subreddit2"],
-  "summary": "2 sentences"
+  "summary": "2 frases en español"
 }`,
       },
     ],
@@ -280,7 +280,7 @@ Return ONLY this JSON:
     return {
       score: analysisPool.length >= 5 ? 45 : 20,
       post_count: analysisPool.length,
-      summary: 'Could not parse AI analysis; score estimated from post volume.',
+      summary: 'No se pudo interpretar el análisis de IA; puntuación estimada según volumen de posts.',
       evidence_posts: evidenceFromRank,
       subreddits,
     }

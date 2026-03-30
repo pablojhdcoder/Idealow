@@ -25,7 +25,7 @@ router.post(
   validateParams(ideaIdParamsSchema),
   asyncHandler(async (req, res) => {
     if (!req.user) {
-      return sendError(res, 401, 'Unauthorized', 'AUTH_UNAUTHORIZED')
+      return sendError(res, 401, 'No autenticado', 'AUTH_UNAUTHORIZED')
     }
     const { id } = req.params as z.infer<typeof ideaIdParamsSchema>
     const idea = await prisma.idea.findFirst({
@@ -33,7 +33,7 @@ router.post(
       select: { id: true, status: true, validationScore: true, validationData: true },
     })
     if (!idea) {
-      return sendError(res, 404, 'Idea not found', 'VALIDATION_IDEA_NOT_FOUND')
+      return sendError(res, 404, 'Idea no encontrada', 'VALIDATION_IDEA_NOT_FOUND')
     }
     if (idea.validationScore != null && idea.validationData != null) {
       return res.json({ status: 'already_validated', ideaId: id })
@@ -42,7 +42,7 @@ router.post(
       return sendError(
         res,
         400,
-        'Refine the idea before running validation.',
+        'Refina la idea antes de ejecutar la validación.',
         'VALIDATION_BAD_STATUS',
       )
     }
@@ -60,7 +60,7 @@ router.get(
   validateParams(ideaIdParamsSchema),
   asyncHandler(async (req: Request, res: Response) => {
     if (!req.user) {
-      return sendError(res, 401, 'Unauthorized', 'AUTH_UNAUTHORIZED')
+      return sendError(res, 401, 'No autenticado', 'AUTH_UNAUTHORIZED')
     }
     const { id } = req.params as z.infer<typeof ideaIdParamsSchema>
     const idea = await prisma.idea.findFirst({
@@ -68,7 +68,7 @@ router.get(
       select: { id: true },
     })
     if (!idea) {
-      return sendError(res, 404, 'Idea not found', 'VALIDATION_IDEA_NOT_FOUND')
+      return sendError(res, 404, 'Idea no encontrada', 'VALIDATION_IDEA_NOT_FOUND')
     }
 
     res.setHeader('Content-Type', 'text/event-stream; charset=utf-8')

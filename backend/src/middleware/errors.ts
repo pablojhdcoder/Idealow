@@ -25,7 +25,7 @@ export const errorHandler = (
     return sendError(res, err.statusCode, err.message, err.code, err.details)
   }
 
-  const message = err instanceof Error ? err.message : 'Internal server error'
+  const message = err instanceof Error ? err.message : 'Error interno del servidor'
 
   logger.error(
     {
@@ -34,13 +34,13 @@ export const errorHandler = (
       method: req.method,
       userId: req.user?.userId ?? null,
     },
-    'Unhandled error',
+    'Error no controlado',
   )
 
   return sendError(
     res,
     500,
-    config.nodeEnv === 'development' ? message : 'Internal server error',
+    config.nodeEnv === 'development' ? message : 'Error interno del servidor',
     'INTERNAL_SERVER_ERROR',
     config.nodeEnv === 'development'
       ? err instanceof Error

@@ -17,7 +17,7 @@ export const verifyToken = (token: string) => {
   }) as { userId?: unknown }
 
   if (typeof payload.userId !== 'string' || payload.userId.trim().length === 0) {
-    throw new Error('Invalid token payload')
+    throw new Error('Payload de token inválido')
   }
 
   return { userId: payload.userId }

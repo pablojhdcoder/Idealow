@@ -5,6 +5,7 @@ import type { CommunityVotes, IdeaFlashcard, Verdict } from '@/types/flashcard'
 import { getUserAvatarUrl } from '@/lib/avatar'
 import { useEffect, useState } from 'react'
 import { cn } from '@/lib/utils'
+import { Tag } from '@/components/ui/tag'
 
 export type FlashcardCardModel = Pick<
   IdeaFlashcard,
@@ -93,18 +94,20 @@ export function IdeaFlashcardCard({ flashcard, onOpen, className }: Props) {
       )}
     >
       <div className="flex items-start justify-between gap-2">
-        <span
-          className="inline-flex max-w-[60%] truncate rounded-full px-2.5 py-0.5 text-[10px] font-semibold capitalize"
+        <Tag
+          size="xs"
+          className="max-w-[60%] truncate capitalize"
           style={pill}
         >
           {sector}
-        </span>
-        <span
-          className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold"
+        </Tag>
+        <Tag
+          size="xs"
+          className="shrink-0 px-2"
           style={{ backgroundColor: cfg.bg, color: cfg.text }}
         >
           {flashcard.validationScore}
-        </span>
+        </Tag>
       </div>
       <h3 className="mt-2 line-clamp-2 font-serif text-xl leading-tight text-foreground">
         {flashcard.refinedTitle}

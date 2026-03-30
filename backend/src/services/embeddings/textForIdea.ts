@@ -33,7 +33,7 @@ export function buildEmbeddingTextForSearchQuery(query: string): string {
     return t
   }
   return [
-    'Document type: startup idea for semantic retrieval.',
+    'Tipo de documento: idea de startup para recuperación semántica.',
     `title: ${t}`,
     `description: ${t}`,
   ].join('\n')
@@ -74,7 +74,7 @@ export function buildEmbeddingTextForIdea(input: {
     pitch && summary && pitch !== summary && pitch.trim().length > 0 ? pitch.trim() : ''
 
   const lines: string[] = [
-    'Document type: startup idea for semantic retrieval.',
+    'Tipo de documento: idea de startup para recuperación semántica.',
     `title: ${title}`,
   ]
 

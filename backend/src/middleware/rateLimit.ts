@@ -34,49 +34,49 @@ export const createRateLimit = ({ windowMs, max, message, code }: RateLimitConfi
 export const authLoginRateLimit = createRateLimit({
   windowMs: 15 * 60 * 1000,
   max: 5,
-  message: 'Too many login attempts. Please try again later.',
+  message: 'Demasiados intentos de inicio de sesión. Vuelve a intentarlo más tarde.',
   code: 'RATE_LIMIT_AUTH_LOGIN',
 })
 
 export const authRegisterRateLimit = createRateLimit({
   windowMs: 60 * 60 * 1000,
   max: 3,
-  message: 'Too many registration attempts. Please try again later.',
+  message: 'Demasiados intentos de registro. Vuelve a intentarlo más tarde.',
   code: 'RATE_LIMIT_AUTH_REGISTER',
 })
 
 export const filesUploadRateLimit = createRateLimit({
   windowMs: 15 * 60 * 1000,
   max: 20,
-  message: 'Upload rate limit exceeded. Please try again later.',
+  message: 'Se alcanzó el límite de subidas. Vuelve a intentarlo más tarde.',
   code: 'RATE_LIMIT_FILES_UPLOAD',
 })
 
 export const ideasCreateRateLimit = createRateLimit({
   windowMs: 10 * 60 * 1000,
   max: 10,
-  message: 'Idea creation rate limit exceeded. Please try again later.',
+  message: 'Se alcanzó el límite de creación de ideas. Vuelve a intentarlo más tarde.',
   code: 'RATE_LIMIT_IDEAS_CREATE',
 })
 
 export const suggestionsRateLimit = createRateLimit({
   windowMs: 10 * 60 * 1000,
   max: 20,
-  message: 'Suggestions rate limit exceeded. Please try again later.',
+  message: 'Se alcanzó el límite de sugerencias. Vuelve a intentarlo más tarde.',
   code: 'RATE_LIMIT_USERS_SUGGESTIONS',
 })
 
 export const ideasRefineRateLimit = createRateLimit({
   windowMs: 10 * 60 * 1000,
   max: 30,
-  message: 'Idea refinement rate limit exceeded. Please try again later.',
+  message: 'Se alcanzó el límite de refinamiento de ideas. Vuelve a intentarlo más tarde.',
   code: 'RATE_LIMIT_IDEAS_REFINE',
 })
 
 export const ideasValidationRateLimit = createRateLimit({
   windowMs: 15 * 60 * 1000,
   max: 15,
-  message: 'Validation rate limit exceeded. Please try again later.',
+  message: 'Se alcanzó el límite de validaciones. Vuelve a intentarlo más tarde.',
   code: 'RATE_LIMIT_IDEAS_VALIDATION',
 })
 
@@ -84,7 +84,7 @@ export const ideasValidationRateLimit = createRateLimit({
 export const ideasValidationSseRateLimit = createRateLimit({
   windowMs: 15 * 60 * 1000,
   max: 30,
-  message: 'Validation stream rate limit exceeded. Please try again later.',
+  message: 'Se alcanzó el límite del stream de validación. Vuelve a intentarlo más tarde.',
   code: 'RATE_LIMIT_IDEAS_VALIDATION_SSE',
 })
 
@@ -92,27 +92,27 @@ export const ideasValidationSseRateLimit = createRateLimit({
 export const semanticExploreRateLimit = createRateLimit({
   windowMs: 10 * 60 * 1000,
   max: 40,
-  message: 'Semantic explore rate limit exceeded. Please try again later.',
+  message: 'Se alcanzó el límite de exploración semántica. Vuelve a intentarlo más tarde.',
   code: 'RATE_LIMIT_SEMANTIC_EXPLORE',
 })
 
 export const ideasPatchRateLimit = createRateLimit({
   windowMs: 15 * 60 * 1000,
   max: 30,
-  message: 'Idea update rate limit exceeded. Please try again later.',
+  message: 'Se alcanzó el límite de actualizaciones de ideas. Vuelve a intentarlo más tarde.',
   code: 'RATE_LIMIT_IDEAS_PATCH',
 })
 
 export const ideasFeedbackPostRateLimit = createRateLimit({
   windowMs: 15 * 60 * 1000,
   max: 60,
-  message: 'Feedback rate limit exceeded. Please try again later.',
+  message: 'Se alcanzó el límite de feedback. Vuelve a intentarlo más tarde.',
   code: 'RATE_LIMIT_IDEAS_FEEDBACK',
 })
 
 export const feedListRateLimit = createRateLimit({
   windowMs: 60 * 1000,
   max: 120,
-  message: 'Feed rate limit exceeded. Please try again later.',
+  message: 'Se alcanzó el límite del feed. Vuelve a intentarlo más tarde.',
   code: 'RATE_LIMIT_FEED_LIST',
 })

@@ -20,6 +20,7 @@ import {
   formatValidationVerdictLabel,
   validationVerdictBadgeClass,
 } from '@/components/ideas/ScoreRing'
+import { Badge } from '@/components/ui/badge'
 import { ValidationReferenceCard } from '@/components/ideas/validation/ValidationReferenceCard'
 import { ValidationSocialBlock } from '@/components/ideas/validation/ValidationSocialBlock'
 import { faviconUrlFromHref } from '@/lib/faviconUrl'
@@ -78,32 +79,32 @@ const SOURCE_META: Record<
 function StatusBadge({ s }: { s: SourceStatus }) {
   if (s.status === 'searching') {
     return (
-      <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
+      <Badge className="gap-1.5 bg-primary/10 px-3 py-1 text-primary">
         <Loader2 className="size-3.5 animate-spin" aria-hidden />
         Analizando
-      </span>
+      </Badge>
     )
   }
   if (s.status === 'done' && s.score != null) {
     return (
-      <span className="rounded-full bg-primary/15 px-3 py-1 text-sm font-semibold tabular-nums text-primary">
+      <Badge className="bg-primary/15 px-3 py-1 text-sm font-semibold tabular-nums text-primary">
         {s.score}
-      </span>
+      </Badge>
     )
   }
   if (s.status === 'error') {
     return (
-      <span className="inline-flex items-center gap-1 rounded-full bg-destructive/10 px-3 py-1 text-xs font-medium text-destructive">
+      <Badge className="gap-1 bg-destructive/10 px-3 py-1 text-destructive">
         <AlertCircle className="size-3.5" aria-hidden />
         Error
-      </span>
+      </Badge>
     )
   }
   if (s.status === 'idle') {
     return (
-      <span className="rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground">
+      <Badge className="bg-muted px-3 py-1 text-muted-foreground">
         En cola
-      </span>
+      </Badge>
     )
   }
   return null

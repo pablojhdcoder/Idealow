@@ -11,6 +11,24 @@ export const sectorColors: Record<string, { bg: string; text: string }> = {
   other: { bg: '#F9FAFB', text: '#374151' },
 }
 
+export const sectorLabels: Record<string, string> = {
+  tech: 'Tecnología',
+  health: 'Salud',
+  finance: 'Finanzas',
+  education: 'Educación',
+  travel: 'Viajes',
+  food: 'Alimentación',
+  sports: 'Deportes',
+  entertainment: 'Entretenimiento',
+  productivity: 'Productividad',
+  other: 'Otros',
+}
+
+export function formatSectorLabel(sector: string | null | undefined): string {
+  if (!sector) return '—'
+  return sectorLabels[sector] ?? sector
+}
+
 export function sectorPillStyle(sector: string): { backgroundColor: string; color: string } {
   const s = sectorColors[sector] ?? sectorColors.other
   return { backgroundColor: s.bg, color: s.text }

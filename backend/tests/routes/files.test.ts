@@ -57,7 +57,7 @@ describe('POST /api/files/upload', () => {
 
     // Assert
     expect(response.status).toBe(401)
-    expect(response.body).toEqual({ error: 'Unauthorized', code: 'AUTH_UNAUTHORIZED' })
+    expect(response.body).toEqual({ error: 'No autenticado', code: 'AUTH_UNAUTHORIZED' })
   })
 
   it('rechaza tipo no soportado', async () => {
@@ -77,7 +77,7 @@ describe('POST /api/files/upload', () => {
     // Assert
     expect(response.status).toBe(422)
     expect(response.body).toEqual({
-      error: 'Unsupported file type',
+      error: 'Tipo de archivo no compatible',
       code: 'FILES_UNSUPPORTED_TYPE',
     })
     expect(prismaCreateMock).not.toHaveBeenCalled()

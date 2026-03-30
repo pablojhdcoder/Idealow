@@ -8,16 +8,16 @@ type Sector = {
 }
 
 const sectors: Sector[] = [
-  { id: 'tech', emoji: '💻', name: 'Tech & Software', desc: 'Apps, tools, platforms' },
-  { id: 'health', emoji: '🏥', name: 'Health & Wellness', desc: 'Fitness and mental health' },
-  { id: 'finance', emoji: '💰', name: 'Finance', desc: 'Fintech, saving, investing' },
-  { id: 'education', emoji: '📚', name: 'Education', desc: 'Learning and skills' },
-  { id: 'travel', emoji: '✈️', name: 'Travel', desc: 'Tourism and experiences' },
-  { id: 'food', emoji: '🍕', name: 'Food', desc: 'Restaurants and delivery' },
-  { id: 'sports', emoji: '⚽', name: 'Sports & Gaming', desc: 'Fitness, teams, esports' },
-  { id: 'entertainment', emoji: '🎬', name: 'Entertainment', desc: 'Media, music, events' },
-  { id: 'productivity', emoji: '⚡', name: 'Productivity', desc: 'Workflows and automation' },
-  { id: 'other', emoji: '🌟', name: 'Other / Mixed', desc: 'Anything goes' },
+  { id: 'tech', emoji: '💻', name: 'Tecnología y software', desc: 'Aplicaciones, herramientas y plataformas' },
+  { id: 'health', emoji: '🏥', name: 'Salud y bienestar', desc: 'Fitness y salud mental' },
+  { id: 'finance', emoji: '💰', name: 'Finanzas', desc: 'Fintech, ahorro e inversión' },
+  { id: 'education', emoji: '📚', name: 'Educación', desc: 'Aprendizaje y habilidades' },
+  { id: 'travel', emoji: '✈️', name: 'Viajes', desc: 'Turismo y experiencias' },
+  { id: 'food', emoji: '🍕', name: 'Comida', desc: 'Restaurantes y delivery' },
+  { id: 'sports', emoji: '⚽', name: 'Deportes y gaming', desc: 'Fitness, equipos y esports' },
+  { id: 'entertainment', emoji: '🎬', name: 'Entretenimiento', desc: 'Medios, música y eventos' },
+  { id: 'productivity', emoji: '⚡', name: 'Productividad', desc: 'Flujos de trabajo y automatización' },
+  { id: 'other', emoji: '🌟', name: 'Otro / Mixto', desc: 'Lo que sea' },
 ]
 
 type Props = {

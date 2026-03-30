@@ -2,7 +2,17 @@ import { useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
-import { ArrowUpRight, AudioLines, Download, Loader2 } from 'lucide-react'
+import {
+  ArrowUpRight,
+  AudioLines,
+  BriefcaseBusiness,
+  Download,
+  FileText,
+  Lightbulb,
+  Loader2,
+  Megaphone,
+  Users,
+} from 'lucide-react'
 import { FaRegFile, FaRegFileAlt, FaRegFilePdf } from 'react-icons/fa'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -25,13 +35,14 @@ import { VoteButtons } from '@/components/ideas/VoteButtons'
 import { CommentList } from '@/components/ideas/CommentList'
 import { patchIdeaPublish, postIdeaFeedback } from '@/lib/api/ideas'
 import { ApiError } from '@/lib/api/client'
-import { sectorPillStyle } from '@/lib/sectorColors'
+import { formatSectorLabel, sectorPillStyle } from '@/lib/sectorColors'
 import { verdictScoreConfig } from '@/lib/flashcardVerdict'
 import { ideasQueryKey } from '@/hooks/useIdeasQuery'
 import type { IdeaAttachment, IdeaFlashcard } from '@/types/flashcard'
 import { useAuthStore } from '@/stores/authStore'
 import { getFileKindFromMime } from '@/lib/fileKind'
 import { cn } from '@/lib/utils'
+import { Tag } from '@/components/ui/tag'
 
 const feedQueryKey = ['feed'] as const
 
@@ -39,10 +50,19 @@ export function flashcardQueryKey(ideaId: string) {
   return ['idea-flashcard', ideaId] as const
 }
 
-function SectionTitle({ children, id }: { children: ReactNode; id?: string }) {
+function SectionTitle({
+  children,
+  id,
+  icon,
+}: {
+  children: ReactNode
+  id?: string
+  icon?: ReactNode
+}) {
   return (
-    <h3 id={id} className="font-serif text-lg text-foreground">
-      {children}
+    <h3 id={id} className="inline-flex items-center gap-2 font-serif text-lg text-foreground">
+      {icon ? <span className="text-primary/80">{icon}</span> : null}
+      <span>{children}</span>
     </h3>
   )
 }
@@ -223,7 +243,7 @@ function AttachmentTile({ a }: { a: IdeaAttachment }) {
 function IdeaAttachmentsSection({ attachments }: { attachments: IdeaAttachment[] }) {
   return (
     <section className="mt-10 scroll-mt-8 rounded-3xl border border-border bg-card/50 p-6 shadow-sm sm:p-8">
-      <SectionTitle>Archivos aportados</SectionTitle>
+      <SectionTitle icon={<FileText className="size-4" aria-hidden />}>Archivos aportados</SectionTitle>
       <p className="mt-2 text-sm text-muted-foreground">
         Material que usaste al capturar esta idea (texto extraído en el servidor a partir de estos
         archivos).
@@ -250,9 +270,16 @@ type Props = {
   flashcard: IdeaFlashcard
   isOwner: boolean
   attachments: IdeaAttachment[]
+  sharePanel?: ReactNode
 }
 
-export function IdeaFlashcardDetailView({ ideaId, flashcard: fc, isOwner, attachments }: Props) {
+export function IdeaFlashcardDetailView({
+  ideaId,
+  flashcard: fc,
+  isOwner,
+  attachments,
+  sharePanel,
+}: Props) {
   const queryClient = useQueryClient()
   const [publishDialogOpen, setPublishDialogOpen] = useState(false)
   const user = useAuthStore(s => s.user)
@@ -316,18 +343,19 @@ export function IdeaFlashcardDetailView({ ideaId, flashcard: fc, isOwner, attach
       >
         <header className="border-b border-border bg-gradient-to-b from-primary/[0.04] to-transparent px-6 py-8 text-center sm:px-10">
           <div className="flex flex-wrap items-center justify-center gap-2">
-            <span
-              className="inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold capitalize"
+            <Tag
+              size="md"
+              className="capitalize"
               style={pill}
             >
-              {fc.sector}
-            </span>
-            <span
-              className="rounded-full px-2.5 py-0.5 text-xs font-semibold"
+              {formatSectorLabel(fc.sector)}
+            </Tag>
+            <Tag
+              size="md"
               style={{ backgroundColor: vcfg.bg, color: vcfg.text }}
             >
               {vcfg.label}
-            </span>
+            </Tag>
           </div>
           <h1 className="mx-auto mt-4 max-w-3xl font-serif text-3xl leading-tight text-foreground sm:text-4xl">
             {fc.refinedTitle}
@@ -344,7 +372,7 @@ export function IdeaFlashcardDetailView({ ideaId, flashcard: fc, isOwner, attach
 
         <div className="space-y-8 px-6 py-8 sm:px-10 sm:py-10">
           <section className="space-y-3">
-            <SectionTitle>La idea</SectionTitle>
+            <SectionTitle icon={<Lightbulb className="size-4" aria-hidden />}>La idea</SectionTitle>
             <div className="space-y-3 text-sm leading-relaxed text-muted-foreground sm:text-[15px]">
               <p>
                 <span className="font-medium text-foreground">Problema · </span>
@@ -364,7 +392,9 @@ export function IdeaFlashcardDetailView({ ideaId, flashcard: fc, isOwner, attach
           <Separator />
 
           <section className="space-y-3">
-            <SectionTitle>Negocio</SectionTitle>
+            <SectionTitle icon={<BriefcaseBusiness className="size-4" aria-hidden />}>
+              Negocio
+            </SectionTitle>
             <div className="grid gap-3 text-sm leading-relaxed text-muted-foreground sm:grid-cols-2 sm:text-[15px]">
               <p>
                 <span className="font-medium text-foreground">Monetización · </span>
@@ -401,7 +431,7 @@ export function IdeaFlashcardDetailView({ ideaId, flashcard: fc, isOwner, attach
           <section className="space-y-4">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
               <div className="min-w-0 flex-1">
-                <SectionTitle>Validación</SectionTitle>
+                <SectionTitle icon={<Megaphone className="size-4" aria-hidden />}>Validación</SectionTitle>
                 <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
                   {fc.validationBreakdown && Object.keys(fc.validationBreakdown).length > 0
                     ? 'Peso por fuente y aporte al score global.'
@@ -431,7 +461,7 @@ export function IdeaFlashcardDetailView({ ideaId, flashcard: fc, isOwner, attach
             <>
               <Separator />
               <section className="space-y-3">
-                <SectionTitle>Competidores</SectionTitle>
+                <SectionTitle icon={<Users className="size-4" aria-hidden />}>Competidores</SectionTitle>
                 <div className="flex gap-3 overflow-x-auto pb-2">
                   {fc.competitors.map((c, i) => (
                     <CompetitorCard key={`${c.name}-${i}`} competitor={c} />
@@ -444,6 +474,7 @@ export function IdeaFlashcardDetailView({ ideaId, flashcard: fc, isOwner, attach
       </motion.article>
 
       <IdeaAttachmentsSection attachments={attachments} />
+      {sharePanel ?? null}
 
       {fc.isPublished || (isOwner && fc.status === 'VALIDATED') ? (
         <section
@@ -451,7 +482,9 @@ export function IdeaFlashcardDetailView({ ideaId, flashcard: fc, isOwner, attach
           aria-labelledby="idea-community-heading"
         >
           <div className="border-b border-border/50 pb-5">
-            <SectionTitle id="idea-community-heading">Comunidad</SectionTitle>
+            <SectionTitle id="idea-community-heading" icon={<Users className="size-4" aria-hidden />}>
+              Comunidad
+            </SectionTitle>
             <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
               {fc.isPublished
                 ? 'Feed público: votos y comentarios.'

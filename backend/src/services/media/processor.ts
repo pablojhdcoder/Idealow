@@ -83,7 +83,7 @@ export async function processMedia(filePathOrUrl: string, mimeType?: string): Pr
           content: [
             {
               type: 'text',
-              text: 'Extract all text and describe any diagrams or sketches shown. Return plain text only.',
+              text: 'Extrae todo el texto y describe cualquier diagrama o boceto que aparezca. Devuelve solo texto plano.',
             },
             {
               type: 'image_url',

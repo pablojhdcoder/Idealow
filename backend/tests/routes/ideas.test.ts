@@ -67,7 +67,7 @@ describe('POST /api/ideas', () => {
     const response = await request(app).get('/api/ideas')
 
     expect(response.status).toBe(401)
-    expect(response.body).toEqual({ error: 'Unauthorized', code: 'AUTH_UNAUTHORIZED' })
+    expect(response.body).toEqual({ error: 'No autenticado', code: 'AUTH_UNAUTHORIZED' })
   })
 
   it('retorna ideas del usuario autenticado en GET', async () => {
@@ -130,7 +130,7 @@ describe('POST /api/ideas', () => {
     const response = await request(app).post('/api/ideas').send({ content: 'idea' })
 
     expect(response.status).toBe(401)
-    expect(response.body).toEqual({ error: 'Unauthorized', code: 'AUTH_UNAUTHORIZED' })
+    expect(response.body).toEqual({ error: 'No autenticado', code: 'AUTH_UNAUTHORIZED' })
   })
 
   it('retorna 401 con token invalido por issuer/audience', async () => {
@@ -148,7 +148,7 @@ describe('POST /api/ideas', () => {
       .send({ content: 'idea valida' })
 
     expect(response.status).toBe(401)
-    expect(response.body).toEqual({ error: 'Invalid token', code: 'AUTH_INVALID_TOKEN' })
+    expect(response.body).toEqual({ error: 'Token inválido', code: 'AUTH_INVALID_TOKEN' })
   })
 
   it('retorna 422 con body invalido (sin contenido ni archivos)', async () => {
@@ -158,7 +158,7 @@ describe('POST /api/ideas', () => {
     const response = await request(app).post('/api/ideas').set('Authorization', `Bearer ${token}`).send({})
 
     expect(response.status).toBe(422)
-    expect(response.body.error).toBe('Validation failed')
+    expect(response.body.error).toBe('Validación fallida')
     expect(response.body.code).toBe('VALIDATION_ERROR')
   })
 
@@ -194,7 +194,7 @@ describe('POST /api/ideas', () => {
     const app = buildApp()
     const token = signTestToken('user-1')
     createIdeaFromInputMock.mockRejectedValue(
-      new HttpError(502, 'Microsoft Foundry / Azure OpenAI error', 'IDEAS_AI_PROVIDER_ERROR'),
+      new HttpError(502, 'Error de Microsoft Foundry / Azure OpenAI', 'IDEAS_AI_PROVIDER_ERROR'),
     )
     cleanupOrphanedUploadsMock.mockResolvedValue({
       attempted: 2,
@@ -223,7 +223,7 @@ describe('POST /api/ideas', () => {
     const app = buildApp()
     const token = signTestToken('user-1')
     createIdeaFromInputMock.mockRejectedValue(
-      new HttpError(422, 'No content provided', 'IDEAS_NO_CONTENT'),
+      new HttpError(422, 'No se proporcionó contenido', 'IDEAS_NO_CONTENT'),
     )
     cleanupOrphanedUploadsMock.mockRejectedValue(new Error('fs error'))
 
@@ -235,7 +235,7 @@ describe('POST /api/ideas', () => {
       })
 
     expect(response.status).toBe(422)
-    expect(response.body).toEqual({ error: 'No content provided', code: 'IDEAS_NO_CONTENT' })
+    expect(response.body).toEqual({ error: 'No se proporcionó contenido', code: 'IDEAS_NO_CONTENT' })
     expect(cleanupOrphanedUploadsMock).not.toHaveBeenCalled()
   })
 
@@ -243,7 +243,7 @@ describe('POST /api/ideas', () => {
     const app = buildApp()
     const token = signTestToken('user-1')
     createIdeaFromInputMock.mockRejectedValue(
-      new HttpError(404, 'File not found', 'IDEAS_FILE_NOT_FOUND'),
+      new HttpError(404, 'Archivo no encontrado', 'IDEAS_FILE_NOT_FOUND'),
     )
 
     const response = await request(app)

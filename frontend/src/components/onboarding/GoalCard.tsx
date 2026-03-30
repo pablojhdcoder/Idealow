@@ -3,10 +3,10 @@ import { motion } from 'framer-motion'
 type Option = { id: string; emoji: string; label: string; desc: string }
 
 const options: Option[] = [
-  { id: 'HACKATHON', emoji: '⚡', label: 'Hackathon', desc: 'I need an idea quickly (hours/days)' },
-  { id: 'SIDE_PROJECT', emoji: '🌱', label: 'Side project', desc: 'Something to build on weekends' },
-  { id: 'STARTUP', emoji: '🚀', label: 'Startup', desc: 'I want to build a real business' },
-  { id: 'LEARNING', emoji: '📖', label: 'Learning', desc: 'Exploring and experimenting' },
+  { id: 'HACKATHON', emoji: '⚡', label: 'Hackatón', desc: 'Necesito una idea rápido (en horas/días)' },
+  { id: 'SIDE_PROJECT', emoji: '🌱', label: 'Proyecto paralelo', desc: 'Algo para construir los fines de semana' },
+  { id: 'STARTUP', emoji: '🚀', label: 'Empresa emergente', desc: 'Quiero construir un negocio real' },
+  { id: 'LEARNING', emoji: '📖', label: 'Aprendizaje', desc: 'Explorar y experimentar' },
 ]
 
 type Props = { value: string; onChange: (value: string) => void }

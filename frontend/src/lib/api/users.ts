@@ -45,3 +45,11 @@ export async function changePassword(body: {
   })
   return parseJsonResponse<{ success: boolean }>(res)
 }
+
+export async function generateIdeaSuggestionFromProfile(): Promise<{ content: string }> {
+  const res = await fetch('/api/users/suggestions/generate', {
+    method: 'POST',
+    credentials: 'include',
+  })
+  return parseJsonResponse<{ content: string }>(res)
+}

@@ -6,11 +6,13 @@ import { sendError } from '../lib/apiError'
 import { asyncHandler } from '../lib/asyncHandler'
 import { HttpError } from '../lib/httpError'
 import { requireAuth } from '../middleware/auth'
-import { suggestionsRateLimit } from '../middleware/rateLimit'
+import { suggestionsGenerateRateLimit, suggestionsRateLimit } from '../middleware/rateLimit'
 import { validateBody } from '../middleware/validate'
 import { prisma } from '../lib/prisma'
+import { logger } from '../lib/logger'
 import { STATIC_IDEA_SUGGESTIONS } from '../lib/staticSuggestions'
 import { deleteOwnedAvatarFile } from '../services/users/avatarFile'
+import { generateProfileIdeaSuggestion } from '../services/ai/generateProfileIdeaSuggestion'
 import { z } from 'zod'
 
 const router = Router()
@@ -56,6 +58,19 @@ const changePasswordSchema = z.object({
   currentPassword: z.string().min(1),
   newPassword: z.string().min(8),
 })
+
+function buildFallbackSuggestionText(opts: {
+  username: string
+  sectors: string[]
+  goal: string
+  experienceLevel: string
+}): string {
+  const seed = `${opts.username}:${opts.goal}:${opts.experienceLevel}:${opts.sectors.join(',')}`
+  const hash = seed.split('').reduce((acc, c) => (acc * 31 + c.charCodeAt(0)) >>> 0, 7)
+  const base = STATIC_IDEA_SUGGESTIONS[hash % STATIC_IDEA_SUGGESTIONS.length] ?? STATIC_IDEA_SUGGESTIONS[0]
+  const sectorText = opts.sectors.length > 0 ? opts.sectors.join(', ') : 'varios'
+  return `${base} Me interesa encajarlo con mi perfil (${sectorText}, objetivo ${opts.goal}, nivel ${opts.experienceLevel}) y pulirlo antes de refinar.`
+}
 
 router.patch(
   '/profile',
@@ -213,6 +228,57 @@ router.get(
     } catch (e) {
       if (e instanceof HttpError) throw e
       throw new HttpError(500, 'Error al obtener sugerencias', 'USERS_SUGGESTIONS_FAILED')
+    }
+  }),
+)
+
+router.post(
+  '/suggestions/generate',
+  requireAuth,
+  suggestionsGenerateRateLimit,
+  asyncHandler(async (req, res) => {
+    try {
+      const request = req as RequestWithUser
+      const user = await prisma.user.findUnique({
+        where: { id: request.user.userId },
+        select: {
+          id: true,
+          username: true,
+          sectors: true,
+          goal: true,
+          experienceLevel: true,
+        },
+      })
+      if (!user) return sendError(res, 404, 'Usuario no encontrado', 'USERS_NOT_FOUND')
+
+      let content: string
+      try {
+        content = await generateProfileIdeaSuggestion({
+          username: user.username,
+          sectors: user.sectors,
+          goal: user.goal,
+          experienceLevel: user.experienceLevel,
+        })
+      } catch (error) {
+        logger.warn(
+          {
+            userId: request.user.userId,
+            error,
+          },
+          'Fallo generando sugerencia IA; se usa fallback local',
+        )
+        content = buildFallbackSuggestionText({
+          username: user.username,
+          sectors: user.sectors,
+          goal: user.goal,
+          experienceLevel: user.experienceLevel,
+        })
+      }
+
+      return res.json({ content })
+    } catch (e) {
+      if (e instanceof HttpError) throw e
+      throw new HttpError(500, 'Error al generar sugerencia IA', 'USERS_SUGGESTION_GENERATE_FAILED')
     }
   }),
 )

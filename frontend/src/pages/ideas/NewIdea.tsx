@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
-import { Globe2, Loader2, Paperclip, PenLine, Plus, Shapes, Sparkles, X } from 'lucide-react'
+import { Globe2, Loader2, Paperclip, PenLine, Plus, Shapes, Sparkles, WandSparkles, X } from 'lucide-react'
 import { AttachmentPreview } from '@/components/ideas/AttachmentPreview'
 import { toast } from 'sonner'
 import AppShellHeader from '@/components/layout/AppShellHeader'
@@ -19,6 +19,8 @@ import { ideasQueryKey } from '@/hooks/useIdeasQuery'
 import { buildNewIdeaStarterContent, getDashboardStarterById } from '@/lib/dashboardSuggestions'
 import { readPrivateIdeasByDefault, writePrivateIdeasByDefault } from '@/lib/ideaVisibilityPreference'
 import { appPageMainClassName } from '@/lib/appPageLayout'
+import { generateIdeaSuggestionFromProfile } from '@/lib/api/users'
+import { cn } from '@/lib/utils'
 
 const SECTOR_OPTIONS = [
   { value: '', label: 'Sin preferencia' },
@@ -84,7 +86,10 @@ function IdeaVisibilityCard({ keepPrivate, busy, onChange }: IdeaVisibilityProps
 
 type AttachmentsPanelProps = {
   attachedFiles: AttachedFile[]
-  busy: boolean
+  /** Solo creación de idea: spinner y mensaje de subida en el botón principal. */
+  createPending: boolean
+  /** Bloqueo del panel (crear o generar con IA): sin spinners cruzados. */
+  locked: boolean
   onAddClick: () => void
   onRemoveFile: (key: string) => void
   onSubmit: () => void
@@ -92,7 +97,8 @@ type AttachmentsPanelProps = {
 
 function AttachmentsPanel({
   attachedFiles,
-  busy,
+  createPending,
+  locked,
   onAddClick,
   onRemoveFile,
   onSubmit,
@@ -153,7 +159,7 @@ function AttachmentsPanel({
                         size="icon"
                         className="size-8 shrink-0 rounded-full"
                         onClick={() => onRemoveFile(key)}
-                        disabled={busy}
+                        disabled={locked}
                         aria-label={`Quitar ${file.name}`}
                       >
                         <X className="size-3.5" />
@@ -173,7 +179,7 @@ function AttachmentsPanel({
           variant="outline"
           className="h-11 rounded-2xl border-border/80"
           onClick={onAddClick}
-          disabled={busy || attachedFiles.length >= MAX_FILES}
+          disabled={locked || attachedFiles.length >= MAX_FILES}
         >
           <Paperclip className="size-4" />
           {attachedFiles.length > 0 ? 'Añadir archivos' : 'Adjuntar archivos'}
@@ -182,22 +188,22 @@ function AttachmentsPanel({
           type="button"
           className="h-11 gap-2 rounded-2xl px-5 sm:min-w-[18rem]"
           onClick={onSubmit}
-          disabled={busy}
+          disabled={locked}
         >
-          {busy && <Loader2 className="size-4 animate-spin" />}
-          {!busy && <Sparkles className="size-4" aria-hidden />}
+          {createPending && <Loader2 className="size-4 animate-spin" />}
+          {!createPending && <Sparkles className="size-4" aria-hidden />}
           Crear idea
         </Button>
       </section>
 
-      {attachedFiles.length === 0 && !busy && (
+      {attachedFiles.length === 0 && !createPending && (
         <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
           No es obligatorio adjuntar archivos, pero suele mejorar la extracción y el refinamiento de
           la idea.
         </p>
       )}
 
-      {busy && (
+      {createPending && (
         <p className="mt-4 text-sm text-muted-foreground">
           Subiendo y extrayendo la idea con IA… Esto puede tardar un poco si hay varios archivos.
         </p>
@@ -247,9 +253,15 @@ export default function NewIdea() {
     if (legacyPrompt) {
       try {
         const decoded = decodeURIComponent(legacyPrompt).trim()
-        const short = decoded.length > 220 ? `${decoded.slice(0, 220)}…` : decoded
-        if (short) {
-          setContent(buildNewIdeaStarterContent(short))
+        if (decoded) {
+          const looksLikeFullDraft =
+            decoded.startsWith('Idea base:') || decoded.includes('\n') || decoded.length > 220
+          if (looksLikeFullDraft) {
+            setContent(decoded)
+          } else {
+            const short = decoded.length > 220 ? `${decoded.slice(0, 220)}…` : decoded
+            setContent(buildNewIdeaStarterContent(short))
+          }
           appliedQueryStarter.current = true
         }
       } catch {
@@ -286,6 +298,17 @@ export default function NewIdea() {
   const removeFile = (key: string) => {
     setAttachedFiles(prev => prev.filter(a => a.key !== key))
   }
+
+  const generateFromProfileMutation = useMutation({
+    mutationFn: generateIdeaSuggestionFromProfile,
+    onSuccess: data => {
+      setContent(data.content.trim())
+      toast.success('Texto generado', { description: 'Puedes editarlo antes de crear la idea.' })
+    },
+    onError: () => {
+      toast.error('No se pudo generar con IA. Inténtalo de nuevo.')
+    },
+  })
 
   const createMutation = useMutation({
     mutationFn: async () => {
@@ -333,6 +356,8 @@ export default function NewIdea() {
   }
 
   const busy = createMutation.isPending
+  const generateBusy = generateFromProfileMutation.isPending
+  const formLocked = busy || generateBusy
 
   return (
     <div className="min-h-screen bg-background">
@@ -381,18 +406,46 @@ export default function NewIdea() {
             <Card className="rounded-3xl border-border/80 bg-card/90 p-5 shadow-sm backdrop-blur-sm sm:p-7">
               <div className="grid gap-5">
                 <section className="grid gap-2">
-                  <Label htmlFor="idea-content" className="inline-flex items-center gap-2">
-                    <PenLine className="size-4 text-primary/80" aria-hidden />
-                    Contenido
-                  </Label>
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <Label htmlFor="idea-content" className="inline-flex items-center gap-2">
+                      <PenLine className="size-4 text-primary/80" aria-hidden />
+                      Contenido
+                    </Label>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className={cn(
+                        'h-9 gap-1.5 rounded-full border-primary/35 bg-primary/[0.06] px-3.5 text-xs font-medium text-foreground',
+                        'shadow-xs shadow-primary/10 transition-[border-color,background-color,box-shadow,color]',
+                        'hover:border-primary/50 hover:bg-primary/12 hover:text-primary hover:shadow-sm hover:shadow-primary/15',
+                        'disabled:opacity-60',
+                      )}
+                      disabled={formLocked}
+                      onClick={() => generateFromProfileMutation.mutate()}
+                      aria-busy={generateBusy}
+                    >
+                      <span
+                        className="inline-flex size-4 shrink-0 items-center justify-center"
+                        aria-hidden
+                      >
+                        {generateBusy ? (
+                          <Loader2 className="size-4 animate-spin text-primary" />
+                        ) : (
+                          <WandSparkles className="size-4 text-primary" />
+                        )}
+                      </span>
+                      Generar con IA
+                    </Button>
+                  </div>
                   <Textarea
                     id="idea-content"
                     className="min-h-48 rounded-2xl border-border/80 bg-background/80"
-                    placeholder="Escribe tu idea, pega notas o una URL…"
+                    placeholder="Escribe tu idea o pega notas…"
                     value={content}
                     onChange={e => setContent(e.target.value)}
-                    disabled={busy}
-                    aria-busy={busy}
+                    disabled={formLocked}
+                    aria-busy={formLocked}
                   />
                 </section>
 
@@ -405,7 +458,7 @@ export default function NewIdea() {
                     id="idea-sector"
                     value={sector}
                     onChange={e => setSector(e.target.value)}
-                    disabled={busy}
+                    disabled={formLocked}
                     className="border-input bg-background h-11 w-full rounded-2xl border px-3 text-sm shadow-xs outline-none transition-[border-color,box-shadow] focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
                   >
                     {SECTOR_OPTIONS.map(opt => (
@@ -421,7 +474,7 @@ export default function NewIdea() {
             <Card className="h-full rounded-3xl border-border/80 bg-card/90 p-5 shadow-sm backdrop-blur-sm sm:p-7">
               <IdeaVisibilityCard
                 keepPrivate={keepPrivate}
-                busy={busy}
+                busy={formLocked}
                 onChange={v => {
                   setKeepPrivate(v)
                   writePrivateIdeasByDefault(v)
@@ -450,7 +503,8 @@ export default function NewIdea() {
           />
           <AttachmentsPanel
             attachedFiles={attachedFiles}
-            busy={busy}
+            createPending={busy}
+            locked={formLocked}
             onAddClick={() => fileInputRef.current?.click()}
             onRemoveFile={removeFile}
             onSubmit={handleSubmit}

@@ -22,7 +22,7 @@ export function HomeLandingHeader({ className }: HomeLandingHeaderProps) {
       <div className={appPageMainClassName('flex h-16 items-center justify-between gap-4')}>
         <Link
           to="/"
-          className="font-serif text-xl text-foreground transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 rounded-lg"
+          className="rounded-lg font-serif text-2xl tracking-tight text-foreground transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
         >
           Idealow
         </Link>

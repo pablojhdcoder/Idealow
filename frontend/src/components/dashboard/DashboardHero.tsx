@@ -28,7 +28,7 @@ export function DashboardHero({ name }: Props) {
             Hola, {name} 👋
           </h1>
           <p className="mt-1.5 max-w-xl text-sm leading-relaxed text-muted-foreground">
-            Empieza una nueva idea, retoma las tuyas y descubre lo que se está moviendo en la comunidad.
+            Empieza una nueva idea, retoma las tuyas y descubre lo que se está moviendo en la comunidad de Idealow.
           </p>
         </div>
       </div>

@@ -357,7 +357,7 @@ export default function Ideas() {
                 <Input
                   id="ideas-semantic-search"
                   className="h-9 rounded-xl border-border/80 pl-9 text-sm shadow-xs transition-[border-color,box-shadow] duration-200"
-                  placeholder="Título, texto capturado o significado…"
+                  placeholder="Título, resumen o significado..."
                   value={searchInput}
                   onChange={e => setSearchInput(e.target.value)}
                   aria-label="Búsqueda semántica de ideas"

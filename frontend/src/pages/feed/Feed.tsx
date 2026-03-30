@@ -59,14 +59,14 @@ const FEED_SKELETON_H_CLASS = 'h-[264px]'
 
 const FEED_TABS = [
   { id: 'all' as const, label: 'Todas', filter: 'all' as FeedFilter, sort: 'new' as FeedSort },
+  { id: 'score', label: 'Por puntuación ', filter: 'all' as FeedFilter, sort: 'score' as FeedSort },
+  { id: 'votes', label: 'Más votadas', filter: 'all' as FeedFilter, sort: 'votes' as FeedSort },
   {
     id: 'strong',
     label: 'Señal fuerte',
     filter: 'strong' as FeedFilter,
     sort: 'new' as FeedSort,
   },
-  { id: 'score', label: 'Por score', filter: 'all' as FeedFilter, sort: 'score' as FeedSort },
-  { id: 'votes', label: 'Más votadas', filter: 'all' as FeedFilter, sort: 'votes' as FeedSort },
 ] as const
 
 export default function Feed() {
@@ -235,7 +235,7 @@ export default function Feed() {
                 <Input
                   id="feed-search"
                   className="h-9 rounded-xl pl-9 text-sm"
-                  placeholder="Título, resumen o captura…"
+                  placeholder="Título, resumen o significado..."
                   value={qInput}
                   onChange={e => setQInput(e.target.value)}
                 />

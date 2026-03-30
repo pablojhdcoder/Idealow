@@ -11,6 +11,7 @@ import usersRoutes from '../../src/routes/users'
 const prismaUserFindUnique = vi.hoisted(() => vi.fn())
 const prismaUserUpdate = vi.hoisted(() => vi.fn())
 const prismaFileFindFirst = vi.hoisted(() => vi.fn())
+const generateProfileIdeaSuggestionMock = vi.hoisted(() => vi.fn())
 
 vi.mock('../../src/lib/prisma', () => ({
   prisma: {
@@ -26,10 +27,15 @@ vi.mock('../../src/lib/prisma', () => ({
 
 vi.mock('../../src/middleware/rateLimit', () => ({
   suggestionsRateLimit: (_req: unknown, _res: unknown, next: (e?: unknown) => void) => next(),
+  suggestionsGenerateRateLimit: (_req: unknown, _res: unknown, next: (e?: unknown) => void) => next(),
 }))
 
 vi.mock('../../src/services/users/avatarFile', () => ({
   deleteOwnedAvatarFile: vi.fn().mockResolvedValue(undefined),
+}))
+
+vi.mock('../../src/services/ai/generateProfileIdeaSuggestion', () => ({
+  generateProfileIdeaSuggestion: (...args: unknown[]) => generateProfileIdeaSuggestionMock(...args),
 }))
 
 function signTestToken(userId: string) {
@@ -67,6 +73,55 @@ describe('GET /api/users/suggestions', () => {
     const app = buildApp()
     const res = await request(app).get('/api/users/suggestions')
     expect(res.status).toBe(401)
+  })
+})
+
+describe('POST /api/users/suggestions/generate', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('200 y devuelve contenido generado por IA', async () => {
+    const app = buildApp()
+    prismaUserFindUnique.mockResolvedValue({
+      id: 'user-1',
+      username: 'pablo',
+      sectors: ['tech', 'education'],
+      goal: 'SIDE_PROJECT',
+      experienceLevel: 'INTERMEDIATE',
+    })
+    generateProfileIdeaSuggestionMock.mockResolvedValue(
+      'Idea completa para profesionales tech que quieren validar rápido.',
+    )
+
+    const res = await request(app)
+      .post('/api/users/suggestions/generate')
+      .set('Cookie', [`token=${signTestToken('user-1')}`])
+
+    expect(res.status).toBe(200)
+    expect(res.body.content).toContain('Idea completa')
+    expect(generateProfileIdeaSuggestionMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('si falla IA, aplica fallback y responde 200', async () => {
+    const app = buildApp()
+    prismaUserFindUnique.mockResolvedValue({
+      id: 'user-1',
+      username: 'pablo',
+      sectors: ['health'],
+      goal: 'LEARNING',
+      experienceLevel: 'BEGINNER',
+    })
+    generateProfileIdeaSuggestionMock.mockRejectedValue(new Error('provider down'))
+
+    const res = await request(app)
+      .post('/api/users/suggestions/generate')
+      .set('Cookie', [`token=${signTestToken('user-1')}`])
+
+    expect(res.status).toBe(200)
+    expect(typeof res.body.content).toBe('string')
+    expect(res.body.content).toContain('health')
+    expect(res.body.content).toContain('perfil')
   })
 })
 

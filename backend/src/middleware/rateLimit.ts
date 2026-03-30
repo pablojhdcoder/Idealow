@@ -66,6 +66,13 @@ export const suggestionsRateLimit = createRateLimit({
   code: 'RATE_LIMIT_USERS_SUGGESTIONS',
 })
 
+export const suggestionsGenerateRateLimit = createRateLimit({
+  windowMs: 10 * 60 * 1000,
+  max: 8,
+  message: 'Se alcanzó el límite de generación de ideas con IA. Vuelve a intentarlo más tarde.',
+  code: 'RATE_LIMIT_USERS_SUGGESTIONS_GENERATE',
+})
+
 export const ideasRefineRateLimit = createRateLimit({
   windowMs: 10 * 60 * 1000,
   max: 30,

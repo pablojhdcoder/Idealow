@@ -1,8 +1,8 @@
-## 🚀 Idealow
-
-<p align="left">
+<p align="center">
   <img src="assets/logo2.png" alt="Logo Idealow" width="96" />
 </p>
+
+## 🚀 Idealow
 
 Idealow es una aplicación web para **capturar ideas en bruto**, **refinarlas con ayuda de IA** y **validarlas con señales reales de mercado**, con una **capa comunitaria** para compartir y descubrir ideas de otras personas.
 

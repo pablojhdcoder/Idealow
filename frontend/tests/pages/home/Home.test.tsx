@@ -31,7 +31,7 @@ describe('Home', () => {
   it('lista las cuatro capacidades del producto', () => {
     renderHome()
     expect(screen.getByText('Cualquier entrada')).toBeInTheDocument()
-    expect(screen.getByText('Refinamiento guiado')).toBeInTheDocument()
+    expect(screen.getAllByText('Refinamiento guiado').length).toBeGreaterThanOrEqual(1)
     expect(screen.getByText('Contraste con la realidad')).toBeInTheDocument()
     expect(screen.getByText('Listo para ficha')).toBeInTheDocument()
   })

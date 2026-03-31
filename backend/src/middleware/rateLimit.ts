@@ -53,52 +53,52 @@ export const filesUploadRateLimit = createRateLimit({
 })
 
 export const ideasCreateRateLimit = createRateLimit({
-  windowMs: 10 * 60 * 1000,
-  max: 10,
+  windowMs: 3 * 60 * 60 * 1000,
+  max: 5,
   message: 'Se alcanzó el límite de creación de ideas. Vuelve a intentarlo más tarde.',
   code: 'RATE_LIMIT_IDEAS_CREATE',
 })
 
 export const suggestionsRateLimit = createRateLimit({
-  windowMs: 10 * 60 * 1000,
-  max: 20,
+  windowMs: 3 * 60 * 60 * 1000,
+  max: 60,
   message: 'Se alcanzó el límite de sugerencias. Vuelve a intentarlo más tarde.',
   code: 'RATE_LIMIT_USERS_SUGGESTIONS',
 })
 
 export const suggestionsGenerateRateLimit = createRateLimit({
-  windowMs: 10 * 60 * 1000,
-  max: 8,
+  windowMs: 3 * 60 * 60 * 1000,
+  max: 25,
   message: 'Se alcanzó el límite de generación de ideas con IA. Vuelve a intentarlo más tarde.',
   code: 'RATE_LIMIT_USERS_SUGGESTIONS_GENERATE',
 })
 
 export const ideasRefineRateLimit = createRateLimit({
-  windowMs: 10 * 60 * 1000,
+  windowMs: 3 * 60 * 60 * 1000,
   max: 30,
   message: 'Se alcanzó el límite de refinamiento de ideas. Vuelve a intentarlo más tarde.',
   code: 'RATE_LIMIT_IDEAS_REFINE',
 })
 
 export const ideasValidationRateLimit = createRateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 15,
+  windowMs: 3 * 60 * 60 * 1000,
+  max: 8,
   message: 'Se alcanzó el límite de validaciones. Vuelve a intentarlo más tarde.',
   code: 'RATE_LIMIT_IDEAS_VALIDATION',
 })
 
 /** Aperturas del stream SSE (cada GET cuenta al inicio; conexiones largas no multiplican). */
 export const ideasValidationSseRateLimit = createRateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 30,
+  windowMs: 3 * 60 * 60 * 1000,
+  max: 40,
   message: 'Se alcanzó el límite del stream de validación. Vuelve a intentarlo más tarde.',
   code: 'RATE_LIMIT_IDEAS_VALIDATION_SSE',
 })
 
 /** Búsqueda semántica y similares (embeddings / pgvector). */
 export const semanticExploreRateLimit = createRateLimit({
-  windowMs: 10 * 60 * 1000,
-  max: 40,
+  windowMs: 3 * 60 * 60 * 1000,
+  max: 60,
   message: 'Se alcanzó el límite de exploración semántica. Vuelve a intentarlo más tarde.',
   code: 'RATE_LIMIT_SEMANTIC_EXPLORE',
 })

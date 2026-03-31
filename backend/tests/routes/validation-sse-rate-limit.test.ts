@@ -50,7 +50,7 @@ describe('GET /api/validation/ideas/:id/validate/stream — rate limit SSE', () 
     const app = buildApp()
     const auth = `Bearer ${signToken('user-1')}`
 
-    for (let i = 0; i < 30; i++) {
+    for (let i = 0; i < 40; i++) {
       const res = await request(app)
         .get(`/api/validation/ideas/${id}/validate/stream`)
         .set('Authorization', auth)

@@ -68,9 +68,14 @@ export async function createIdeaFromInput(input: CreateIdeaInput): Promise<Creat
         throw e
       }
       if (e instanceof Error && e.message.startsWith('UNSUPPORTED_MEDIA:')) {
+        const unsupportedMediaMessage = e.message.replace('UNSUPPORTED_MEDIA:', '').trim()
+        const normalizedUnsupportedMediaMessage =
+          unsupportedMediaMessage.toLowerCase().includes('pdf extraction is not implemented')
+            ? 'La extracción de PDF todavía no está implementada'
+            : unsupportedMediaMessage
         throw new HttpError(
           422,
-          e.message.replace('UNSUPPORTED_MEDIA:', '').trim(),
+          normalizedUnsupportedMediaMessage,
           'IDEAS_UNSUPPORTED_MEDIA',
         )
       }

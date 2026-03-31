@@ -9,34 +9,42 @@ Idealow es una aplicación web para **capturar ideas en bruto**, **refinarlas co
 - Captura desde texto libre y adjuntos (PDF, imagen, audio, vídeo, notas…).
 - Extrae automáticamente el contenido relevante y genera un **título, resumen y estructura** listos para trabajar.
 - Te guía con un **wizard de refinamiento** por pasos.
-- Lanza una **validación de mercado asíncrona** que consulta distintas fuentes (YouTube, Reddit, noticias…) y calcula un score.
-- Permite **publicar ideas validadas** en un feed comunitario, ver ideas de otras personas y descubrir ideas relacionadas mediante **búsqueda semántica**.
+- Lanza una **validación de mercado** que consulta distintas fuentes (Reddit, noticias, redes sociales, competidores…) y calcula un score.
+- Permite **publicar ideas validadas** en un feed comunitario, ver y valorar ideas de otras personas y descubrir ideas relacionadas mediante **búsqueda semántica**.
 
 ## 🏆 Proyecto para la Hackatón CubePath 2026
 
-Este proyecto se ha preparado como participación para la **Hackatón CubePath 2026**: aplicación funcional, repositorio público, demo desplegada en CubePath y documentación técnica completa.
+Este proyecto se ha preparado como participación para la **Hackatón CubePath 2026**
 
-<p align="left">
+<p align="center
   <img src="assets/logoCubePath.png" alt="Logo CubePath" width="220" />
 </p>
 
 ---
 
+## ☁️ Cómo se utiliza CubePath en este proyecto
+
+- El **backend** (API de Express) se despliega como un servicio en CubePath.
+- El **frontend** (Vite + React) se construye y se sirve detrás del mismo dominio, utilizando un **reverse proxy** que redirige las rutas `/api/*` hacia el backend.
+- La base de datos **PostgreSQL + pgvector** se ejecuta como servicio gestionado o como contenedor propio, accesible desde el backend desplegado en CubePath.
+- La configuración de CORS, `TRUST_PROXY` y cookies `secure` se ajusta para que:
+  - La cookie JWT sea **`httpOnly`** y segura en producción.
+  - Solo el dominio de CubePath pueda acceder a la API.
+- Los assets subidos (carpeta `uploads`) se almacenan en un volumen persistente accesible por el servicio backend en CubePath.
+
+---
+
 ## 🔗 Demo desplegada en CubePath
 
-> **Sustituye esta URL por la de tu despliegue real en CubePath antes de registrar el proyecto.**
-
-- **Demo (CubePath)**: `https://TU-DOMINIO.cubepath.app`
-
-### 🎬 Vista rápida de la app
-
-![Demo de Idealow](assets/finaldemo.gif)
+- **Demo (CubePath)**: `https://dominio.cubepath.app`
 
 ---
 
 ## 📸 Capturas / GIFs
 
-> Añade aquí imágenes o GIFs de la app en funcionamiento (puedes arrastrarlas directamente en GitHub).
+### 🎬 Vista rápida de la app
+
+![Demo de Idealow](assets/finaldemo.gif)
 
 - Vista de **dashboard** con ideas recientes.
 - Flujo de **nueva idea** con adjuntos.
@@ -174,7 +182,7 @@ En `backend/.env` (obligatorias):
 
 #### Paso C — Aplicar esquema (Prisma)
 
-Con la base levantada y `DATABASE_URL` correcta:
+Con la base de datos levantada y `DATABASE_URL` correcta:
 
 ```bash
 npm run db:generate
@@ -199,6 +207,7 @@ En otra terminal:
 ```bash
 cd frontend
 npm install
+copy .env.example .env
 npm run dev
 ```
 
@@ -225,20 +234,6 @@ npm test
 
 ---
 
-## ☁️ Cómo se utiliza CubePath en este proyecto
-
-- El **backend** (API de Express) se despliega como un servicio en CubePath.
-- El **frontend** (Vite + React) se construye y se sirve detrás del mismo dominio, utilizando un **reverse proxy** que redirige las rutas `/api/*` hacia el backend.
-- La base de datos **PostgreSQL + pgvector** se ejecuta como servicio gestionado o como contenedor propio, accesible desde el backend desplegado en CubePath.
-- La configuración de CORS, `TRUST_PROXY` y cookies `secure` se ajusta para que:
-  - La cookie JWT sea **`httpOnly`** y segura en producción.
-  - Solo el dominio de CubePath pueda acceder a la API.
-- Los assets subidos (carpeta `uploads`) se almacenan en un volumen persistente accesible por el servicio backend en CubePath.
-
-> En el formulario `project.yml` de la hackatón se describe brevemente el **dominio de CubePath**, la **URL del repositorio** y un resumen de cómo se ha hecho este despliegue.
-
----
-
 ## 📌 Notas adicionales
 
 - **Puertos por defecto en local**:
@@ -250,5 +245,7 @@ npm test
 
 ## 📄 Licencia
 
-Pendiente (no especificada).
+Este proyecto se distribuye bajo la licencia **MIT**.
+
+Consulta el archivo `LICENSE` para el texto completo.
 

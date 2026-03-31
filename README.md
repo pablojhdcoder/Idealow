@@ -22,17 +22,18 @@ Este proyecto se ha preparado como participación para la **Hackatón CubePath 2
 
 ## ☁️ Cómo se utiliza CubePath en este proyecto
 
-- El **backend** (API de Express) se despliega como un servicio en CubePath.
-- El **frontend** (Vite + React) se construye y se sirve detrás del mismo dominio, utilizando un **reverse proxy** que redirige las rutas `/api/*` hacia el backend.
-- La base de datos **PostgreSQL + pgvector** se ejecuta como servicio gestionado o como contenedor propio, accesible desde el backend desplegado en CubePath.
+Se ha instalado Dokploy en un gp.micro y se ha configurado de la siguiente forma:
+
+- El **backend** (API de Express) se despliega en un servicio llamado backend dentro de Dokploy.
+- El **frontend** (Vite + React) se se despliega en un servicio llamado frontend y se sirve detrás del mismo dominio, utilizando un **reverse proxy** que redirige las rutas `/api/*` hacia el backend.
+- La base de datos **PostgreSQL + pgvector** se ejecuta como servicio gestionado o como contenedor propio, accesible desde el backend.
 - La configuración de CORS, `TRUST_PROXY` y cookies `secure` se ajusta para que:
   - La cookie JWT sea **`httpOnly`** y segura en producción.
   - Solo el dominio de CubePath pueda acceder a la API.
-- Los assets subidos (carpeta `uploads`) se almacenan en un volumen persistente accesible por el servicio backend en CubePath.
 
 ## 🔗 Demo desplegada en CubePath
 
-- **Demo (CubePath)**: `https://dominio.cubepath.app`
+- **Demo (CubePath)**: `https://idealow-194-26-100-24.traefik.me/`
 
 ## 📸 Capturas / GIFs
 

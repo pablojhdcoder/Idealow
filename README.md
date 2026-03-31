@@ -1,5 +1,9 @@
 ## 🚀 Idealow
 
+<p align="left">
+  <img src="assets/logo2.png" alt="Logo Idealow" width="96" />
+</p>
+
 Idealow es una aplicación web para **capturar ideas en bruto**, **refinarlas con ayuda de IA** y **validarlas con señales reales de mercado**, con una **capa comunitaria** para compartir y descubrir ideas de otras personas.
 
 - Captura desde texto libre y adjuntos (PDF, imagen, audio, vídeo, notas…).
@@ -8,8 +12,13 @@ Idealow es una aplicación web para **capturar ideas en bruto**, **refinarlas co
 - Lanza una **validación de mercado asíncrona** que consulta distintas fuentes (YouTube, Reddit, noticias…) y calcula un score.
 - Permite **publicar ideas validadas** en un feed comunitario, ver ideas de otras personas y descubrir ideas relacionadas mediante **búsqueda semántica**.
 
-![Logo Idealow](assets/logo2.png)
-![Logo CubePath](assets/logoCubePath.png)
+## 🏆 Proyecto para la Hackatón CubePath 2026
+
+Este proyecto se ha preparado como participación para la **Hackatón CubePath 2026**: aplicación funcional, repositorio público, demo desplegada en CubePath y documentación técnica completa.
+
+<p align="left">
+  <img src="assets/logoCubePath.png" alt="Logo CubePath" width="220" />
+</p>
 
 ---
 
@@ -19,13 +28,15 @@ Idealow es una aplicación web para **capturar ideas en bruto**, **refinarlas co
 
 - **Demo (CubePath)**: `https://TU-DOMINIO.cubepath.app`
 
+### 🎬 Vista rápida de la app
+
+![Demo de Idealow](assets/finaldemo.gif)
+
 ---
 
 ## 📸 Capturas / GIFs
 
 > Añade aquí imágenes o GIFs de la app en funcionamiento (puedes arrastrarlas directamente en GitHub).
-
-![Demo de Idealow](assets/finaldemo.gif)
 
 - Vista de **dashboard** con ideas recientes.
 - Flujo de **nueva idea** con adjuntos.

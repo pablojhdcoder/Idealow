@@ -131,4 +131,13 @@ export default defineConfig(({ mode }) => ({
       },
     },
   },
+  preview: {
+    host: '0.0.0.0',
+    port: 3000,
+    /**
+     * Dockploy/Traefik publica hosts dinámicos *.traefik.me.
+     * Permitimos el host actual y el wildcard para evitar bloqueos "host not allowed".
+     */
+    allowedHosts: ['idealow-194-26-100-24.traefik.me', '.traefik.me'],
+  },
 }))

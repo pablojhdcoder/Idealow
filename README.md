@@ -12,15 +12,13 @@ Idealow es una aplicación web para **capturar ideas en bruto**, **refinarlas co
 - Lanza una **validación de mercado** que consulta distintas fuentes (Reddit, noticias, redes sociales, competidores…) y calcula un score.
 - Permite **publicar ideas validadas** en un feed comunitario, ver y valorar ideas de otras personas y descubrir ideas relacionadas mediante **búsqueda semántica**.
 
-## 🏆 Proyecto para la Hackatón CubePath 2026
+## 🏆 Hackatón CubePath 2026
 
-Este proyecto se ha preparado como participación para la **Hackatón CubePath 2026**
-
-<p align="center
-  <img src="assets/logoCubePath.png" alt="Logo CubePath" width="220" />
+<p align="center">
+  <img src="assets/logoCubePath.png" alt="Logo CubePath" width="250" />
 </p>
 
----
+Este proyecto se ha preparado como participación para la **Hackatón CubePath 2026**
 
 ## ☁️ Cómo se utiliza CubePath en este proyecto
 
@@ -32,17 +30,11 @@ Este proyecto se ha preparado como participación para la **Hackatón CubePath 2
   - Solo el dominio de CubePath pueda acceder a la API.
 - Los assets subidos (carpeta `uploads`) se almacenan en un volumen persistente accesible por el servicio backend en CubePath.
 
----
-
 ## 🔗 Demo desplegada en CubePath
 
 - **Demo (CubePath)**: `https://dominio.cubepath.app`
 
----
-
 ## 📸 Capturas / GIFs
-
-### 🎬 Vista rápida de la app
 
 ![Demo de Idealow](assets/finaldemo.gif)
 
